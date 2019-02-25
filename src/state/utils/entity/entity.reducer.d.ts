@@ -1,0 +1,10 @@
+import { EntityState } from './entity-state';
+import { EntityAction } from './entity.action';
+import { Action } from '@ngrx/store';
+export declare const initialEntityState: EntityState<any>;
+/**
+ * Higher order reducer for reusing reducer logic for multiple entities
+ *
+ * Utilizes entityId meta field to target entity by id in actions
+ */
+export declare function entityReducer<T>(entityType: string, reducer: (state: T, action: Action) => T): (state: EntityState<T>, action: EntityAction) => EntityState<T>;
