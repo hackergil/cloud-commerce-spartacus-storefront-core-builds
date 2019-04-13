@@ -6123,30 +6123,173 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var ProductLoaderService = /** @class */ (function () {
-        function ProductLoaderService(http, occEndpoints) {
+    var ConverterService = /** @class */ (function () {
+        function ConverterService(injector) {
+            this.injector = injector;
+            this.converters = new Map();
+        }
+        /**
+         * @private
+         * @template S, T
+         * @param {?} injectionToken
+         * @return {?}
+         */
+        ConverterService.prototype.getConverters = /**
+         * @private
+         * @template S, T
+         * @param {?} injectionToken
+         * @return {?}
+         */
+            function (injectionToken) {
+                if (!this.converters.has(injectionToken)) {
+                    /** @type {?} */
+                    var converters = this.injector.get(injectionToken, []);
+                    if (!Array.isArray(converters)) {
+                        console.warn('Converter must be multi-provided, please use "multi: true" for', injectionToken.toString());
+                    }
+                    this.converters.set(injectionToken, converters);
+                }
+                return this.converters.get(injectionToken);
+            };
+        /**
+         * Will return true if converters for specified token were provided
+         */
+        /**
+         * Will return true if converters for specified token were provided
+         * @template S, T
+         * @param {?} injectionToken
+         * @return {?}
+         */
+        ConverterService.prototype.hasConverters = /**
+         * Will return true if converters for specified token were provided
+         * @template S, T
+         * @param {?} injectionToken
+         * @return {?}
+         */
+            function (injectionToken) {
+                /** @type {?} */
+                var converters = this.getConverters(injectionToken);
+                return Array.isArray(converters) && converters.length > 0;
+            };
+        /**
+         * Pipeable operator to apply converter logic in a observable stream
+         */
+        /**
+         * Pipeable operator to apply converter logic in a observable stream
+         * @template S, T
+         * @param {?} injectionToken
+         * @return {?}
+         */
+        ConverterService.prototype.pipeable = /**
+         * Pipeable operator to apply converter logic in a observable stream
+         * @template S, T
+         * @param {?} injectionToken
+         * @return {?}
+         */
+            function (injectionToken) {
+                var _this = this;
+                if (this.hasConverters(injectionToken)) {
+                    return operators.map(function (model) { return _this.convertSource(model, injectionToken); });
+                }
+                else {
+                    return function (observable) { return ( /** @type {?} */(observable)); };
+                }
+            };
+        /**
+         * Apply converter logic specified by injection token to source data
+         */
+        /**
+         * Apply converter logic specified by injection token to source data
+         * @template S, T
+         * @param {?} source
+         * @param {?} injectionToken
+         * @return {?}
+         */
+        ConverterService.prototype.convert = /**
+         * Apply converter logic specified by injection token to source data
+         * @template S, T
+         * @param {?} source
+         * @param {?} injectionToken
+         * @return {?}
+         */
+            function (source, injectionToken) {
+                if (this.hasConverters(injectionToken)) {
+                    return this.convertSource(source, injectionToken);
+                }
+                else {
+                    return ( /** @type {?} */(source));
+                }
+            };
+        /**
+         * @private
+         * @template S, T
+         * @param {?} source
+         * @param {?} injectionToken
+         * @return {?}
+         */
+        ConverterService.prototype.convertSource = /**
+         * @private
+         * @template S, T
+         * @param {?} source
+         * @param {?} injectionToken
+         * @return {?}
+         */
+            function (source, injectionToken) {
+                return this.getConverters(injectionToken).reduce(function (target, converter) {
+                    return converter.convert(source, target);
+                }, ( /** @type {?} */(undefined)));
+            };
+        ConverterService.decorators = [
+            { type: i0.Injectable, args: [{
+                        providedIn: 'root',
+                    },] }
+        ];
+        /** @nocollapse */
+        ConverterService.ctorParameters = function () {
+            return [
+                { type: i0.Injector }
+            ];
+        };
+        /** @nocollapse */ ConverterService.ngInjectableDef = i0.defineInjectable({ factory: function ConverterService_Factory() { return new ConverterService(i0.inject(i0.INJECTOR)); }, token: ConverterService, providedIn: "root" });
+        return ConverterService;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    /** @type {?} */
+    var PRODUCT_NORMALIZER = new i0.InjectionToken('ProductNormalizer');
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    var OccProductAdapter = /** @class */ (function () {
+        function OccProductAdapter(http, occEndpoints, converter) {
             this.http = http;
             this.occEndpoints = occEndpoints;
+            this.converter = converter;
         }
         /**
          * @param {?} productCode
          * @return {?}
          */
-        ProductLoaderService.prototype.load = /**
+        OccProductAdapter.prototype.load = /**
          * @param {?} productCode
          * @return {?}
          */
             function (productCode) {
                 return this.http
                     .get(this.getEndpoint(productCode))
-                    .pipe(operators.catchError(function (error) { return rxjs.throwError(error.json()); }));
+                    .pipe(this.converter.pipeable(PRODUCT_NORMALIZER));
             };
         /**
          * @protected
          * @param {?} code
          * @return {?}
          */
-        ProductLoaderService.prototype.getEndpoint = /**
+        OccProductAdapter.prototype.getEndpoint = /**
          * @protected
          * @param {?} code
          * @return {?}
@@ -6156,17 +6299,18 @@
                     productCode: code,
                 });
             };
-        ProductLoaderService.decorators = [
+        OccProductAdapter.decorators = [
             { type: i0.Injectable }
         ];
         /** @nocollapse */
-        ProductLoaderService.ctorParameters = function () {
+        OccProductAdapter.ctorParameters = function () {
             return [
                 { type: i1.HttpClient },
-                { type: OccEndpointsService }
+                { type: OccEndpointsService },
+                { type: ConverterService }
             ];
         };
-        return ProductLoaderService;
+        return OccProductAdapter;
     }());
 
     /**
@@ -6274,17 +6418,27 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var ProductReviewsLoaderService = /** @class */ (function () {
-        function ProductReviewsLoaderService(http, occEndpoints) {
+    /** @type {?} */
+    var PRODUCT_REVIEWS_NORMALIZER = new i0.InjectionToken('ProductReviewsListNormalizer');
+    /** @type {?} */
+    var PRODUCT_REVIEW_SERIALIZER = new i0.InjectionToken('ProductReviewsAddSerializer');
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    var OccProductReviewsAdapter = /** @class */ (function () {
+        function OccProductReviewsAdapter(http, occEndpoints, converter) {
             this.http = http;
             this.occEndpoints = occEndpoints;
+            this.converter = converter;
         }
         /**
          * @param {?} productCode
          * @param {?=} maxCount
          * @return {?}
          */
-        ProductReviewsLoaderService.prototype.load = /**
+        OccProductReviewsAdapter.prototype.load = /**
          * @param {?} productCode
          * @param {?=} maxCount
          * @return {?}
@@ -6292,19 +6446,20 @@
             function (productCode, maxCount) {
                 return this.http
                     .get(this.getEndpoint(productCode, maxCount))
-                    .pipe(operators.catchError(function (error) { return rxjs.throwError(error.json()); }));
+                    .pipe(this.converter.pipeable(PRODUCT_REVIEWS_NORMALIZER));
             };
         /**
          * @param {?} productCode
          * @param {?} review
          * @return {?}
          */
-        ProductReviewsLoaderService.prototype.post = /**
+        OccProductReviewsAdapter.prototype.post = /**
          * @param {?} productCode
          * @param {?} review
          * @return {?}
          */
             function (productCode, review) {
+                review = this.converter.convert(review, PRODUCT_REVIEW_SERIALIZER);
                 /** @type {?} */
                 var headers = new i1.HttpHeaders({
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -6315,9 +6470,9 @@
                 body.append('comment', review.comment);
                 body.append('rating', review.rating.toString());
                 body.append('alias', review.alias);
-                return this.http
-                    .post(this.getEndpoint(productCode), body.toString(), { headers: headers })
-                    .pipe(operators.catchError(function (error) { return rxjs.throwError(error.json()); }));
+                return this.http.post(this.getEndpoint(productCode), body.toString(), {
+                    headers: headers,
+                });
             };
         /**
          * @protected
@@ -6325,7 +6480,7 @@
          * @param {?=} maxCount
          * @return {?}
          */
-        ProductReviewsLoaderService.prototype.getEndpoint = /**
+        OccProductReviewsAdapter.prototype.getEndpoint = /**
          * @protected
          * @param {?} code
          * @param {?=} maxCount
@@ -6336,77 +6491,45 @@
                     productCode: code,
                 }, { maxCount: maxCount });
             };
-        ProductReviewsLoaderService.decorators = [
+        OccProductReviewsAdapter.decorators = [
             { type: i0.Injectable }
         ];
         /** @nocollapse */
-        ProductReviewsLoaderService.ctorParameters = function () {
+        OccProductReviewsAdapter.ctorParameters = function () {
             return [
                 { type: i1.HttpClient },
-                { type: OccEndpointsService }
+                { type: OccEndpointsService },
+                { type: ConverterService }
             ];
         };
-        return ProductReviewsLoaderService;
+        return OccProductReviewsAdapter;
     }());
 
     /**
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-
-    /**
-     * @fileoverview added by tsickle
-     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
-     */
-    /** @type {?} */
-    var defaultOccProductConfig = {
-        backend: {
-            occ: {
-                endpoints: {
-                    product: 'products/${productCode}?fields=DEFAULT,averageRating,images(FULL),classifications,numberOfReviews',
-                    productReviews: 'products/${productCode}/reviews',
-                    // tslint:disable:max-line-length
-                    productSearch: 'products/search?fields=products(code,name,summary,price(FULL),images(DEFAULT),stock(FULL),averageRating),facets,breadcrumbs,pagination(DEFAULT),sorts(DEFAULT)&query=${query}',
-                    // tslint:enable
-                    productSuggestions: 'products/suggestions?term=${term}&max=${max}',
-                },
-            },
-        },
-    };
-
-    /**
-     * @fileoverview added by tsickle
-     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
-     */
-    var ProductOccModule = /** @class */ (function () {
-        function ProductOccModule() {
+    var OccProductReviewsListNormalizer = /** @class */ (function () {
+        function OccProductReviewsListNormalizer() {
         }
-        ProductOccModule.decorators = [
-            { type: i0.NgModule, args: [{
-                        imports: [
-                            i1$2.CommonModule,
-                            i1.HttpClientModule,
-                            OccModule,
-                            ConfigModule.withConfig(defaultOccProductConfig),
-                        ],
-                        providers: [
-                            ProductLoaderService,
-                            ProductSearchLoaderService,
-                            ProductReviewsLoaderService,
-                        ],
-                    },] }
-        ];
-        return ProductOccModule;
+        /**
+         * @param {?} sources
+         * @param {?=} targets
+         * @return {?}
+         */
+        OccProductReviewsListNormalizer.prototype.convert = /**
+         * @param {?} sources
+         * @param {?=} targets
+         * @return {?}
+         */
+            function (sources, targets) {
+                if (targets === void 0) {
+                    targets = [];
+                }
+                return sources.reviews.map(function (review, index) { return (__assign({}, targets[index], review)); });
+            };
+        return OccProductReviewsListNormalizer;
     }());
-
-    /**
-     * @fileoverview added by tsickle
-     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
-     */
-    /** @type {?} */
-    var PRODUCT_FEATURE = 'product';
-    /** @type {?} */
-    var PRODUCT_DETAIL_ENTITY = '[Product] Detail Entity';
 
     /**
      * @fileoverview added by tsickle
@@ -6555,15 +6678,45 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var ProductImageConverterService = /** @class */ (function () {
-        function ProductImageConverterService(config) {
+    var ProductImageNormalizer = /** @class */ (function () {
+        function ProductImageNormalizer(config) {
             this.config = config;
         }
         /**
+         * @param {?} source
+         * @param {?=} target
+         * @return {?}
+         */
+        ProductImageNormalizer.prototype.convert = /**
+         * @param {?} source
+         * @param {?=} target
+         * @return {?}
+         */
+            function (source, target) {
+                if (target === undefined) {
+                    target = __assign({}, (( /** @type {?} */(source))));
+                }
+                if (source.images) {
+                    target.images = this.normalize(source.images);
+                }
+                return target;
+            };
+        /**
+         * @deprecated Use `convert(source, target?) => target` instead
+         *
+         * TODO: Should be removed when all use cases will be refactored
+         */
+        /**
+         * @deprecated Use `convert(source, target?) => target` instead
+         *
+         * TODO: Should be removed when all use cases will be refactored
          * @param {?} list
          * @return {?}
          */
-        ProductImageConverterService.prototype.convertList = /**
+        ProductImageNormalizer.prototype.convertList = /**
+         * @deprecated Use `convert(source, target?) => target` instead
+         *
+         * TODO: Should be removed when all use cases will be refactored
          * @param {?} list
          * @return {?}
          */
@@ -6593,40 +6746,51 @@
                 }
             };
         /**
+         * @deprecated Use `convert(source, target?) => target` instead
+         *
+         * TODO: Should be removed when all use cases will be refactored
+         */
+        /**
+         * @deprecated Use `convert(source, target?) => target` instead
+         *
+         * TODO: Should be removed when all use cases will be refactored
          * @param {?} product
          * @return {?}
          */
-        ProductImageConverterService.prototype.convertProduct = /**
+        ProductImageNormalizer.prototype.convertProduct = /**
+         * @deprecated Use `convert(source, target?) => target` instead
+         *
+         * TODO: Should be removed when all use cases will be refactored
          * @param {?} product
          * @return {?}
          */
             function (product) {
                 if (product.images) {
-                    product.images = this.populate(product.images);
+                    product.images = this.normalize(product.images);
                 }
             };
         /**
          * @desc
-         * Creates the image structue we'd like to have. Instead of
-         * having a singel list with all images despite type and format
+         * Creates the image structure we'd like to have. Instead of
+         * having a single list with all images despite type and format
          * we create a proper structure. With that we can do:
          * - images.primary.thumnail.url
          * - images.GALLERY[0].thumnail.url
          */
         /**
          * @desc
-         * Creates the image structue we'd like to have. Instead of
-         * having a singel list with all images despite type and format
+         * Creates the image structure we'd like to have. Instead of
+         * having a single list with all images despite type and format
          * we create a proper structure. With that we can do:
          * - images.primary.thumnail.url
          * - images.GALLERY[0].thumnail.url
          * @param {?} source
          * @return {?}
          */
-        ProductImageConverterService.prototype.populate = /**
+        ProductImageNormalizer.prototype.normalize = /**
          * @desc
-         * Creates the image structue we'd like to have. Instead of
-         * having a singel list with all images despite type and format
+         * Creates the image structure we'd like to have. Instead of
+         * having a single list with all images despite type and format
          * we create a proper structure. With that we can do:
          * - images.primary.thumnail.url
          * - images.GALLERY[0].thumnail.url
@@ -6678,48 +6842,57 @@
                 }
                 return images;
             };
-        ProductImageConverterService.decorators = [
-            { type: i0.Injectable }
+        ProductImageNormalizer.decorators = [
+            { type: i0.Injectable, args: [{
+                        providedIn: 'root',
+                    },] }
         ];
         /** @nocollapse */
-        ProductImageConverterService.ctorParameters = function () {
+        ProductImageNormalizer.ctorParameters = function () {
             return [
                 { type: OccConfig }
             ];
         };
-        return ProductImageConverterService;
+        /** @nocollapse */ ProductImageNormalizer.ngInjectableDef = i0.defineInjectable({ factory: function ProductImageNormalizer_Factory() { return new ProductImageNormalizer(i0.inject(OccConfig)); }, token: ProductImageNormalizer, providedIn: "root" });
+        return ProductImageNormalizer;
     }());
 
     /**
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var ProductReferenceConverterService = /** @class */ (function () {
-        function ProductReferenceConverterService() {
+    var ProductReferenceNormalizer = /** @class */ (function () {
+        function ProductReferenceNormalizer() {
         }
         /**
-         * @param {?} product
+         * @param {?} source
+         * @param {?=} target
          * @return {?}
          */
-        ProductReferenceConverterService.prototype.convertProduct = /**
-         * @param {?} product
+        ProductReferenceNormalizer.prototype.convert = /**
+         * @param {?} source
+         * @param {?=} target
          * @return {?}
          */
-            function (product) {
-                if (product.productReferences) {
-                    product.productReferences = this.populate(product.productReferences);
+            function (source, target) {
+                if (target === undefined) {
+                    target = __assign({}, (( /** @type {?} */(source))));
                 }
+                if (source.productReferences) {
+                    target.productReferences = this.normalize(source.productReferences);
+                }
+                return target;
             };
         /**
          * @desc
-         * Creates the reference structue we'd like to have. Instead of
+         * Creates the reference structure we'd like to have. Instead of
          * having a single list with all references we create a proper structure.
          * With that we have a semantic API for the clients
          * - product.references.SIMILAR[0].code
          */
         /**
          * @desc
-         * Creates the reference structue we'd like to have. Instead of
+         * Creates the reference structure we'd like to have. Instead of
          * having a single list with all references we create a proper structure.
          * With that we have a semantic API for the clients
          * - product.references.SIMILAR[0].code
@@ -6727,9 +6900,9 @@
          * @param {?} source
          * @return {?}
          */
-        ProductReferenceConverterService.prototype.populate = /**
+        ProductReferenceNormalizer.prototype.normalize = /**
          * @desc
-         * Creates the reference structue we'd like to have. Instead of
+         * Creates the reference structure we'd like to have. Instead of
          * having a single list with all references we create a proper structure.
          * With that we have a semantic API for the clients
          * - product.references.SIMILAR[0].code
@@ -6767,32 +6940,126 @@
                 }
                 return references;
             };
-        ProductReferenceConverterService.decorators = [
+        ProductReferenceNormalizer.decorators = [
             { type: i0.Injectable }
         ];
-        return ProductReferenceConverterService;
+        return ProductReferenceNormalizer;
     }());
 
     /**
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var ProductConverterModule = /** @class */ (function () {
-        function ProductConverterModule() {
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    /** @type {?} */
+    var defaultOccProductConfig = {
+        backend: {
+            occ: {
+                endpoints: {
+                    product: 'products/${productCode}?fields=DEFAULT,averageRating,images(FULL),classifications,numberOfReviews',
+                    productReviews: 'products/${productCode}/reviews',
+                    // tslint:disable:max-line-length
+                    productSearch: 'products/search?fields=products(code,name,summary,price(FULL),images(DEFAULT),stock(FULL),averageRating),facets,breadcrumbs,pagination(DEFAULT),sorts(DEFAULT)&query=${query}',
+                    // tslint:enable
+                    productSuggestions: 'products/suggestions?term=${term}&max=${max}',
+                },
+            },
+        },
+    };
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    /**
+     * @abstract
+     */
+    var /**
+     * @abstract
+     */ ProductReviewsAdapter = /** @class */ (function () {
+        function ProductReviewsAdapter() {
         }
-        ProductConverterModule.decorators = [
+        return ProductReviewsAdapter;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    /**
+     * @abstract
+     */
+    var /**
+     * @abstract
+     */ ProductAdapter = /** @class */ (function () {
+        function ProductAdapter() {
+        }
+        return ProductAdapter;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    var ProductOccModule = /** @class */ (function () {
+        function ProductOccModule() {
+        }
+        ProductOccModule.decorators = [
             { type: i0.NgModule, args: [{
-                        imports: [i1$2.CommonModule],
-                        providers: [ProductImageConverterService, ProductReferenceConverterService],
+                        imports: [
+                            i1$2.CommonModule,
+                            i1.HttpClientModule,
+                            OccModule,
+                            ConfigModule.withConfig(defaultOccProductConfig),
+                        ],
+                        providers: [
+                            ProductSearchLoaderService,
+                            {
+                                provide: ProductAdapter,
+                                useClass: OccProductAdapter,
+                            },
+                            {
+                                provide: PRODUCT_NORMALIZER,
+                                useExisting: ProductImageNormalizer,
+                                multi: true,
+                            },
+                            {
+                                provide: PRODUCT_NORMALIZER,
+                                useClass: ProductReferenceNormalizer,
+                                multi: true,
+                            },
+                            {
+                                provide: ProductReviewsAdapter,
+                                useClass: OccProductReviewsAdapter,
+                            },
+                            {
+                                provide: PRODUCT_REVIEWS_NORMALIZER,
+                                useClass: OccProductReviewsListNormalizer,
+                                multi: true,
+                            },
+                        ],
                     },] }
         ];
-        return ProductConverterModule;
+        return ProductOccModule;
     }());
 
     /**
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
+    /** @type {?} */
+    var PRODUCT_FEATURE = 'product';
+    /** @type {?} */
+    var PRODUCT_DETAIL_ENTITY = '[Product] Detail Entity';
 
     /**
      * @fileoverview added by tsickle
@@ -8879,7 +9146,7 @@
             return [
                 { type: effects.Actions },
                 { type: ProductSearchLoaderService },
-                { type: ProductImageConverterService }
+                { type: ProductImageNormalizer }
             ];
         };
         __decorate([
@@ -8897,18 +9164,48 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
+    var ProductConnector = /** @class */ (function () {
+        function ProductConnector(adapter) {
+            this.adapter = adapter;
+        }
+        /**
+         * @param {?} productCode
+         * @return {?}
+         */
+        ProductConnector.prototype.get = /**
+         * @param {?} productCode
+         * @return {?}
+         */
+            function (productCode) {
+                return this.adapter.load(productCode);
+            };
+        ProductConnector.decorators = [
+            { type: i0.Injectable, args: [{
+                        providedIn: 'root',
+                    },] }
+        ];
+        /** @nocollapse */
+        ProductConnector.ctorParameters = function () {
+            return [
+                { type: ProductAdapter }
+            ];
+        };
+        /** @nocollapse */ ProductConnector.ngInjectableDef = i0.defineInjectable({ factory: function ProductConnector_Factory() { return new ProductConnector(i0.inject(ProductAdapter)); }, token: ProductConnector, providedIn: "root" });
+        return ProductConnector;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
     var ProductEffects = /** @class */ (function () {
-        function ProductEffects(actions$, occProductService, productImageConverter, productReferenceConverterService) {
+        function ProductEffects(actions$, productConnector) {
             var _this = this;
             this.actions$ = actions$;
-            this.occProductService = occProductService;
-            this.productImageConverter = productImageConverter;
-            this.productReferenceConverterService = productReferenceConverterService;
+            this.productConnector = productConnector;
             this.loadProduct$ = this.actions$.pipe(effects.ofType(LOAD_PRODUCT), operators.map(function (action) { return action.payload; }), operators.groupBy(function (productCode) { return productCode; }), operators.mergeMap(function (group) {
                 return group.pipe(operators.switchMap(function (productCode) {
-                    return _this.occProductService.load(productCode).pipe(operators.map(function (product) {
-                        _this.productImageConverter.convertProduct(product);
-                        _this.productReferenceConverterService.convertProduct(product);
+                    return _this.productConnector.get(productCode).pipe(operators.map(function (product) {
                         return new LoadProductSuccess(product);
                     }), operators.catchError(function (error) {
                         return rxjs.of(new LoadProductFail(productCode, error));
@@ -8923,9 +9220,7 @@
         ProductEffects.ctorParameters = function () {
             return [
                 { type: effects.Actions },
-                { type: ProductLoaderService },
-                { type: ProductImageConverterService },
-                { type: ProductReferenceConverterService }
+                { type: ProductConnector }
             ];
         };
         __decorate([
@@ -8939,16 +9234,65 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
+    var ProductReviewsConnector = /** @class */ (function () {
+        function ProductReviewsConnector(adapter) {
+            this.adapter = adapter;
+        }
+        /**
+         * @param {?} productCode
+         * @param {?=} maxCount
+         * @return {?}
+         */
+        ProductReviewsConnector.prototype.get = /**
+         * @param {?} productCode
+         * @param {?=} maxCount
+         * @return {?}
+         */
+            function (productCode, maxCount) {
+                return this.adapter.load(productCode, maxCount);
+            };
+        /**
+         * @param {?} productCode
+         * @param {?} review
+         * @return {?}
+         */
+        ProductReviewsConnector.prototype.add = /**
+         * @param {?} productCode
+         * @param {?} review
+         * @return {?}
+         */
+            function (productCode, review) {
+                return this.adapter.post(productCode, review);
+            };
+        ProductReviewsConnector.decorators = [
+            { type: i0.Injectable, args: [{
+                        providedIn: 'root',
+                    },] }
+        ];
+        /** @nocollapse */
+        ProductReviewsConnector.ctorParameters = function () {
+            return [
+                { type: ProductReviewsAdapter }
+            ];
+        };
+        /** @nocollapse */ ProductReviewsConnector.ngInjectableDef = i0.defineInjectable({ factory: function ProductReviewsConnector_Factory() { return new ProductReviewsConnector(i0.inject(ProductReviewsAdapter)); }, token: ProductReviewsConnector, providedIn: "root" });
+        return ProductReviewsConnector;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
     var ProductReviewsEffects = /** @class */ (function () {
-        function ProductReviewsEffects(actions$, occProductReviewsService) {
+        function ProductReviewsEffects(actions$, productReviewsConnector) {
             var _this = this;
             this.actions$ = actions$;
-            this.occProductReviewsService = occProductReviewsService;
+            this.productReviewsConnector = productReviewsConnector;
             this.loadProductReviews$ = this.actions$.pipe(effects.ofType(LOAD_PRODUCT_REVIEWS), operators.map(function (action) { return action.payload; }), operators.mergeMap(function (productCode) {
-                return _this.occProductReviewsService.load(productCode).pipe(operators.map(function (data) {
+                return _this.productReviewsConnector.get(productCode).pipe(operators.map(function (data) {
                     return new LoadProductReviewsSuccess({
                         productCode: productCode,
-                        list: data.reviews,
+                        list: data,
                     });
                 }), operators.catchError(function (_error) {
                     return rxjs.of(new LoadProductReviewsFail(( /** @type {?} */({
@@ -8957,8 +9301,8 @@
                 }));
             }));
             this.postProductReview = this.actions$.pipe(effects.ofType(POST_PRODUCT_REVIEW), operators.map(function (action) { return action.payload; }), operators.mergeMap(function (payload) {
-                return _this.occProductReviewsService
-                    .post(payload.productCode, payload.review)
+                return _this.productReviewsConnector
+                    .add(payload.productCode, payload.review)
                     .pipe(operators.map(function (reviewResponse) {
                     return new PostProductReviewSuccess(reviewResponse);
                 }), operators.catchError(function (_error) {
@@ -8973,7 +9317,7 @@
         ProductReviewsEffects.ctorParameters = function () {
             return [
                 { type: effects.Actions },
-                { type: ProductReviewsLoaderService }
+                { type: ProductReviewsConnector }
             ];
         };
         __decorate([
@@ -9330,7 +9674,6 @@
                             i1$2.CommonModule,
                             i1.HttpClientModule,
                             ProductOccModule,
-                            ProductConverterModule,
                             i1$1.StoreModule.forFeature(PRODUCT_FEATURE, reducerToken$4, { metaReducers: metaReducers$2 }),
                             effects.EffectsModule.forFeature(effects$4),
                             ConfigModule.withConfigFactory(productStoreConfigFactory),
@@ -9718,15 +10061,17 @@
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
     /**
+     * Abstract class that can be used to implement custom loader logic
+     * in order to load CMS structure from third-party CMS system.
      * @abstract
-     * @template S
      */
-    var CmsPageAdapter = /** @class */ (function () {
+    var /**
+     * Abstract class that can be used to implement custom loader logic
+     * in order to load CMS structure from third-party CMS system.
+     * @abstract
+     */ CmsPageAdapter = /** @class */ (function () {
         function CmsPageAdapter() {
         }
-        CmsPageAdapter.decorators = [
-            { type: i0.Injectable }
-        ];
         return CmsPageAdapter;
     }());
 
@@ -9856,23 +10201,37 @@
                 return this.getPageFromConfig(pageId).pipe(operators.map(function (page) { return !!page && !!page.ignoreBackend; }));
             };
         /**
-         * returns an Obserable component data from the static configuration.
+         * returns an Observable component data from the static configuration.
          */
         /**
-         * returns an Obserable component data from the static configuration.
+         * returns an Observable component data from the static configuration.
          * @param {?} componentId
          * @return {?}
          */
         CmsStructureConfigService.prototype.getComponentFromConfig = /**
-         * returns an Obserable component data from the static configuration.
+         * returns an Observable component data from the static configuration.
          * @param {?} componentId
          * @return {?}
          */
             function (componentId) {
-                return rxjs.of(this.cmsDataConfig.cmsStructure &&
-                    this.cmsDataConfig.cmsStructure.components
-                    ? this.cmsDataConfig.cmsStructure.components[componentId]
-                    : null);
+                return rxjs.of(this.getComponentById(componentId));
+            };
+        /**
+         * returns an Observable components data from the static configuration.
+         */
+        /**
+         * returns an Observable components data from the static configuration.
+         * @param {?} ids
+         * @return {?}
+         */
+        CmsStructureConfigService.prototype.getComponentsFromConfig = /**
+         * returns an Observable components data from the static configuration.
+         * @param {?} ids
+         * @return {?}
+         */
+            function (ids) {
+                var _this = this;
+                return rxjs.of(ids.map(function (id) { return _this.getComponentById(id); }));
             };
         /**
          * returns an observable with the `PageConfig`.
@@ -10076,6 +10435,22 @@
                 }
                 return components;
             };
+        /**
+         * @private
+         * @param {?} componentId
+         * @return {?}
+         */
+        CmsStructureConfigService.prototype.getComponentById = /**
+         * @private
+         * @param {?} componentId
+         * @return {?}
+         */
+            function (componentId) {
+                return this.cmsDataConfig.cmsStructure &&
+                    this.cmsDataConfig.cmsStructure.components
+                    ? this.cmsDataConfig.cmsStructure.components[componentId]
+                    : undefined;
+            };
         CmsStructureConfigService.decorators = [
             { type: i0.Injectable, args: [{
                         providedIn: 'root',
@@ -10095,16 +10470,10 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    /**
-     * Abstract class that can be used to implement custom loader logic
-     * in order to load CMS structure from third-party CMS system.
-     * @abstract
-     * @template T
-     */
-    var CmsPageLoader = /** @class */ (function () {
-        function CmsPageLoader(cmsStructureConfigService, adapter) {
+    var CmsPageConnector = /** @class */ (function () {
+        function CmsPageConnector(cmsPageAdapter, cmsStructureConfigService) {
+            this.cmsPageAdapter = cmsPageAdapter;
             this.cmsStructureConfigService = cmsStructureConfigService;
-            this.adapter = adapter;
         }
         /**
          * Returns an observable with the page structure. The page structure is
@@ -10118,7 +10487,7 @@
          * @param {?} pageContext
          * @return {?}
          */
-        CmsPageLoader.prototype.get = /**
+        CmsPageConnector.prototype.get = /**
          * Returns an observable with the page structure. The page structure is
          * typically loaded from a backend, but can also be returned from static
          * configuration (see `CmsStructureConfigService`).
@@ -10131,7 +10500,7 @@
                     .shouldIgnoreBackend(pageContext.id)
                     .pipe(operators.switchMap(function (loadFromConfig) {
                     if (!loadFromConfig) {
-                        return _this.load(pageContext).pipe(operators.map(function (page) { return _this.adapt(page); }), operators.catchError(function (error) {
+                        return _this.cmsPageAdapter.load(pageContext).pipe(operators.catchError(function (error) {
                             if (error instanceof i1.HttpErrorResponse &&
                                 error.status === 400) {
                                 return rxjs.of({});
@@ -10148,35 +10517,6 @@
             };
         /**
          *
-         * An adapter can be injected to convert the backend reponse to
-         * the UI model.
-         *
-         * @param page the source that can be converted
-         */
-        /**
-         *
-         * An adapter can be injected to convert the backend reponse to
-         * the UI model.
-         *
-         * @param {?} page the source that can be converted
-         * @return {?}
-         */
-        CmsPageLoader.prototype.adapt = /**
-         *
-         * An adapter can be injected to convert the backend reponse to
-         * the UI model.
-         *
-         * @param {?} page the source that can be converted
-         * @return {?}
-         */
-            function (page) {
-                if (this.adapter) {
-                    return this.adapter.adapt(( /** @type {?} */(page)));
-                }
-                return ( /** @type {?} */(page));
-            };
-        /**
-         *
          * Merge default page structure inot the given `CmsStructureModel`.
          * This is benefitial for a fast setup of the UI without necessary
          * finegrained CMS setup.
@@ -10191,7 +10531,7 @@
          * @param {?} pageStructure
          * @return {?}
          */
-        CmsPageLoader.prototype.mergeDefaultPageStructure = /**
+        CmsPageConnector.prototype.mergeDefaultPageStructure = /**
          *
          * Merge default page structure inot the given `CmsStructureModel`.
          * This is benefitial for a fast setup of the UI without necessary
@@ -10204,20 +10544,20 @@
             function (pageContext, pageStructure) {
                 return this.cmsStructureConfigService.mergePageStructure(pageContext.id, pageStructure);
             };
-        CmsPageLoader.decorators = [
+        CmsPageConnector.decorators = [
             { type: i0.Injectable, args: [{
                         providedIn: 'root',
                     },] }
         ];
         /** @nocollapse */
-        CmsPageLoader.ctorParameters = function () {
+        CmsPageConnector.ctorParameters = function () {
             return [
-                { type: CmsStructureConfigService },
-                { type: CmsPageAdapter, decorators: [{ type: i0.Optional }] }
+                { type: CmsPageAdapter },
+                { type: CmsStructureConfigService }
             ];
         };
-        /** @nocollapse */ CmsPageLoader.ngInjectableDef = i0.defineInjectable({ factory: function CmsPageLoader_Factory() { return new CmsPageLoader(i0.inject(CmsStructureConfigService), i0.inject(CmsPageAdapter, 8)); }, token: CmsPageLoader, providedIn: "root" });
-        return CmsPageLoader;
+        /** @nocollapse */ CmsPageConnector.ngInjectableDef = i0.defineInjectable({ factory: function CmsPageConnector_Factory() { return new CmsPageConnector(i0.inject(CmsPageAdapter), i0.inject(CmsStructureConfigService)); }, token: CmsPageConnector, providedIn: "root" });
+        return CmsPageConnector;
     }());
 
     /**
@@ -10225,10 +10565,10 @@
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
     var PageEffects = /** @class */ (function () {
-        function PageEffects(actions$, cmsPageLoader, routingService) {
+        function PageEffects(actions$, cmsPageConnector, routingService) {
             var _this = this;
             this.actions$ = actions$;
-            this.cmsPageLoader = cmsPageLoader;
+            this.cmsPageConnector = cmsPageConnector;
             this.routingService = routingService;
             this.refreshPage$ = this.actions$.pipe(effects.ofType(LANGUAGE_CHANGE, LOGOUT, LOGIN), operators.switchMap(function (_) {
                 return _this.routingService.getRouterState().pipe(operators.filter(function (routerState) {
@@ -10236,7 +10576,7 @@
                 }), operators.map(function (routerState) { return routerState.state.context; }), operators.take(1), operators.mergeMap(function (context) { return rxjs.of(new LoadPageData(context)); }));
             }));
             this.loadPageData$ = this.actions$.pipe(effects.ofType(LOAD_PAGE_DATA), operators.map(function (action) { return action.payload; }), operators.switchMap(function (pageContext) {
-                return _this.cmsPageLoader.get(pageContext).pipe(operators.mergeMap(function (cmsStructure) {
+                return _this.cmsPageConnector.get(pageContext).pipe(operators.mergeMap(function (cmsStructure) {
                     return [
                         new LoadPageDataSuccess(pageContext, cmsStructure.page),
                         new GetComponentFromPage(cmsStructure.components),
@@ -10253,7 +10593,7 @@
         PageEffects.ctorParameters = function () {
             return [
                 { type: effects.Actions },
-                { type: CmsPageLoader },
+                { type: CmsPageConnector },
                 { type: RoutingService }
             ];
         };
@@ -10274,14 +10614,12 @@
      */
     /**
      * @abstract
-     * @template T
      */
-    var CmsComponentAdapter = /** @class */ (function () {
+    var /**
+     * @abstract
+     */ CmsComponentAdapter = /** @class */ (function () {
         function CmsComponentAdapter() {
         }
-        CmsComponentAdapter.decorators = [
-            { type: i0.Injectable }
-        ];
         return CmsComponentAdapter;
     }());
 
@@ -10289,27 +10627,19 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    /**
-     * Abstract class that can be used to implement custom loader logic
-     * in order to load CMS components from third-party CMS system.
-     * @abstract
-     * @template T
-     */
-    var CmsComponentLoader = /** @class */ (function () {
-        function CmsComponentLoader(cmsStructureConfigService, adapter) {
+    var CmsComponentConnector = /** @class */ (function () {
+        function CmsComponentConnector(cmsStructureConfigService, adapter) {
             this.cmsStructureConfigService = cmsStructureConfigService;
             this.adapter = adapter;
         }
         /**
-         */
-        /**
-         *
+         * @template T
          * @param {?} id
          * @param {?} pageContext
          * @return {?}
          */
-        CmsComponentLoader.prototype.get = /**
-         *
+        CmsComponentConnector.prototype.get = /**
+         * @template T
          * @param {?} id
          * @param {?} pageContext
          * @return {?}
@@ -10321,52 +10651,54 @@
                     .pipe(operators.switchMap(function (configuredComponent) {
                     return configuredComponent
                         ? rxjs.of(configuredComponent)
-                        : _this.load(id, pageContext).pipe(operators.map(function (component) { return _this.adapt(component); }));
+                        : _this.adapter.load(id, pageContext);
                 }));
             };
         /**
-         *
-         * An adapter can be injected to convert the backend reponse to
-         * the UI model.
-         *
-         * @param component the source that can be converted
-         */
-        /**
-         *
-         * An adapter can be injected to convert the backend reponse to
-         * the UI model.
-         *
-         * @param {?} component the source that can be converted
+         * @param {?} ids
+         * @param {?} pageContext
          * @return {?}
          */
-        CmsComponentLoader.prototype.adapt = /**
-         *
-         * An adapter can be injected to convert the backend reponse to
-         * the UI model.
-         *
-         * @param {?} component the source that can be converted
+        CmsComponentConnector.prototype.getList = /**
+         * @param {?} ids
+         * @param {?} pageContext
          * @return {?}
          */
-            function (component) {
-                if (this.adapter) {
-                    return this.adapter.adapt(( /** @type {?} */(component)));
-                }
-                return ( /** @type {?} */(component));
+            function (ids, pageContext) {
+                var _this = this;
+                return this.cmsStructureConfigService.getComponentsFromConfig(ids).pipe(operators.switchMap(function (configuredComponents) {
+                    // check if we have some components that are not loaded from configuration
+                    /** @type {?} */
+                    var missingIds = configuredComponents.reduce(function (acc, component, index) {
+                        if (component === undefined) {
+                            acc.push(ids[index]);
+                        }
+                        return acc;
+                    }, []);
+                    if (missingIds.length > 0) {
+                        return _this.adapter
+                            .loadList(missingIds, pageContext)
+                            .pipe(operators.map(function (loadedComponents) { return __spread(configuredComponents.filter(Boolean), loadedComponents); }));
+                    }
+                    else {
+                        return rxjs.of(configuredComponents);
+                    }
+                }));
             };
-        CmsComponentLoader.decorators = [
+        CmsComponentConnector.decorators = [
             { type: i0.Injectable, args: [{
                         providedIn: 'root',
                     },] }
         ];
         /** @nocollapse */
-        CmsComponentLoader.ctorParameters = function () {
+        CmsComponentConnector.ctorParameters = function () {
             return [
                 { type: CmsStructureConfigService },
-                { type: CmsComponentAdapter, decorators: [{ type: i0.Optional }] }
+                { type: CmsComponentAdapter }
             ];
         };
-        /** @nocollapse */ CmsComponentLoader.ngInjectableDef = i0.defineInjectable({ factory: function CmsComponentLoader_Factory() { return new CmsComponentLoader(i0.inject(CmsStructureConfigService), i0.inject(CmsComponentAdapter, 8)); }, token: CmsComponentLoader, providedIn: "root" });
-        return CmsComponentLoader;
+        /** @nocollapse */ CmsComponentConnector.ngInjectableDef = i0.defineInjectable({ factory: function CmsComponentConnector_Factory() { return new CmsComponentConnector(i0.inject(CmsStructureConfigService), i0.inject(CmsComponentAdapter)); }, token: CmsComponentConnector, providedIn: "root" });
+        return CmsComponentConnector;
     }());
 
     /**
@@ -10396,7 +10728,7 @@
         ComponentEffects.ctorParameters = function () {
             return [
                 { type: effects.Actions },
-                { type: CmsComponentLoader },
+                { type: CmsComponentConnector },
                 { type: RoutingService }
             ];
         };
@@ -10411,164 +10743,11 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var OccCmsPageLoader = /** @class */ (function (_super) {
-        __extends(OccCmsPageLoader, _super);
-        function OccCmsPageLoader(http, config, cmsStructureConfigService, adapter, occEndpoints) {
-            var _this = _super.call(this, cmsStructureConfigService, adapter) || this;
-            _this.http = http;
-            _this.config = config;
-            _this.cmsStructureConfigService = cmsStructureConfigService;
-            _this.adapter = adapter;
-            _this.occEndpoints = occEndpoints;
-            _this.headers = new i1.HttpHeaders().set('Content-Type', 'application/json');
-            return _this;
-        }
-        /**
-         * @protected
-         * @return {?}
-         */
-        OccCmsPageLoader.prototype.getBaseEndPoint = /**
-         * @protected
-         * @return {?}
-         */
-            function () {
-                return this.occEndpoints.getEndpoint('cms');
-            };
-        /**
-         * @param {?} pageContext
-         * @param {?=} fields
-         * @return {?}
-         */
-        OccCmsPageLoader.prototype.load = /**
-         * @param {?} pageContext
-         * @param {?=} fields
-         * @return {?}
-         */
-            function (pageContext, fields) {
-                /** @type {?} */
-                var httpStringParams = '';
-                if (pageContext.id !== 'smartedit-preview') {
-                    httpStringParams = 'pageType=' + pageContext.type;
-                    if (pageContext.type === PageType.CONTENT_PAGE) {
-                        httpStringParams =
-                            httpStringParams + '&pageLabelOrId=' + pageContext.id;
-                    }
-                    else {
-                        httpStringParams = httpStringParams + '&code=' + pageContext.id;
-                    }
-                }
-                if (fields !== undefined) {
-                    httpStringParams = httpStringParams + '&fields=' + fields;
-                }
-                return this.http.get(this.getBaseEndPoint() + "/pages", {
-                    headers: this.headers,
-                    params: new i1.HttpParams({
-                        fromString: httpStringParams,
-                    }),
-                });
-            };
-        /**
-         * @param {?} idList
-         * @param {?} pageContext
-         * @param {?=} fields
-         * @param {?=} currentPage
-         * @param {?=} pageSize
-         * @param {?=} sort
-         * @return {?}
-         */
-        OccCmsPageLoader.prototype.loadListComponents = /**
-         * @param {?} idList
-         * @param {?} pageContext
-         * @param {?=} fields
-         * @param {?=} currentPage
-         * @param {?=} pageSize
-         * @param {?=} sort
-         * @return {?}
-         */
-            function (idList, pageContext, fields, currentPage, pageSize, sort) {
-                /** @type {?} */
-                var requestParams = this.getRequestParams(pageContext, fields);
-                if (currentPage !== undefined) {
-                    requestParams === ''
-                        ? (requestParams = requestParams + 'currentPage=' + currentPage)
-                        : (requestParams = requestParams + '&currentPage=' + currentPage);
-                }
-                if (pageSize !== undefined) {
-                    requestParams = requestParams + '&pageSize=' + pageSize;
-                }
-                if (sort !== undefined) {
-                    requestParams = requestParams + '&sort=' + sort;
-                }
-                return this.http
-                    .post(this.getBaseEndPoint() + "/components", idList, {
-                    headers: this.headers,
-                    params: new i1.HttpParams({
-                        fromString: requestParams,
-                    }),
-                })
-                    .pipe(operators.catchError(function (error) { return rxjs.throwError(error.json()); }));
-            };
-        /**
-         * @private
-         * @param {?} pageContext
-         * @param {?=} fields
-         * @return {?}
-         */
-        OccCmsPageLoader.prototype.getRequestParams = /**
-         * @private
-         * @param {?} pageContext
-         * @param {?=} fields
-         * @return {?}
-         */
-            function (pageContext, fields) {
-                /** @type {?} */
-                var requestParams = '';
-                switch (pageContext.type) {
-                    case PageType.PRODUCT_PAGE: {
-                        requestParams = 'productCode=' + pageContext.id;
-                        break;
-                    }
-                    case PageType.CATEGORY_PAGE: {
-                        requestParams = 'categoryCode=' + pageContext.id;
-                        break;
-                    }
-                    case PageType.CATALOG_PAGE: {
-                        requestParams = 'catalogCode=' + pageContext.id;
-                        break;
-                    }
-                }
-                if (fields !== undefined) {
-                    requestParams === ''
-                        ? (requestParams = requestParams + 'fields=' + fields)
-                        : (requestParams = requestParams + '&fields=' + fields);
-                }
-                return requestParams;
-            };
-        OccCmsPageLoader.decorators = [
-            { type: i0.Injectable }
-        ];
-        /** @nocollapse */
-        OccCmsPageLoader.ctorParameters = function () {
-            return [
-                { type: i1.HttpClient },
-                { type: CmsStructureConfig },
-                { type: CmsStructureConfigService },
-                { type: CmsPageAdapter, decorators: [{ type: i0.Optional }] },
-                { type: OccEndpointsService }
-            ];
-        };
-        return OccCmsPageLoader;
-    }(CmsPageLoader));
-
-    /**
-     * @fileoverview added by tsickle
-     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
-     */
     var NavigationEntryItemEffects = /** @class */ (function () {
-        function NavigationEntryItemEffects(actions$, occCmsService, routingService) {
+        function NavigationEntryItemEffects(actions$, cmsComponentConnector, routingService) {
             var _this = this;
             this.actions$ = actions$;
-            this.occCmsService = occCmsService;
+            this.cmsComponentConnector = cmsComponentConnector;
             this.routingService = routingService;
             this.loadNavigationItems$ = this.actions$.pipe(effects.ofType(LOAD_NAVIGATION_ITEMS), operators.map(function (action) { return action.payload; }), operators.map(function (payload) {
                 return {
@@ -10576,23 +10755,23 @@
                     nodeId: payload.nodeId,
                 };
             }), operators.mergeMap(function (data) {
-                if (data.ids.componentIds.idList.length > 0) {
+                if (data.ids.componentIds.length > 0) {
                     return _this.routingService.getRouterState().pipe(operators.filter(function (routerState) { return routerState !== undefined; }), operators.map(function (routerState) { return routerState.state.context; }), operators.take(1), operators.mergeMap(function (pageContext) {
                         // download all items in one request
-                        return _this.occCmsService
-                            .loadListComponents(data.ids.componentIds, pageContext, 'DEFAULT', 0, data.ids.componentIds.idList.length)
-                            .pipe(operators.map(function (res) {
+                        return _this.cmsComponentConnector
+                            .getList(data.ids.componentIds, pageContext)
+                            .pipe(operators.map(function (components) {
                             return new LoadNavigationItemsSuccess({
                                 nodeId: data.nodeId,
-                                components: res.component,
+                                components: components,
                             });
                         }), operators.catchError(function (error) {
                             return rxjs.of(new LoadNavigationItemsFail(data.nodeId, error));
                         }));
                     }));
                 }
-                else if (data.ids.pageIds.idList.length > 0) ;
-                else if (data.ids.mediaIds.idList.length > 0) ;
+                else if (data.ids.pageIds.length > 0) ;
+                else if (data.ids.mediaIds.length > 0) ;
                 else {
                     return rxjs.of(new LoadNavigationItemsFail(data.nodeId, 'navigation nodes are empty'));
                 }
@@ -10612,20 +10791,20 @@
              */
             function (itemList) {
                 /** @type {?} */
-                var pageIds = { idList: [] };
+                var pageIds = [];
                 /** @type {?} */
-                var componentIds = { idList: [] };
+                var componentIds = [];
                 /** @type {?} */
-                var mediaIds = { idList: [] };
+                var mediaIds = [];
                 itemList.forEach(function (item) {
                     if (item.superType === 'AbstractCMSComponent') {
-                        componentIds.idList.push(item.id);
+                        componentIds.push(item.id);
                     }
                     else if (item.superType === 'AbstractPage') {
-                        pageIds.idList.push(item.id);
+                        pageIds.push(item.id);
                     }
                     else if (item.superType === 'AbstractMedia') {
-                        mediaIds.idList.push(item.id);
+                        mediaIds.push(item.id);
                     }
                 });
                 return { pageIds: pageIds, componentIds: componentIds, mediaIds: mediaIds };
@@ -10637,7 +10816,7 @@
         NavigationEntryItemEffects.ctorParameters = function () {
             return [
                 { type: effects.Actions },
-                { type: OccCmsPageLoader },
+                { type: CmsComponentConnector },
                 { type: RoutingService }
             ];
         };
@@ -11447,23 +11626,27 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var OccCmsComponentLoader = /** @class */ (function (_super) {
-        __extends(OccCmsComponentLoader, _super);
-        function OccCmsComponentLoader(http, config, cmsStructureConfigService, adapter, occEndpoints) {
-            var _this = _super.call(this, cmsStructureConfigService, adapter) || this;
-            _this.http = http;
-            _this.config = config;
-            _this.cmsStructureConfigService = cmsStructureConfigService;
-            _this.adapter = adapter;
-            _this.occEndpoints = occEndpoints;
-            _this.headers = new i1.HttpHeaders().set('Content-Type', 'application/json');
-            return _this;
+    /** @type {?} */
+    var CMS_COMPONENT_NORMALIZER = new i0.InjectionToken('CmsComponentNormalizer');
+    /** @type {?} */
+    var CMS_COMPONENT_LIST_NORMALIZER = new i0.InjectionToken('CmsComponentListNormalizer');
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    var OccCmsComponentAdapter = /** @class */ (function () {
+        function OccCmsComponentAdapter(http, occEndpoints, converter) {
+            this.http = http;
+            this.occEndpoints = occEndpoints;
+            this.converter = converter;
+            this.headers = new i1.HttpHeaders().set('Content-Type', 'application/json');
         }
         /**
          * @protected
          * @return {?}
          */
-        OccCmsComponentLoader.prototype.getBaseEndPoint = /**
+        OccCmsComponentAdapter.prototype.getBaseEndPoint = /**
          * @protected
          * @return {?}
          */
@@ -11476,7 +11659,7 @@
          * @param {?} pageContext
          * @return {?}
          */
-        OccCmsComponentLoader.prototype.load = /**
+        OccCmsComponentAdapter.prototype.load = /**
          * @template T
          * @param {?} id
          * @param {?} pageContext
@@ -11490,19 +11673,73 @@
                         fromString: this.getRequestParams(pageContext),
                     }),
                 })
-                    .pipe(operators.catchError(function (error) { return rxjs.throwError(error.json()); }));
+                    .pipe(this.converter.pipeable(CMS_COMPONENT_NORMALIZER));
+            };
+        /**
+         * @param {?} ids
+         * @param {?} pageContext
+         * @param {?=} fields
+         * @param {?=} currentPage
+         * @param {?=} pageSize
+         * @param {?=} sort
+         * @return {?}
+         */
+        OccCmsComponentAdapter.prototype.loadList = /**
+         * @param {?} ids
+         * @param {?} pageContext
+         * @param {?=} fields
+         * @param {?=} currentPage
+         * @param {?=} pageSize
+         * @param {?=} sort
+         * @return {?}
+         */
+            function (ids, pageContext, fields, currentPage, pageSize, sort) {
+                if (fields === void 0) {
+                    fields = 'DEFAULT';
+                }
+                if (currentPage === void 0) {
+                    currentPage = 0;
+                }
+                if (pageSize === void 0) {
+                    pageSize = ids.length;
+                }
+                /** @type {?} */
+                var requestParams = this.getRequestParams(pageContext, fields);
+                if (currentPage !== undefined) {
+                    requestParams === ''
+                        ? (requestParams = requestParams + 'currentPage=' + currentPage)
+                        : (requestParams = requestParams + '&currentPage=' + currentPage);
+                }
+                if (pageSize !== undefined) {
+                    requestParams = requestParams + '&pageSize=' + pageSize;
+                }
+                if (sort !== undefined) {
+                    requestParams = requestParams + '&sort=' + sort;
+                }
+                /** @type {?} */
+                var idList = { idList: ids };
+                return this.http
+                    .post(this.getBaseEndPoint() + "/components", idList, {
+                    headers: this.headers,
+                    params: new i1.HttpParams({
+                        fromString: requestParams,
+                    }),
+                })
+                    .pipe(operators.pluck('component'), this.converter.pipeable(CMS_COMPONENT_LIST_NORMALIZER));
             };
         /**
          * @private
          * @param {?} pageContext
+         * @param {?=} fields
          * @return {?}
          */
-        OccCmsComponentLoader.prototype.getRequestParams = /**
+        OccCmsComponentAdapter.prototype.getRequestParams = /**
          * @private
          * @param {?} pageContext
+         * @param {?=} fields
          * @return {?}
          */
-            function (pageContext) {
+            function (pageContext, fields) {
                 /** @type {?} */
                 var requestParams = '';
                 switch (pageContext.type) {
@@ -11519,48 +11756,52 @@
                         break;
                     }
                 }
+                if (fields !== undefined) {
+                    requestParams === ''
+                        ? (requestParams = requestParams + 'fields=' + fields)
+                        : (requestParams = requestParams + '&fields=' + fields);
+                }
                 return requestParams;
             };
-        OccCmsComponentLoader.decorators = [
+        OccCmsComponentAdapter.decorators = [
             { type: i0.Injectable }
         ];
         /** @nocollapse */
-        OccCmsComponentLoader.ctorParameters = function () {
+        OccCmsComponentAdapter.ctorParameters = function () {
             return [
                 { type: i1.HttpClient },
-                { type: CmsStructureConfig },
-                { type: CmsStructureConfigService },
-                { type: CmsComponentAdapter, decorators: [{ type: i0.Optional }] },
-                { type: OccEndpointsService }
+                { type: OccEndpointsService },
+                { type: ConverterService }
             ];
         };
-        return OccCmsComponentLoader;
-    }(CmsComponentLoader));
+        return OccCmsComponentAdapter;
+    }());
 
     /**
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
-    var OccCmsPageAdapter = /** @class */ (function (_super) {
-        __extends(OccCmsPageAdapter, _super);
-        function OccCmsPageAdapter() {
-            return _super !== null && _super.apply(this, arguments) || this;
+    var OccCmsPageNormalizer = /** @class */ (function () {
+        function OccCmsPageNormalizer() {
         }
         /**
          * @param {?} source
+         * @param {?=} target
          * @return {?}
          */
-        OccCmsPageAdapter.prototype.adapt = /**
+        OccCmsPageNormalizer.prototype.convert = /**
          * @param {?} source
+         * @param {?=} target
          * @return {?}
          */
-            function (source) {
-                /** @type {?} */
-                var target = {};
-                this.serializePageData(source, target);
-                this.serializePageSlotData(source, target);
-                this.serializePageComponentData(source, target);
-                this.serializeComponentData(source, target);
+            function (source, target) {
+                if (target === void 0) {
+                    target = {};
+                }
+                this.normalizePageData(source, target);
+                this.normalizePageSlotData(source, target);
+                this.normalizePageComponentData(source, target);
+                this.normalizeComponentData(source, target);
                 return target;
             };
         /**
@@ -11569,7 +11810,7 @@
          * @param {?} target
          * @return {?}
          */
-        OccCmsPageAdapter.prototype.serializePageData = /**
+        OccCmsPageNormalizer.prototype.normalizePageData = /**
          * @private
          * @param {?} source
          * @param {?} target
@@ -11593,7 +11834,7 @@
          * @param {?} target
          * @return {?}
          */
-        OccCmsPageAdapter.prototype.serializePageSlotData = /**
+        OccCmsPageNormalizer.prototype.normalizePageSlotData = /**
          * @private
          * @param {?} source
          * @param {?} target
@@ -11630,7 +11871,7 @@
          * @param {?} target
          * @return {?}
          */
-        OccCmsPageAdapter.prototype.serializePageComponentData = /**
+        OccCmsPageNormalizer.prototype.normalizePageComponentData = /**
          * @private
          * @param {?} source
          * @param {?} target
@@ -11700,7 +11941,7 @@
          * @param {?} target
          * @return {?}
          */
-        OccCmsPageAdapter.prototype.serializeComponentData = /**
+        OccCmsPageNormalizer.prototype.normalizeComponentData = /**
          * @private
          * @param {?} source
          * @param {?} target
@@ -11754,11 +11995,89 @@
                     }
                 }
             };
+        OccCmsPageNormalizer.decorators = [
+            { type: i0.Injectable }
+        ];
+        return OccCmsPageNormalizer;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    /** @type {?} */
+    var CMS_PAGE_NORMALIZE = new i0.InjectionToken('CmsPageNormalize');
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+    var OccCmsPageAdapter = /** @class */ (function () {
+        function OccCmsPageAdapter(http, occEndpoints, converter) {
+            this.http = http;
+            this.occEndpoints = occEndpoints;
+            this.converter = converter;
+            this.headers = new i1.HttpHeaders().set('Content-Type', 'application/json');
+        }
+        /**
+         * @protected
+         * @return {?}
+         */
+        OccCmsPageAdapter.prototype.getBaseEndPoint = /**
+         * @protected
+         * @return {?}
+         */
+            function () {
+                return this.occEndpoints.getEndpoint('cms');
+            };
+        /**
+         * @param {?} pageContext
+         * @param {?=} fields
+         * @return {?}
+         */
+        OccCmsPageAdapter.prototype.load = /**
+         * @param {?} pageContext
+         * @param {?=} fields
+         * @return {?}
+         */
+            function (pageContext, fields) {
+                /** @type {?} */
+                var httpStringParams = '';
+                if (pageContext.id !== 'smartedit-preview') {
+                    httpStringParams = 'pageType=' + pageContext.type;
+                    if (pageContext.type === PageType.CONTENT_PAGE) {
+                        httpStringParams =
+                            httpStringParams + '&pageLabelOrId=' + pageContext.id;
+                    }
+                    else {
+                        httpStringParams = httpStringParams + '&code=' + pageContext.id;
+                    }
+                }
+                if (fields !== undefined) {
+                    httpStringParams = httpStringParams + '&fields=' + fields;
+                }
+                return this.http
+                    .get(this.getBaseEndPoint() + "/pages", {
+                    headers: this.headers,
+                    params: new i1.HttpParams({
+                        fromString: httpStringParams,
+                    }),
+                })
+                    .pipe(this.converter.pipeable(CMS_PAGE_NORMALIZE));
+            };
         OccCmsPageAdapter.decorators = [
             { type: i0.Injectable }
         ];
+        /** @nocollapse */
+        OccCmsPageAdapter.ctorParameters = function () {
+            return [
+                { type: i1.HttpClient },
+                { type: OccEndpointsService },
+                { type: ConverterService }
+            ];
+        };
         return OccCmsPageAdapter;
-    }(CmsPageAdapter));
+    }());
 
     /**
      * @fileoverview added by tsickle
@@ -11771,19 +12090,19 @@
             { type: i0.NgModule, args: [{
                         imports: [i1$2.CommonModule, i1.HttpClientModule],
                         providers: [
-                            OccCmsPageLoader,
                             ComponentMapperService,
-                            {
-                                provide: CmsPageLoader,
-                                useClass: OccCmsPageLoader,
-                            },
                             {
                                 provide: CmsPageAdapter,
                                 useClass: OccCmsPageAdapter,
                             },
                             {
-                                provide: CmsComponentLoader,
-                                useClass: OccCmsComponentLoader,
+                                provide: CMS_PAGE_NORMALIZE,
+                                useClass: OccCmsPageNormalizer,
+                                multi: true,
+                            },
+                            {
+                                provide: CmsComponentAdapter,
+                                useClass: OccCmsComponentAdapter,
                             },
                         ],
                     },] }
@@ -11976,8 +12295,13 @@
          * @return {?}
          */
             function (product) {
-                return product.categories && product.categories.length > 0
-                    ? " | " + product.categories[0].code
+                /** @type {?} */
+                var firstCategory;
+                if (product.categories && product.categories.length > 0) {
+                    firstCategory = product.categories[0];
+                }
+                return firstCategory
+                    ? " | " + (firstCategory.name || firstCategory.code)
                     : '';
             };
         /**
@@ -12199,6 +12523,21 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
     var CartEffects = /** @class */ (function () {
         function CartEffects(actions$, productImageConverter, occCartService, cartData) {
             var _this = this;
@@ -12311,7 +12650,7 @@
         CartEffects.ctorParameters = function () {
             return [
                 { type: effects.Actions },
-                { type: ProductImageConverterService },
+                { type: ProductImageNormalizer },
                 { type: OccCartService },
                 { type: CartDataService }
             ];
@@ -16296,7 +16635,7 @@
             return [
                 { type: effects.Actions },
                 { type: OccOrderService },
-                { type: ProductImageConverterService }
+                { type: ProductImageNormalizer }
             ];
         };
         __decorate([
@@ -17177,7 +17516,7 @@
                 { type: effects.Actions },
                 { type: OccCartService },
                 { type: OccOrderService },
-                { type: ProductImageConverterService }
+                { type: ProductImageNormalizer }
             ];
         };
         __decorate([
@@ -17721,6 +18060,26 @@
         FOLLOW: 'FOLLOW',
         NOFOLLOW: 'NOFOLLOW',
     };
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
 
     /**
      * @fileoverview added by tsickle
@@ -20374,15 +20733,15 @@
     exports.StateConfig = StateConfig;
     exports.metaReducersFactory = metaReducersFactory;
     exports.META_REDUCER = META_REDUCER;
-    exports.ProductLoaderService = ProductLoaderService;
+    exports.OccProductAdapter = OccProductAdapter;
     exports.ProductSearchLoaderService = ProductSearchLoaderService;
-    exports.ProductReviewsLoaderService = ProductReviewsLoaderService;
+    exports.OccProductReviewsAdapter = OccProductReviewsAdapter;
+    exports.OccProductReviewsListNormalizer = OccProductReviewsListNormalizer;
+    exports.ProductImageNormalizer = ProductImageNormalizer;
+    exports.ProductReferenceNormalizer = ProductReferenceNormalizer;
     exports.ProductOccModule = ProductOccModule;
     exports.PRODUCT_FEATURE = PRODUCT_FEATURE;
     exports.PRODUCT_DETAIL_ENTITY = PRODUCT_DETAIL_ENTITY;
-    exports.ProductImageConverterService = ProductImageConverterService;
-    exports.ProductReferenceConverterService = ProductReferenceConverterService;
-    exports.ProductConverterModule = ProductConverterModule;
     exports.SEARCH_PRODUCTS = SEARCH_PRODUCTS;
     exports.SEARCH_PRODUCTS_FAIL = SEARCH_PRODUCTS_FAIL;
     exports.SEARCH_PRODUCTS_SUCCESS = SEARCH_PRODUCTS_SUCCESS;
@@ -20434,6 +20793,13 @@
     exports.ProductSearchService = ProductSearchService;
     exports.ProductReviewService = ProductReviewService;
     exports.ProductModule = ProductModule;
+    exports.ProductConnector = ProductConnector;
+    exports.ProductAdapter = ProductAdapter;
+    exports.PRODUCT_NORMALIZER = PRODUCT_NORMALIZER;
+    exports.ProductReviewsConnector = ProductReviewsConnector;
+    exports.ProductReviewsAdapter = ProductReviewsAdapter;
+    exports.PRODUCT_REVIEWS_NORMALIZER = PRODUCT_REVIEWS_NORMALIZER;
+    exports.PRODUCT_REVIEW_SERIALIZER = PRODUCT_REVIEW_SERIALIZER;
     exports.CategoryPageMetaResolver = CategoryPageMetaResolver;
     exports.ProductPageMetaResolver = ProductPageMetaResolver;
     exports.SearchPageMetaResolver = SearchPageMetaResolver;
@@ -20881,9 +21247,17 @@
     exports.defaultCmsModuleConfig = defaultCmsModuleConfig;
     exports.CmsStructureConfig = CmsStructureConfig;
     exports.PageRobotsMeta = PageRobotsMeta;
-    exports.OccCmsPageLoader = OccCmsPageLoader;
     exports.OccCmsPageAdapter = OccCmsPageAdapter;
+    exports.OccCmsPageNormalizer = OccCmsPageNormalizer;
+    exports.OccCmsComponentAdapter = OccCmsComponentAdapter;
     exports.CmsOccModule = CmsOccModule;
+    exports.CmsPageAdapter = CmsPageAdapter;
+    exports.CmsPageConnector = CmsPageConnector;
+    exports.CMS_PAGE_NORMALIZE = CMS_PAGE_NORMALIZE;
+    exports.CmsComponentConnector = CmsComponentConnector;
+    exports.CmsComponentAdapter = CmsComponentAdapter;
+    exports.CMS_COMPONENT_NORMALIZER = CMS_COMPONENT_NORMALIZER;
+    exports.CMS_COMPONENT_LIST_NORMALIZER = CMS_COMPONENT_LIST_NORMALIZER;
     exports.CMS_FEATURE = CMS_FEATURE;
     exports.NAVIGATION_DETAIL_ENTITY = NAVIGATION_DETAIL_ENTITY;
     exports.COMPONENT_ENTITY = COMPONENT_ENTITY;
@@ -20931,8 +21305,6 @@
     exports.PageMetaService = PageMetaService;
     exports.CmsModule = CmsModule;
     exports.ComponentMapperService = ComponentMapperService;
-    exports.CmsPageLoader = CmsPageLoader;
-    exports.CmsPageAdapter = CmsPageAdapter;
     exports.CmsStructureConfigService = CmsStructureConfigService;
     exports.DynamicAttributeService = DynamicAttributeService;
     exports.PageMetaResolver = PageMetaResolver;
@@ -20989,196 +21361,195 @@
     exports.MockTranslatePipe = MockTranslatePipe;
     exports.PipeModule = PipeModule;
     exports.StripHtmlModule = StripHtmlModule;
+    exports.ConverterService = ConverterService;
     exports.UtilModule = UtilModule;
-    exports.ɵgb = defaultAuthConfig;
-    exports.ɵgi = AuthErrorInterceptor;
-    exports.ɵgg = ClientTokenInterceptor;
-    exports.ɵgf = interceptors;
-    exports.ɵgh = UserTokenInterceptor;
-    exports.ɵfz = ClientAuthenticationTokenService;
-    exports.ɵgd = ClientErrorHandlingService;
-    exports.ɵgc = services;
-    exports.ɵfy = UserAuthenticationTokenService;
-    exports.ɵge = UserErrorHandlingService;
-    exports.ɵfp = AuthStoreModule;
-    exports.ɵfo = authStoreConfigFactory;
-    exports.ɵfx = ClientTokenEffect;
-    exports.ɵfv = effects$2;
-    exports.ɵfw = UserTokenEffects;
-    exports.ɵft = clearAuthState;
-    exports.ɵfq = getReducers$1;
-    exports.ɵfu = metaReducers;
-    exports.ɵfs = reducerProvider$1;
-    exports.ɵfr = reducerToken$1;
-    exports.ɵga = reducer$1;
+    exports.ɵfz = defaultAuthConfig;
+    exports.ɵgg = AuthErrorInterceptor;
+    exports.ɵge = ClientTokenInterceptor;
+    exports.ɵgd = interceptors;
+    exports.ɵgf = UserTokenInterceptor;
+    exports.ɵfx = ClientAuthenticationTokenService;
+    exports.ɵgb = ClientErrorHandlingService;
+    exports.ɵga = services;
+    exports.ɵfw = UserAuthenticationTokenService;
+    exports.ɵgc = UserErrorHandlingService;
+    exports.ɵfn = AuthStoreModule;
+    exports.ɵfm = authStoreConfigFactory;
+    exports.ɵfv = ClientTokenEffect;
+    exports.ɵft = effects$2;
+    exports.ɵfu = UserTokenEffects;
+    exports.ɵfr = clearAuthState;
+    exports.ɵfo = getReducers$1;
+    exports.ɵfs = metaReducers;
+    exports.ɵfq = reducerProvider$1;
+    exports.ɵfp = reducerToken$1;
+    exports.ɵfy = reducer$1;
     exports.ɵd = CartStoreModule;
     exports.ɵl = CartEntryEffects;
     exports.ɵk = CartEffects;
     exports.ɵj = effects$6;
-    exports.ɵm = reducer$2;
+    exports.ɵn = reducer$2;
     exports.ɵh = clearCartState;
     exports.ɵe = getReducers$2;
     exports.ɵi = metaReducers$1;
     exports.ɵg = reducerProvider$2;
     exports.ɵf = reducerToken$2;
-    exports.ɵea = CheckoutStoreModule;
-    exports.ɵdz = AddressVerificationEffect;
-    exports.ɵdy = CardTypesEffects;
-    exports.ɵdx = CheckoutEffects;
-    exports.ɵdw = effects$8;
-    exports.ɵdv = getAddressVerificationResults;
-    exports.ɵdu = reducer$c;
-    exports.ɵdt = getCardTypesEntites;
-    exports.ɵds = reducer$d;
-    exports.ɵdo = getDeliveryAddress;
-    exports.ɵdp = getDeliveryMode;
-    exports.ɵdr = getOrderDetails;
-    exports.ɵdq = getPaymentDetails;
-    exports.ɵdn = reducer$b;
-    exports.ɵdl = clearCheckoutState;
-    exports.ɵdk = getCheckoutState;
-    exports.ɵdh = getReducers$6;
-    exports.ɵdm = metaReducers$4;
-    exports.ɵdj = reducerProvider$6;
-    exports.ɵdi = reducerToken$6;
-    exports.ɵbo = OccCmsComponentLoader;
-    exports.ɵbn = CmsComponentAdapter;
-    exports.ɵbm = CmsComponentLoader;
-    exports.ɵbq = CmsStoreModule;
-    exports.ɵbp = cmsStoreConfigFactory;
-    exports.ɵby = ComponentEffects;
-    exports.ɵbw = effects$5;
-    exports.ɵbz = NavigationEntryItemEffects;
-    exports.ɵbx = PageEffects;
-    exports.ɵbu = clearCmsState;
-    exports.ɵbr = getReducers$5;
-    exports.ɵbv = metaReducers$3;
-    exports.ɵbt = reducerProvider$5;
-    exports.ɵbs = reducerToken$5;
-    exports.ɵcg = reducer$8;
-    exports.ɵcd = reducer$9;
-    exports.ɵcf = reducer$a;
-    exports.ɵgx = ConfigModule;
-    exports.ɵhg = ServerConfig;
+    exports.ɵdy = CheckoutStoreModule;
+    exports.ɵdx = AddressVerificationEffect;
+    exports.ɵdw = CardTypesEffects;
+    exports.ɵdv = CheckoutEffects;
+    exports.ɵdu = effects$8;
+    exports.ɵdt = getAddressVerificationResults;
+    exports.ɵds = reducer$c;
+    exports.ɵdr = getCardTypesEntites;
+    exports.ɵdq = reducer$d;
+    exports.ɵdm = getDeliveryAddress;
+    exports.ɵdn = getDeliveryMode;
+    exports.ɵdp = getOrderDetails;
+    exports.ɵdo = getPaymentDetails;
+    exports.ɵdl = reducer$b;
+    exports.ɵdj = clearCheckoutState;
+    exports.ɵdi = getCheckoutState;
+    exports.ɵdf = getReducers$6;
+    exports.ɵdk = metaReducers$4;
+    exports.ɵdh = reducerProvider$6;
+    exports.ɵdg = reducerToken$6;
+    exports.ɵbo = CmsStoreModule;
+    exports.ɵbn = cmsStoreConfigFactory;
+    exports.ɵbw = ComponentEffects;
+    exports.ɵbu = effects$5;
+    exports.ɵbx = NavigationEntryItemEffects;
+    exports.ɵbv = PageEffects;
+    exports.ɵbs = clearCmsState;
+    exports.ɵbp = getReducers$5;
+    exports.ɵbt = metaReducers$3;
+    exports.ɵbr = reducerProvider$5;
+    exports.ɵbq = reducerToken$5;
+    exports.ɵce = reducer$8;
+    exports.ɵcb = reducer$9;
+    exports.ɵcd = reducer$a;
+    exports.ɵgv = ConfigModule;
+    exports.ɵhe = ServerConfig;
     exports.ɵc = provideConfigValidator;
-    exports.ɵgm = BadGatewayHandler;
-    exports.ɵgn = BadRequestHandler;
-    exports.ɵgo = ConflictHandler;
-    exports.ɵgp = ForbiddenHandler;
-    exports.ɵgq = GatewayTimeoutHandler;
-    exports.ɵgk = HttpErrorHandler;
-    exports.ɵgr = NotFoundHandler;
-    exports.ɵgl = UnknownErrorHandler;
-    exports.ɵgs = HttpErrorInterceptor;
-    exports.ɵgj = reducer$e;
-    exports.ɵfd = getReducers$7;
-    exports.ɵff = reducerProvider$7;
-    exports.ɵfe = reducerToken$7;
-    exports.ɵhh = defaultI18nConfig;
-    exports.ɵhj = i18nextInit;
-    exports.ɵhi = i18nextProviders;
-    exports.ɵhk = MockDatePipe;
-    exports.ɵhl = MockTranslationService;
-    exports.ɵce = PageType;
-    exports.ɵdg = PageType;
+    exports.ɵgk = BadGatewayHandler;
+    exports.ɵgl = BadRequestHandler;
+    exports.ɵgm = ConflictHandler;
+    exports.ɵgn = ForbiddenHandler;
+    exports.ɵgo = GatewayTimeoutHandler;
+    exports.ɵgi = HttpErrorHandler;
+    exports.ɵgp = NotFoundHandler;
+    exports.ɵgj = UnknownErrorHandler;
+    exports.ɵgq = HttpErrorInterceptor;
+    exports.ɵgh = reducer$e;
+    exports.ɵfb = getReducers$7;
+    exports.ɵfd = reducerProvider$7;
+    exports.ɵfc = reducerToken$7;
+    exports.ɵhf = defaultI18nConfig;
+    exports.ɵhh = i18nextInit;
+    exports.ɵhg = i18nextProviders;
+    exports.ɵhi = MockDatePipe;
+    exports.ɵhj = MockTranslationService;
+    exports.ɵm = OccConfig;
+    exports.ɵcc = PageType;
+    exports.ɵde = PageType;
     exports.ɵa = OccEndpointsService;
-    exports.ɵfi = ProcessModule;
-    exports.ɵfk = PROCESS_FEATURE;
-    exports.ɵfj = ProcessStoreModule;
-    exports.ɵfl = getReducers$9;
-    exports.ɵfn = reducerProvider$9;
-    exports.ɵfm = reducerToken$9;
-    exports.ɵr = defaultOccProductConfig;
-    exports.ɵbf = effects$4;
-    exports.ɵbi = ProductReviewsEffects;
-    exports.ɵbg = ProductsSearchEffects;
-    exports.ɵbh = ProductEffects;
-    exports.ɵbk = ProductStoreModule;
-    exports.ɵbj = productStoreConfigFactory;
-    exports.ɵbd = clearProductsState;
-    exports.ɵba = getReducers$4;
-    exports.ɵbe = metaReducers$2;
-    exports.ɵbc = reducerProvider$4;
-    exports.ɵbb = reducerToken$4;
-    exports.ɵbl = reducer$4;
-    exports.ɵy = getAuxSearchResults;
-    exports.ɵz = getProductSuggestions;
-    exports.ɵx = getSearchResults;
-    exports.ɵw = reducer$3;
-    exports.ɵcw = defaultConfigurableRoutesConfig;
-    exports.ɵcx = defaultStorefrontRoutesTranslations;
-    exports.ɵcc = UrlParsingService;
-    exports.ɵcb = UrlTranslationService;
-    exports.ɵcy = ROUTING_FEATURE;
-    exports.ɵde = effects$1;
-    exports.ɵdf = RouterEffects;
-    exports.ɵdd = CustomSerializer;
-    exports.ɵcz = getReducers;
-    exports.ɵda = reducer;
-    exports.ɵdc = reducerProvider;
-    exports.ɵdb = reducerToken;
-    exports.ɵcn = defaultSiteContextConfigFactory;
+    exports.ɵfg = ProcessModule;
+    exports.ɵfi = PROCESS_FEATURE;
+    exports.ɵfh = ProcessStoreModule;
+    exports.ɵfj = getReducers$9;
+    exports.ɵfl = reducerProvider$9;
+    exports.ɵfk = reducerToken$9;
+    exports.ɵs = defaultOccProductConfig;
+    exports.ɵbg = effects$4;
+    exports.ɵbj = ProductReviewsEffects;
+    exports.ɵbh = ProductsSearchEffects;
+    exports.ɵbi = ProductEffects;
+    exports.ɵbl = ProductStoreModule;
+    exports.ɵbk = productStoreConfigFactory;
+    exports.ɵbe = clearProductsState;
+    exports.ɵbb = getReducers$4;
+    exports.ɵbf = metaReducers$2;
+    exports.ɵbd = reducerProvider$4;
+    exports.ɵbc = reducerToken$4;
+    exports.ɵbm = reducer$4;
+    exports.ɵz = getAuxSearchResults;
+    exports.ɵba = getProductSuggestions;
+    exports.ɵy = getSearchResults;
+    exports.ɵx = reducer$3;
+    exports.ɵcu = defaultConfigurableRoutesConfig;
+    exports.ɵcv = defaultStorefrontRoutesTranslations;
+    exports.ɵca = UrlParsingService;
+    exports.ɵbz = UrlTranslationService;
+    exports.ɵcw = ROUTING_FEATURE;
+    exports.ɵdc = effects$1;
+    exports.ɵdd = RouterEffects;
+    exports.ɵdb = CustomSerializer;
+    exports.ɵcx = getReducers;
+    exports.ɵcy = reducer;
+    exports.ɵda = reducerProvider;
+    exports.ɵcz = reducerToken;
+    exports.ɵcl = defaultSiteContextConfigFactory;
     exports.ɵb = BaseSiteService;
-    exports.ɵct = SiteContextParamsService;
-    exports.ɵcv = SiteContextRoutesHandler;
-    exports.ɵcu = SiteContextUrlSerializer;
-    exports.ɵcm = CurrenciesEffects;
-    exports.ɵck = effects$3;
-    exports.ɵcl = LanguagesEffects;
-    exports.ɵcs = reducer$7;
-    exports.ɵcr = reducer$6;
-    exports.ɵch = getReducers$3;
-    exports.ɵcj = reducerProvider$3;
-    exports.ɵci = reducerToken$3;
-    exports.ɵcq = reducer$5;
-    exports.ɵcp = SiteContextStoreModule;
-    exports.ɵco = siteContextStoreConfigFactory;
-    exports.ɵgu = CmsTicketInterceptor;
-    exports.ɵgt = interceptors$2;
-    exports.ɵgv = SmartEditService;
-    exports.ɵed = EntityFailAction;
-    exports.ɵec = EntityLoadAction;
-    exports.ɵef = EntityResetAction;
-    exports.ɵee = EntitySuccessAction;
-    exports.ɵn = defaultStateConfig;
-    exports.ɵo = stateMetaReducers;
-    exports.ɵp = getStorageSyncReducer;
-    exports.ɵq = getTransferStateReducer;
-    exports.ɵgy = defaultStoreFinderConfig;
-    exports.ɵhe = FindStoresEffect;
-    exports.ɵhd = effects$9;
-    exports.ɵhf = ViewAllStoresEffect;
-    exports.ɵha = getReducers$a;
-    exports.ɵhc = reducerProvider$a;
-    exports.ɵhb = reducerToken$a;
-    exports.ɵgw = getStoreFinderState;
-    exports.ɵgz = StoreFinderStoreModule;
-    exports.ɵes = BillingCountriesEffect;
-    exports.ɵet = DeliveryCountriesEffects;
-    exports.ɵfg = ForgotPasswordEffects;
-    exports.ɵer = effects$7;
-    exports.ɵeu = OrderDetailsEffect;
-    exports.ɵev = UserPaymentMethodsEffects;
-    exports.ɵew = RegionsEffects;
-    exports.ɵex = ResetPasswordEffects;
-    exports.ɵey = TitlesEffects;
-    exports.ɵfh = UpdatePasswordEffects;
-    exports.ɵez = UserAddressesEffects;
-    exports.ɵfa = UserDetailsEffects;
-    exports.ɵfb = UserOrdersEffect;
-    exports.ɵfc = UserRegisterEffects;
-    exports.ɵei = reducer$f;
-    exports.ɵem = reducer$g;
-    exports.ɵel = reducer$h;
-    exports.ɵej = reducer$i;
-    exports.ɵeo = reducer$j;
-    exports.ɵep = reducer$k;
-    exports.ɵen = reducer$l;
-    exports.ɵeh = reducer$m;
-    exports.ɵeg = reducer$n;
-    exports.ɵek = reducer$o;
-    exports.ɵeq = UserStoreModule;
-    exports.ɵhm = StripHtmlPipe;
+    exports.ɵcr = SiteContextParamsService;
+    exports.ɵct = SiteContextRoutesHandler;
+    exports.ɵcs = SiteContextUrlSerializer;
+    exports.ɵck = CurrenciesEffects;
+    exports.ɵci = effects$3;
+    exports.ɵcj = LanguagesEffects;
+    exports.ɵcq = reducer$7;
+    exports.ɵcp = reducer$6;
+    exports.ɵcf = getReducers$3;
+    exports.ɵch = reducerProvider$3;
+    exports.ɵcg = reducerToken$3;
+    exports.ɵco = reducer$5;
+    exports.ɵcn = SiteContextStoreModule;
+    exports.ɵcm = siteContextStoreConfigFactory;
+    exports.ɵgs = CmsTicketInterceptor;
+    exports.ɵgr = interceptors$2;
+    exports.ɵgt = SmartEditService;
+    exports.ɵeb = EntityFailAction;
+    exports.ɵea = EntityLoadAction;
+    exports.ɵed = EntityResetAction;
+    exports.ɵec = EntitySuccessAction;
+    exports.ɵo = defaultStateConfig;
+    exports.ɵp = stateMetaReducers;
+    exports.ɵq = getStorageSyncReducer;
+    exports.ɵr = getTransferStateReducer;
+    exports.ɵgw = defaultStoreFinderConfig;
+    exports.ɵhc = FindStoresEffect;
+    exports.ɵhb = effects$9;
+    exports.ɵhd = ViewAllStoresEffect;
+    exports.ɵgy = getReducers$a;
+    exports.ɵha = reducerProvider$a;
+    exports.ɵgz = reducerToken$a;
+    exports.ɵgu = getStoreFinderState;
+    exports.ɵgx = StoreFinderStoreModule;
+    exports.ɵeq = BillingCountriesEffect;
+    exports.ɵer = DeliveryCountriesEffects;
+    exports.ɵfe = ForgotPasswordEffects;
+    exports.ɵep = effects$7;
+    exports.ɵes = OrderDetailsEffect;
+    exports.ɵet = UserPaymentMethodsEffects;
+    exports.ɵeu = RegionsEffects;
+    exports.ɵev = ResetPasswordEffects;
+    exports.ɵew = TitlesEffects;
+    exports.ɵff = UpdatePasswordEffects;
+    exports.ɵex = UserAddressesEffects;
+    exports.ɵey = UserDetailsEffects;
+    exports.ɵez = UserOrdersEffect;
+    exports.ɵfa = UserRegisterEffects;
+    exports.ɵeg = reducer$f;
+    exports.ɵek = reducer$g;
+    exports.ɵej = reducer$h;
+    exports.ɵeh = reducer$i;
+    exports.ɵem = reducer$j;
+    exports.ɵen = reducer$k;
+    exports.ɵel = reducer$l;
+    exports.ɵef = reducer$m;
+    exports.ɵee = reducer$n;
+    exports.ɵei = reducer$o;
+    exports.ɵeo = UserStoreModule;
+    exports.ɵhk = StripHtmlPipe;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
