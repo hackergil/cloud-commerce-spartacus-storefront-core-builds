@@ -1,16 +1,22 @@
 import { MemoizedSelector } from '@ngrx/store';
-import { PageState, StateWithCms } from '../cms-state';
+import { PageState, StateWithCms, IndexType } from '../cms-state';
+import { PageContext } from '../../../routing';
+import { LoaderState } from '../../../state';
 import { ContentSlotData } from '../../model/content-slot-data.model';
 import { Page } from '../../model/page.model';
+import { PageType } from '../../../occ/occ-models/occ.models';
 export declare const getPageEntitiesSelector: (state: PageState) => {
-    [context: string]: Page;
+    [id: string]: Page;
 };
-export declare const getPageCount: (state: PageState) => number;
-export declare const getLatestPageKeySelector: (state: PageState) => string;
+export declare const getIndexByType: (index: IndexType, type: PageType) => import("../../../state").EntityState<LoaderState<string>>;
+export declare const getPageComponentTypesSelector: (page: Page) => string[];
 export declare const getPageState: MemoizedSelector<StateWithCms, PageState>;
+export declare const getPageStateIndex: MemoizedSelector<StateWithCms, IndexType>;
+export declare const getIndex: (pageContext: PageContext) => MemoizedSelector<StateWithCms, import("../../../state").EntityState<LoaderState<string>>>;
+export declare const getIndexEntity: (pageContext: PageContext) => MemoizedSelector<StateWithCms, LoaderState<string>>;
 export declare const getPageEntities: MemoizedSelector<StateWithCms, {
-    [context: string]: Page;
+    [id: string]: Page;
 }>;
-export declare const getLatestPageKey: MemoizedSelector<StateWithCms, string>;
-export declare const getLatestPage: MemoizedSelector<StateWithCms, Page>;
-export declare const currentSlotSelectorFactory: (position: string) => MemoizedSelector<StateWithCms, ContentSlotData>;
+export declare const getPageData: (pageContext: PageContext) => MemoizedSelector<StateWithCms, Page>;
+export declare const getPageComponentTypes: (pageContext: PageContext) => MemoizedSelector<StateWithCms, string[]>;
+export declare const currentSlotSelectorFactory: (pageContext: PageContext, position: string) => MemoizedSelector<StateWithCms, ContentSlotData>;

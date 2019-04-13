@@ -1,12 +1,11 @@
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { OccConfig } from '../config/occ-config';
 import { CountryList, TitleList, CardTypeList, RegionList } from '../../occ/occ-models/index';
+import { OccEndpointsService } from '../services/occ-endpoints.service';
 export declare class OccMiscsService {
     private http;
-    private config;
-    constructor(http: HttpClient, config: OccConfig);
-    protected getEndpoint(endpoint: string): string;
+    private occEndpoints;
+    constructor(http: HttpClient, occEndpoints: OccEndpointsService);
     loadDeliveryCountries(): Observable<CountryList>;
     loadBillingCountries(): Observable<CountryList>;
     loadTitles(): Observable<TitleList>;

@@ -1,6 +1,6 @@
+import { Action } from '@ngrx/store';
 import { EntityState } from './entity-state';
 import { EntityAction } from './entity.action';
-import { Action } from '@ngrx/store';
 export declare const initialEntityState: EntityState<any>;
 /**
  * Higher order reducer for reusing reducer logic for multiple entities

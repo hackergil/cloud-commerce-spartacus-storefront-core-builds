@@ -1,8 +1,8 @@
 import { InjectionToken, Provider } from '@angular/core';
 import { RouterStateSnapshot, Params } from '@angular/router';
 import { ActionReducerMap, MemoizedSelector } from '@ngrx/store';
-import { PageContext } from '../../models/page-context.model';
 import * as fromNgrxRouter from '@ngrx/router-store';
+import { PageContext } from '../../models/page-context.model';
 export interface RouterState extends fromNgrxRouter.RouterReducerState<ActivatedRouterStateSnapshot> {
     redirectUrl: string;
 }
@@ -23,6 +23,7 @@ export declare const reducerToken: InjectionToken<ActionReducerMap<State>>;
 export declare const reducerProvider: Provider;
 export declare const getRouterFeatureState: MemoizedSelector<any, any>;
 export declare const getRouterState: MemoizedSelector<any, any>;
+export declare const getPageContext: MemoizedSelector<any, PageContext>;
 export declare const getRedirectUrl: MemoizedSelector<any, any>;
 export declare class CustomSerializer implements fromNgrxRouter.RouterStateSerializer<ActivatedRouterStateSnapshot> {
     serialize(routerState: RouterStateSnapshot): ActivatedRouterStateSnapshot;

@@ -1,6 +1,8 @@
+import { Address, Country, Order, OrderHistoryList, PaymentDetails, Region, Title, User } from '../../occ/occ-models/index';
 import { LoaderState } from '../../state';
-import { Address, PaymentDetails, OrderHistoryList, User, Region, Order, Country, Title } from '../../occ/occ-models/index';
 export declare const USER_FEATURE = "user";
+export declare const UPDATE_PASSWORD_PROCESS_ID = "updatePassword";
+export declare const UPDATE_USER_DETAILS_PROCESS_ID = "updateUserDetails";
 export declare const USER_PAYMENT_METHODS = "[User] User Payment Methods";
 export declare const USER_ORDERS = "[User] User Orders";
 export declare const USER_ADDRESSES = "[User] User Addresses";
@@ -17,6 +19,7 @@ export interface UserState {
     order: OrderDetailsState;
     titles: TitlesState;
     regions: RegionsState;
+    resetPassword: boolean;
 }
 export interface OrderDetailsState {
     order: Order;

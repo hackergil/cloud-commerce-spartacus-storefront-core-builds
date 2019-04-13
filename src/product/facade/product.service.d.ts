@@ -5,6 +5,7 @@ import { Product } from '../../occ/occ-models/occ.models';
 export declare class ProductService {
     private store;
     constructor(store: Store<fromStore.StateWithProduct>);
+    private products;
     /**
      * Returns the product observable. The product will be loaded
      * whenever there's no value observed.
@@ -12,7 +13,7 @@ export declare class ProductService {
      * The underlying product loader ensures that the product is
      * only loaded once, even in case of parallel observers.
      */
-    get(productCode: string, forceReload?: boolean): Observable<Product>;
+    get(productCode: string): Observable<Product>;
     /**
      * Returns boolean observable for product's loading state
      */

@@ -1,11 +1,11 @@
 import { Observable } from 'rxjs';
-import { OccConfig } from '../../occ/config/occ-config';
 import { CartList, Cart, CartModification, Address, DeliveryModeList, PaymentDetails } from '../../occ/occ-models/occ.models';
 import { HttpClient } from '@angular/common/http';
+import { OccEndpointsService } from '../../occ/services/occ-endpoints.service';
 export declare class OccCartService {
     protected http: HttpClient;
-    protected config: OccConfig;
-    constructor(http: HttpClient, config: OccConfig);
+    private occEndpoints;
+    constructor(http: HttpClient, occEndpoints: OccEndpointsService);
     protected getCartEndpoint(userId: string): string;
     loadAllCarts(userId: string, details?: boolean): Observable<CartList>;
     loadCart(userId: string, cartId: string, details?: boolean): Observable<Cart>;

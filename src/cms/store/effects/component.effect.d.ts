@@ -1,11 +1,12 @@
 import { Actions } from '@ngrx/effects';
 import { Observable } from 'rxjs';
-import { OccCmsService } from '../../occ/occ-cms.service';
+import { CmsComponent } from '../../../occ/occ-models/cms-component.models';
 import { RoutingService } from '../../../routing/index';
+import { CmsComponentLoader } from '../../services/cms-component.loader';
 export declare class ComponentEffects {
     private actions$;
-    private occCmsService;
+    private cmsComponentLoader;
     private routingService;
-    constructor(actions$: Actions, occCmsService: OccCmsService, routingService: RoutingService);
+    constructor(actions$: Actions, cmsComponentLoader: CmsComponentLoader<CmsComponent>, routingService: RoutingService);
     loadComponent$: Observable<any>;
 }

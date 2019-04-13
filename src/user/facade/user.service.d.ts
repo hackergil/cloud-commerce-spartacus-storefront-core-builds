@@ -1,11 +1,12 @@
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import * as fromStore from '../store/index';
-import { Order, User, PaymentDetails, Address, Title, Country, Region, OrderHistoryList } from '../../occ/occ-models/index';
+import { Address, Country, Order, OrderHistoryList, PaymentDetails, Region, Title, User } from '../../occ/occ-models/index';
+import * as fromProcessStore from '../../process/store/process-state';
 import { UserRegisterFormData } from '../model/user.model';
+import * as fromStore from '../store/index';
 export declare class UserService {
     private store;
-    constructor(store: Store<fromStore.StateWithUser>);
+    constructor(store: Store<fromStore.StateWithUser | fromProcessStore.StateWithProcess<void>>);
     /**
      * Returns a user
      */
@@ -157,4 +158,60 @@ export declare class UserService {
      * Cleaning order list
      */
     clearOrderList(): void;
+    /**
+     * Updates the user's details
+     * @param userDetails to be updated
+     */
+    updatePersonalDetails(username: string, userDetails: User): void;
+    /**
+     * Returns the update user's personal details loading flag
+     */
+    getUpdatePersonalDetailsResultLoading(): Observable<boolean>;
+    /**
+     * Returns the update user's personal details error flag
+     */
+    getUpdatePersonalDetailsResultError(): Observable<boolean>;
+    /**
+     * Returns the update user's personal details success flag
+     */
+    getUpdatePersonalDetailsResultSuccess(): Observable<boolean>;
+    /**
+     * Resets the update user details processing state
+     */
+    resetUpdatePersonalDetailsProcessingState(): void;
+    /**
+     * Reset new password.  Part of the forgot password flow.
+     * @param token
+     * @param password
+     */
+    resetPassword(token: string, password: string): void;
+    requestForgotPasswordEmail(userEmailAddress: string): void;
+    /**
+     * Return whether user's password is successfully reset.  Part of the forgot password flow.
+     */
+    isPasswordReset(): Observable<boolean>;
+    /**
+     * Updates the password for an authenticated user
+     * @param userId the user id for which the password will be updated
+     * @param oldPassword the current password that will be changed
+     * @param newPassword the new password
+     */
+    updatePassword(userId: string, oldPassword: string, newPassword: string): void;
+    /**
+     * Returns the update passwrod loading flag
+     */
+    getUpdatePasswordResultLoading(): Observable<boolean>;
+    /**
+     * Returns the update password failure outcome.
+     */
+    getUpdatePasswordResultError(): Observable<boolean>;
+    /**
+     * Returns the update password process success outcome.
+     */
+    getUpdatePasswordResultSuccess(): Observable<boolean>;
+    /**
+     * Resets the update password process state. The state needs to be reset after the process
+     * concludes, regardless if it's a success or an error
+     */
+    resetUpdatePasswordProcessState(): void;
 }

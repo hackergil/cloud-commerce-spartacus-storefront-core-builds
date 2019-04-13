@@ -1,6 +1,6 @@
+import { Action } from '@ngrx/store';
 import { LoaderState } from './loader-state';
 import { LoaderAction } from './loader.action';
-import { Action } from '@ngrx/store';
 export declare const initialLoaderState: LoaderState<any>;
 /**
  * Higher order reducer that adds generic loading flag to chunk of the state

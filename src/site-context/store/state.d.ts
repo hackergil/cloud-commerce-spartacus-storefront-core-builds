@@ -6,6 +6,7 @@ export interface StateWithSiteContext {
 export interface SiteContextState {
     languages: LanguagesState;
     currencies: CurrenciesState;
+    baseSite: string;
 }
 export interface CurrencyEntities {
     [isocode: string]: Currency;

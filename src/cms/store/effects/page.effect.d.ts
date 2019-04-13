@@ -1,17 +1,13 @@
 import { Actions } from '@ngrx/effects';
+import { Action } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { OccCmsService } from '../../occ/occ-cms.service';
-import { DefaultPageService } from '../../services/default-page.service';
 import { RoutingService } from '../../../routing/index';
+import { CmsPageLoader } from '../../services/cms-page.loader';
 export declare class PageEffects {
     private actions$;
-    private occCmsService;
-    private defaultPageService;
+    private cmsPageLoader;
     private routingService;
-    loadPage$: Observable<any>;
-    constructor(actions$: Actions, occCmsService: OccCmsService, defaultPageService: DefaultPageService, routingService: RoutingService);
-    private getPageData;
-    private getPageKey;
-    private getCatalogUuid;
-    private getComponents;
+    refreshPage$: Observable<Action>;
+    loadPageData$: Observable<Action>;
+    constructor(actions$: Actions, cmsPageLoader: CmsPageLoader<any>, routingService: RoutingService);
 }

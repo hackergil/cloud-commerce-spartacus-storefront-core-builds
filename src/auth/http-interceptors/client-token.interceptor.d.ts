@@ -1,12 +1,11 @@
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthConfig } from '../config/auth-config';
 import { AuthService } from '../facade/auth.service';
+import { OccEndpointsService } from '../../occ/services/occ-endpoints.service';
 export declare class ClientTokenInterceptor implements HttpInterceptor {
-    private config;
     private authService;
-    baseReqString: string;
-    constructor(config: AuthConfig, authService: AuthService);
+    private occEndpoints;
+    constructor(authService: AuthService, occEndpoints: OccEndpointsService);
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>>;
     private getClientToken;
 }

@@ -1,4 +1,4 @@
+import { User } from '../../../occ/occ-models/index';
 import * as fromUserDetailsAction from '../actions/user-details.action';
-import { UserDetailsState } from '../user-state';
-export declare const initialState: UserDetailsState;
-export declare function reducer(state: UserDetailsState, action: fromUserDetailsAction.UserDetailsAction): UserDetailsState;
+export declare const initialState: User;
+export declare function reducer(state: User, action: fromUserDetailsAction.UserDetailsAction): User;

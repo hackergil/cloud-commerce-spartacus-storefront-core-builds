@@ -1,13 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Address, AddressList, AddressValidation, PaymentDetailsList, User } from '../../occ/occ-models/index';
+import { OccEndpointsService } from '../../occ/services/occ-endpoints.service';
 import { UserRegisterFormData } from '../model/user.model';
-import { OccConfig } from '../../occ/config/occ-config';
-import { User, Address, AddressValidation, AddressList, PaymentDetailsList } from '../../occ/occ-models/index';
 export declare class OccUserService {
     protected http: HttpClient;
-    protected config: OccConfig;
-    constructor(http: HttpClient, config: OccConfig);
+    private occEndpoints;
+    constructor(http: HttpClient, occEndpoints: OccEndpointsService);
     loadUser(userId: string): Observable<User>;
+    updateUserDetails(username: string, user: User): Observable<{}>;
     verifyAddress(userId: string, address: Address): Observable<AddressValidation>;
     loadUserAddresses(userId: string): Observable<AddressList>;
     addUserAddress(userId: string, address: Address): Observable<{}>;
@@ -17,5 +18,8 @@ export declare class OccUserService {
     deleteUserPaymentMethod(userId: string, paymentMethodID: string): Observable<{}>;
     setDefaultUserPaymentMethod(userId: string, paymentMethodID: string): Observable<{}>;
     registerUser(user: UserRegisterFormData): Observable<User>;
+    requestForgotPasswordEmail(userEmailAddress: string): Observable<{}>;
+    resetPassword(token: string, newPassword: string): Observable<{}>;
     protected getUserEndpoint(): string;
+    updatePassword(userId: string, oldPassword: string, newPassword: string): Observable<{}>;
 }

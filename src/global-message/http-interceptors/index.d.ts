@@ -1,2 +1,3 @@
 import { Provider } from '@angular/core';
-export declare const interceptors: Provider[];
+export declare const errorHandlers: Provider[];
+export declare const httpErrorInterceptors: Provider[];

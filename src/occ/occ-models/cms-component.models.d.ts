@@ -45,6 +45,8 @@ export interface CmsResponsiveBannerComponentMedia {
     widescreen?: CmsBannerComponentMedia;
 }
 export interface CmsBannerComponent extends CmsComponent {
+    headline?: string;
+    content?: string;
     container?: string;
     media?: CmsBannerComponentMedia | CmsResponsiveBannerComponentMedia;
     urlLink?: string;
@@ -85,4 +87,10 @@ export interface CmsNavigationComponent extends CmsComponent {
     notice?: string;
     showLanguageCurrency?: string;
     navigationNode?: CmsNavigationNode;
+}
+export interface CmsProductFacetNavigationComponent extends CmsComponent {
+    container?: string;
+    activeFacetValueCode?: string;
+    searchResult?: string;
+    minPerFacet?: string;
 }

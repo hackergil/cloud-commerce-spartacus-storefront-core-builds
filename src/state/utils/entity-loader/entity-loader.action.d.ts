@@ -1,6 +1,6 @@
-import { LoaderMeta } from '../loader/loader.action';
-import { EntityMeta } from '../entity/entity.action';
 import { Action } from '@ngrx/store';
+import { EntityMeta } from '../entity/entity.action';
+import { LoaderMeta } from '../loader/loader.action';
 export declare const ENTITY_LOAD_ACTION = "[ENTITY] LOAD";
 export declare const ENTITY_FAIL_ACTION = "[ENTITY] LOAD FAIL";
 export declare const ENTITY_SUCCESS_ACTION = "[ENTITY] LOAD SUCCESS";
@@ -26,9 +26,10 @@ export declare class EntityFailAction implements EntityLoaderAction {
     constructor(entityType: string, id: string | string[], error?: any);
 }
 export declare class EntitySuccessAction implements EntityLoaderAction {
+    payload?: any;
     type: string;
     readonly meta: EntityLoaderMeta;
-    constructor(entityType: string, id: string | string[]);
+    constructor(entityType: string, id: string | string[], payload?: any);
 }
 export declare class EntityResetAction implements EntityLoaderAction {
     type: string;

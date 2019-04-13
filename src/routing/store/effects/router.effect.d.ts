@@ -9,6 +9,7 @@ export declare class RouterEffects {
     private location;
     navigate$: Observable<any>;
     navigateBuUrl$: Observable<any>;
+    clearCmsRoutes$: Observable<Action>;
     navigateBack$: Observable<Action>;
     navigateForward$: Observable<Action>;
     constructor(actions$: Actions, router: Router, location: Location);

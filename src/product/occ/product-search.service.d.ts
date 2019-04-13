@@ -1,13 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SearchConfig } from '../model/search-config';
-import { OccConfig } from '../../occ/config/occ-config';
 import { SuggestionList, ProductSearchPage } from '../../occ/occ-models/occ.models';
-export declare class OccProductSearchService {
+import { OccEndpointsService } from '../../occ/services/occ-endpoints.service';
+export declare class ProductSearchLoaderService {
     private http;
-    private config;
-    constructor(http: HttpClient, config: OccConfig);
-    protected getProductEndpoint(): string;
-    query(fullQuery: string, searchConfig?: SearchConfig): Observable<ProductSearchPage>;
-    queryProductSuggestions(term: string, pageSize?: number): Observable<SuggestionList>;
+    private occEndpoints;
+    constructor(http: HttpClient, occEndpoints: OccEndpointsService);
+    loadSearch(fullQuery: string, searchConfig?: SearchConfig): Observable<ProductSearchPage>;
+    loadSuggestions(term: string, pageSize?: number): Observable<SuggestionList>;
+    protected getSearchEndpoint(query: string, searchConfig: SearchConfig): string;
+    protected getSuggestionEndpoint(term: string, max: string): string;
 }

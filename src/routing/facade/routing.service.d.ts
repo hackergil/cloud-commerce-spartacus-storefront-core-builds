@@ -1,10 +1,11 @@
-import * as fromStore from '../store';
+import { NavigationExtras } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { NavigationExtras } from '@angular/router';
-import { UrlTranslationService } from '../configurable-routes/url-translation/url-translation.service';
-import { TranslateUrlOptions } from '../configurable-routes/url-translation/translate-url-options';
+import * as fromStore from '../store';
+import { PageContext } from '../models/page-context.model';
 import { WindowRef } from '../../window/window-ref';
+import { TranslateUrlOptions } from '../configurable-routes/url-translation/translate-url-options';
+import { UrlTranslationService } from '../configurable-routes/url-translation/url-translation.service';
 export declare class RoutingService {
     private store;
     private winRef;
@@ -14,6 +15,10 @@ export declare class RoutingService {
      * Get the current router state
      */
     getRouterState(): Observable<any>;
+    /**
+     * Get the `PageContext` from the state
+     */
+    getPageContext(): Observable<PageContext>;
     /**
      * Navigation with a new state into history
      * @param pathOrTranslateUrlOptions: Path or options to translate url
