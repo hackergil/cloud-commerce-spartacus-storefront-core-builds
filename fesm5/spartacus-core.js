@@ -479,6 +479,8 @@ function deepMerge(target) {
 /** @type {?} */
 var ConfigValidatorToken = new InjectionToken('ConfigurationValidator');
 /**
+ * Use to probide config validation at app bootstrap (when all config chunks are merged)
+ *
  * @param {?} configValidator
  * @return {?}
  */
@@ -519,12 +521,21 @@ function validateConfig(config, configValidators) {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @type {?} */
+/**
+ * Global Configuration injection token, can be used to inject configuration to any part of the app
+ * @type {?}
+ */
 var Config = new InjectionToken('Configuration');
-/** @type {?} */
+/**
+ * Config chunk token, can be used to provide configuration chunk and contribute to the global configuration object.
+ * Should not be used directly, use `provideConfig` or import `ConfigModule.withConfig` instead.
+ * @type {?}
+ */
 var ConfigChunk = new InjectionToken('ConfigurationChunk');
 /**
- * @param {?=} config
+ * Helper function to provide configuration chunk using ConfigChunk token
+ *
+ * @param {?=} config Config object to merge with the global configuration
  * @return {?}
  */
 function provideConfig(config) {
@@ -532,8 +543,10 @@ function provideConfig(config) {
     return { provide: ConfigChunk, useValue: config, multi: true };
 }
 /**
- * @param {?} configFactory
- * @param {?=} deps
+ * Helper function to provide configuration with factory function, using ConfigChunk token
+ *
+ * @param {?} configFactory Factory Function that will generate config object
+ * @param {?=} deps Optional dependencies to a factory function
  * @return {?}
  */
 function provideConfigFactory(configFactory, deps) {
@@ -545,6 +558,8 @@ function provideConfigFactory(configFactory, deps) {
     };
 }
 /**
+ * Factory function that merges all configurations chunks. Should not be used directly without explicit reason.
+ *
  * @param {?} configChunks
  * @param {?} configValidators
  * @return {?}
@@ -561,11 +576,20 @@ var ConfigModule = /** @class */ (function () {
     function ConfigModule() {
     }
     /**
-     * @param {?} config
+     * Import ConfigModule and contribute config to the global configuration
+     *
+     * @param config Config object to merge with the global configuration
+     */
+    /**
+     * Import ConfigModule and contribute config to the global configuration
+     *
+     * @param {?} config Config object to merge with the global configuration
      * @return {?}
      */
     ConfigModule.withConfig = /**
-     * @param {?} config
+     * Import ConfigModule and contribute config to the global configuration
+     *
+     * @param {?} config Config object to merge with the global configuration
      * @return {?}
      */
     function (config) {
@@ -575,13 +599,23 @@ var ConfigModule = /** @class */ (function () {
         };
     };
     /**
-     * @param {?} configFactory
-     * @param {?=} deps
+     * Import ConfigModule and contribute config to the global configuration using factory function
+     *
+     * @param configFactory Factory function that will generate configuration
+     * @param deps Optional dependencies to factory function
+     */
+    /**
+     * Import ConfigModule and contribute config to the global configuration using factory function
+     *
+     * @param {?} configFactory Factory function that will generate configuration
+     * @param {?=} deps Optional dependencies to factory function
      * @return {?}
      */
     ConfigModule.withConfigFactory = /**
-     * @param {?} configFactory
-     * @param {?=} deps
+     * Import ConfigModule and contribute config to the global configuration using factory function
+     *
+     * @param {?} configFactory Factory function that will generate configuration
+     * @param {?=} deps Optional dependencies to factory function
      * @return {?}
      */
     function (configFactory, deps) {
@@ -591,10 +625,19 @@ var ConfigModule = /** @class */ (function () {
         };
     };
     /**
+     * Module with providers, should be imported only once, if possible, at the root of the app.
+     *
+     * @param config
+     */
+    /**
+     * Module with providers, should be imported only once, if possible, at the root of the app.
+     *
      * @param {?=} config
      * @return {?}
      */
     ConfigModule.forRoot = /**
+     * Module with providers, should be imported only once, if possible, at the root of the app.
+     *
      * @param {?=} config
      * @return {?}
      */

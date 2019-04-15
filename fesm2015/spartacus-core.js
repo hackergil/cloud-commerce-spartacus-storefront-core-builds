@@ -12,7 +12,7 @@ import i18nextXhrBackend from 'i18next-xhr-backend';
 import i18next from 'i18next';
 import { Observable, of, throwError, Subscription, ReplaySubject, combineLatest } from 'rxjs';
 import { CommonModule, Location, DOCUMENT, DatePipe, isPlatformBrowser, isPlatformServer, getLocaleId } from '@angular/common';
-import { InjectionToken, NgModule, Optional, Injectable, Inject, APP_INITIALIZER, Pipe, PLATFORM_ID, Injector, ChangeDetectorRef, ComponentFactoryResolver, defineInjectable, inject, INJECTOR } from '@angular/core';
+import { InjectionToken, NgModule, Optional, Injectable, Inject, Pipe, APP_INITIALIZER, PLATFORM_ID, Injector, ChangeDetectorRef, ComponentFactoryResolver, defineInjectable, inject, INJECTOR } from '@angular/core';
 
 /**
  * @fileoverview added by tsickle
@@ -467,6 +467,8 @@ function deepMerge(target = {}, ...sources) {
 /** @type {?} */
 const ConfigValidatorToken = new InjectionToken('ConfigurationValidator');
 /**
+ * Use to probide config validation at app bootstrap (when all config chunks are merged)
+ *
  * @param {?} configValidator
  * @return {?}
  */
@@ -496,20 +498,31 @@ function validateConfig(config, configValidators) {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @type {?} */
+/**
+ * Global Configuration injection token, can be used to inject configuration to any part of the app
+ * @type {?}
+ */
 const Config = new InjectionToken('Configuration');
-/** @type {?} */
+/**
+ * Config chunk token, can be used to provide configuration chunk and contribute to the global configuration object.
+ * Should not be used directly, use `provideConfig` or import `ConfigModule.withConfig` instead.
+ * @type {?}
+ */
 const ConfigChunk = new InjectionToken('ConfigurationChunk');
 /**
- * @param {?=} config
+ * Helper function to provide configuration chunk using ConfigChunk token
+ *
+ * @param {?=} config Config object to merge with the global configuration
  * @return {?}
  */
 function provideConfig(config = {}) {
     return { provide: ConfigChunk, useValue: config, multi: true };
 }
 /**
- * @param {?} configFactory
- * @param {?=} deps
+ * Helper function to provide configuration with factory function, using ConfigChunk token
+ *
+ * @param {?} configFactory Factory Function that will generate config object
+ * @param {?=} deps Optional dependencies to a factory function
  * @return {?}
  */
 function provideConfigFactory(configFactory, deps) {
@@ -521,6 +534,8 @@ function provideConfigFactory(configFactory, deps) {
     };
 }
 /**
+ * Factory function that merges all configurations chunks. Should not be used directly without explicit reason.
+ *
  * @param {?} configChunks
  * @param {?} configValidators
  * @return {?}
@@ -535,7 +550,9 @@ function configurationFactory(configChunks, configValidators) {
 }
 class ConfigModule {
     /**
-     * @param {?} config
+     * Import ConfigModule and contribute config to the global configuration
+     *
+     * @param {?} config Config object to merge with the global configuration
      * @return {?}
      */
     static withConfig(config) {
@@ -545,8 +562,10 @@ class ConfigModule {
         };
     }
     /**
-     * @param {?} configFactory
-     * @param {?=} deps
+     * Import ConfigModule and contribute config to the global configuration using factory function
+     *
+     * @param {?} configFactory Factory function that will generate configuration
+     * @param {?=} deps Optional dependencies to factory function
      * @return {?}
      */
     static withConfigFactory(configFactory, deps) {
@@ -556,6 +575,8 @@ class ConfigModule {
         };
     }
     /**
+     * Module with providers, should be imported only once, if possible, at the root of the app.
+     *
      * @param {?=} config
      * @return {?}
      */
