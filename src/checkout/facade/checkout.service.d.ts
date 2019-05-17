@@ -2,11 +2,13 @@ import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import * as fromCheckoutStore from '../store/index';
 import { CartDataService } from '../../cart/index';
-import { PaymentDetails, CardType, Order, DeliveryMode, AddressValidation, Address } from '../../occ/occ-models/index';
+import { DeliveryMode, Order } from '../../model/order.model';
+import { CardType, PaymentDetails } from '../../model/cart.model';
+import { Address, AddressValidation } from '../../model/address.model';
 export declare class CheckoutService {
     private checkoutStore;
     private cartData;
-    constructor(checkoutStore: Store<fromCheckoutStore.CheckoutState>, cartData: CartDataService);
+    constructor(checkoutStore: Store<fromCheckoutStore.StateWithCheckout>, cartData: CartDataService);
     /**
      * Get supported delivery modes
      */
@@ -94,5 +96,7 @@ export declare class CheckoutService {
      * @param stepNumber : the step number to be cleared
      */
     clearCheckoutStep(stepNumber: number): void;
+    loadCheckoutDetails(userId: string, cartId: string): void;
+    getCheckoutDetailsLoaded(): Observable<boolean>;
     private actionAllowed;
 }
