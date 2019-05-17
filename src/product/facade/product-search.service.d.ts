@@ -3,7 +3,7 @@ import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { SearchConfig } from '../model/search-config';
 import * as fromStore from '../store/index';
-import { ProductSearchPage, Suggestion } from '../../occ/occ-models';
+import { Suggestion, ProductSearchPage } from '../../model/product-search.model';
 export declare class ProductSearchService {
     private store;
     private router;

@@ -1,9 +1,10 @@
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { Cart, OrderEntry } from '../../occ/occ-models/index';
 import { AuthService, UserToken } from '../../auth/index';
 import { CartDataService } from './cart-data.service';
 import { StateWithCart } from '../store/cart-state';
+import { Cart } from '../../model/cart.model';
+import { OrderEntry } from '../../model/order.model';
 export declare class CartService {
     private store;
     private cartData;

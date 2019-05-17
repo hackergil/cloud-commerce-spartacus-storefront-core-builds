@@ -1,7 +1,7 @@
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import * as fromStore from '../store/index';
-import { Product } from '../../occ/occ-models/occ.models';
+import { Product } from '../../model/product.model';
 export declare class ProductService {
     private store;
     constructor(store: Store<fromStore.StateWithProduct>);
