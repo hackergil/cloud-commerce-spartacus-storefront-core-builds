@@ -4,37 +4,28 @@ import { Observable } from 'rxjs';
 import * as fromStore from '../store';
 import { PageContext } from '../models/page-context.model';
 import { WindowRef } from '../../window/window-ref';
-import { UrlCommands } from '../configurable-routes/url-translation/url-command';
-import { UrlService } from '../configurable-routes/url-translation/url.service';
-import { RouterState } from '../store/reducers/router.reducer';
+import { TranslateUrlOptions } from '../configurable-routes/url-translation/translate-url-options';
+import { UrlTranslationService } from '../configurable-routes/url-translation/url-translation.service';
 export declare class RoutingService {
     private store;
     private winRef;
-    private urlService;
-    constructor(store: Store<fromStore.RouterState>, winRef: WindowRef, urlService: UrlService);
+    private urlTranslator;
+    constructor(store: Store<fromStore.RouterState>, winRef: WindowRef, urlTranslator: UrlTranslationService);
     /**
      * Get the current router state
      */
-    getRouterState(): Observable<RouterState>;
+    getRouterState(): Observable<any>;
     /**
      * Get the `PageContext` from the state
      */
     getPageContext(): Observable<PageContext>;
     /**
-     * Get the next `PageContext` from the state
-     */
-    getNextPageContext(): Observable<PageContext>;
-    /**
-     * Get the `isNavigating` info from the state
-     */
-    isNavigating(): Observable<boolean>;
-    /**
      * Navigation with a new state into history
-     * @param commands: url commands
+     * @param pathOrTranslateUrlOptions: Path or options to translate url
      * @param query
      * @param extras: Represents the extra options used during navigation.
      */
-    go(commands: UrlCommands, query?: object, extras?: NavigationExtras): void;
+    go(pathOrTranslateUrlOptions: any[] | TranslateUrlOptions, query?: object, extras?: NavigationExtras): void;
     /**
      * Navigation using URL
      * @param url

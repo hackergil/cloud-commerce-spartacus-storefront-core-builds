@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Review } from '../../model/product.model';
+import { Review } from '../../occ/occ-models/occ.models';
 import { OccEndpointsService } from '../../occ/services/occ-endpoints.service';
 import { ConverterService } from '../../util/converter.service';
 import { ProductReviewsAdapter } from '../connectors/reviews/product-reviews.adapter';

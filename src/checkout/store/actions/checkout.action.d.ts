@@ -1,9 +1,5 @@
 import { Action } from '@ngrx/store';
-import { LoaderLoadAction, LoaderFailAction, LoaderSuccessAction } from '../../../state/utils/loader/loader.action';
-import { CheckoutDetails } from '../../models/checkout.model';
-import { Address } from '../../../model/address.model';
-import { DeliveryMode, Order } from '../../../model/order.model';
-import { PaymentDetails } from '../../../model/cart.model';
+import { Address, DeliveryModeList, PaymentDetails, Order } from '../../../occ/occ-models/index';
 export declare const ADD_DELIVERY_ADDRESS = "[Checkout] Add Delivery Address";
 export declare const ADD_DELIVERY_ADDRESS_FAIL = "[Checkout] Add Delivery Address Fail";
 export declare const ADD_DELIVERY_ADDRESS_SUCCESS = "[Checkout] Add Delivery Address Success";
@@ -28,9 +24,6 @@ export declare const PLACE_ORDER_FAIL = "[Checkout] Place Order Fail";
 export declare const PLACE_ORDER_SUCCESS = "[Checkout] Place Order Success";
 export declare const CLEAR_CHECKOUT_STEP = "[Checkout] Clear One Checkout Step";
 export declare const CLEAR_CHECKOUT_DATA = "[Checkout] Clear Checkout Data";
-export declare const LOAD_CHECKOUT_DETAILS = "[Checkout] Load Checkout Details";
-export declare const LOAD_CHECKOUT_DETAILS_FAIL = "[Checkout] Load Checkout Details Fail";
-export declare const LOAD_CHECKOUT_DETAILS_SUCCESS = "[Checkout] Load Checkout Details Success";
 export declare class AddDeliveryAddress implements Action {
     payload: {
         userId: string;
@@ -94,9 +87,9 @@ export declare class LoadSupportedDeliveryModesFail implements Action {
     constructor(payload: any);
 }
 export declare class LoadSupportedDeliveryModesSuccess implements Action {
-    payload: DeliveryMode[];
+    payload: DeliveryModeList;
     readonly type = "[Checkout] Load Supported Delivery Modes Success";
-    constructor(payload: DeliveryMode[]);
+    constructor(payload: DeliveryModeList);
 }
 export declare class SetDeliveryMode implements Action {
     payload: {
@@ -199,25 +192,4 @@ export declare class ClearCheckoutStep implements Action {
 export declare class ClearCheckoutData implements Action {
     readonly type = "[Checkout] Clear Checkout Data";
 }
-export declare class LoadCheckoutDetails extends LoaderLoadAction {
-    payload: {
-        userId: string;
-        cartId: string;
-    };
-    readonly type = "[Checkout] Load Checkout Details";
-    constructor(payload: {
-        userId: string;
-        cartId: string;
-    });
-}
-export declare class LoadCheckoutDetailsFail extends LoaderFailAction {
-    payload: any;
-    readonly type = "[Checkout] Load Checkout Details Fail";
-    constructor(payload: any);
-}
-export declare class LoadCheckoutDetailsSuccess extends LoaderSuccessAction {
-    payload: CheckoutDetails;
-    readonly type = "[Checkout] Load Checkout Details Success";
-    constructor(payload: CheckoutDetails);
-}
-export declare type CheckoutAction = AddDeliveryAddress | AddDeliveryAddressFail | AddDeliveryAddressSuccess | SetDeliveryAddress | SetDeliveryAddressFail | SetDeliveryAddressSuccess | LoadSupportedDeliveryModes | LoadSupportedDeliveryModesFail | LoadSupportedDeliveryModesSuccess | SetDeliveryMode | SetDeliveryModeFail | SetDeliveryModeSuccess | ClearSupportedDeliveryModes | CreatePaymentDetails | CreatePaymentDetailsFail | CreatePaymentDetailsSuccess | SetPaymentDetails | SetPaymentDetailsFail | SetPaymentDetailsSuccess | PlaceOrder | PlaceOrderFail | PlaceOrderSuccess | ClearCheckoutStep | ClearCheckoutData | LoadCheckoutDetails | LoadCheckoutDetailsFail | LoadCheckoutDetailsSuccess;
+export declare type CheckoutAction = AddDeliveryAddress | AddDeliveryAddressFail | AddDeliveryAddressSuccess | SetDeliveryAddress | SetDeliveryAddressFail | SetDeliveryAddressSuccess | LoadSupportedDeliveryModes | LoadSupportedDeliveryModesFail | LoadSupportedDeliveryModesSuccess | SetDeliveryMode | SetDeliveryModeFail | SetDeliveryModeSuccess | ClearSupportedDeliveryModes | CreatePaymentDetails | CreatePaymentDetailsFail | CreatePaymentDetailsSuccess | SetPaymentDetails | SetPaymentDetailsFail | SetPaymentDetailsSuccess | PlaceOrder | PlaceOrderFail | PlaceOrderSuccess | ClearCheckoutStep | ClearCheckoutData;

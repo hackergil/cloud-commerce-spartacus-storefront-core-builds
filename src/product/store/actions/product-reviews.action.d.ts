@@ -1,6 +1,5 @@
 import { Action } from '@ngrx/store';
-import { ErrorModel } from '../../../model/misc.model';
-import { Review } from '../../../model/product.model';
+import { Review, ErrorModel } from '../../../occ/occ-models';
 export declare const LOAD_PRODUCT_REVIEWS = "[Product] Load Product Reviews Data";
 export declare const LOAD_PRODUCT_REVIEWS_FAIL = "[Product] Load Product Reviews Data Fail";
 export declare const LOAD_PRODUCT_REVIEWS_SUCCESS = "[Product] Load Product Reviews Data Success";

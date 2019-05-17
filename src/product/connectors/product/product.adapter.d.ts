@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { Product } from '../../../model/product.model';
+import { Product } from '../../../occ/occ-models/occ.models';
 export declare abstract class ProductAdapter {
     /**
      * Abstract method used to load product's details data.

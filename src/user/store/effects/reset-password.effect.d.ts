@@ -1,11 +1,11 @@
 import { Actions } from '@ngrx/effects';
 import { Observable } from 'rxjs';
 import * as fromActions from '../actions/index';
+import { OccUserService } from '../../occ/user.service';
 import { AddMessage } from '../../../global-message/index';
-import { UserAccountConnector } from '../../connectors/account/user-account.connector';
 export declare class ResetPasswordEffects {
     private actions$;
-    private userAccountConnector;
+    private occUserService;
     resetPassword$: Observable<fromActions.ResetPasswordSuccess | AddMessage | fromActions.ResetPasswordFail>;
-    constructor(actions$: Actions, userAccountConnector: UserAccountConnector);
+    constructor(actions$: Actions, occUserService: OccUserService);
 }

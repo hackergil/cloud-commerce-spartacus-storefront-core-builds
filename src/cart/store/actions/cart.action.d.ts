@@ -52,8 +52,7 @@ export declare class MergeCart implements Action {
     constructor(payload: any);
 }
 export declare class MergeCartSuccess implements Action {
-    payload: any;
     readonly type = "[Cart] Merge Cart Success";
-    constructor(payload: any);
+    constructor();
 }
 export declare type CartAction = CreateCart | CreateCartFail | CreateCartSuccess | LoadCart | LoadCartFail | LoadCartSuccess | MergeCart | MergeCartSuccess;

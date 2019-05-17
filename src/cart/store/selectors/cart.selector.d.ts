@@ -1,8 +1,7 @@
 import { MemoizedSelector } from '@ngrx/store';
-import { CartsState, CartState, StateWithCart } from '../cart-state';
+import { Cart, OrderEntry } from '../../../occ/occ-models/index';
+import { CartState, CartsState, StateWithCart } from '../cart-state';
 import { LoaderState } from '../../../state/utils/loader/loader-state';
-import { Cart } from '../../../model/cart.model';
-import { OrderEntry } from '../../../model/order.model';
 export declare const getCartContentSelector: (state: CartState) => any;
 export declare const getRefreshSelector: (state: CartState) => boolean;
 export declare const getEntriesSelector: (state: CartState) => {

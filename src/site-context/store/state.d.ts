@@ -1,4 +1,4 @@
-import { Currency, Language } from '../../model/misc.model';
+import { Currency, Language } from '../../occ/occ-models/occ.models';
 export declare const SITE_CONTEXT_FEATURE = "siteContext";
 export interface StateWithSiteContext {
     [SITE_CONTEXT_FEATURE]: SiteContextState;

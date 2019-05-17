@@ -9,8 +9,8 @@ export declare abstract class I18nConfig extends ServerConfig {
         };
         resources?: TranslationResources;
         debug?: boolean;
-        chunks?: {
-            [chunk: string]: string[];
+        namespaceMapping?: {
+            [mainKey: string]: string;
         };
     };
 }

@@ -1,6 +1,6 @@
 export interface TranslationResources {
     [lang: string]: {
-        [chunkName: string]: {
+        [namespace: string]: {
             [key: string]: any;
         };
     };

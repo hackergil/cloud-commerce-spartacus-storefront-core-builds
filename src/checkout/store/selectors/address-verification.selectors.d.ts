@@ -1,5 +1,5 @@
 import { MemoizedSelector } from '@ngrx/store';
-import { AddressVerificationState, StateWithCheckout } from '../checkout-state';
-import { AddressValidation } from '../../../model/address.model';
-export declare const getAddressVerificationResultsState: MemoizedSelector<StateWithCheckout, AddressVerificationState>;
-export declare const getAddressVerificationResults: MemoizedSelector<StateWithCheckout, string | AddressValidation>;
+import { CheckoutState, AddressVerificationState } from '../checkout-state';
+import { AddressValidation } from '../../../occ/occ-models/occ.models';
+export declare const getAddressVerificationResultsState: MemoizedSelector<CheckoutState, AddressVerificationState>;
+export declare const getAddressVerificationResults: MemoizedSelector<CheckoutState, string | AddressValidation>;

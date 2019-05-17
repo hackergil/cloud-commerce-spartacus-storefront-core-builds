@@ -1,11 +1,11 @@
 import { Observable } from 'rxjs';
 import { Actions } from '@ngrx/effects';
-import { CartEntryConnector } from '../../connectors/entry/cart-entry.connector';
+import { OccCartService } from '../../occ/cart.service';
 export declare class CartEntryEffects {
     private actions$;
-    private cartEntryConnector;
+    private cartService;
     addEntry$: Observable<any>;
     removeEntry$: Observable<any>;
     updateEntry$: Observable<any>;
-    constructor(actions$: Actions, cartEntryConnector: CartEntryConnector);
+    constructor(actions$: Actions, cartService: OccCartService);
 }

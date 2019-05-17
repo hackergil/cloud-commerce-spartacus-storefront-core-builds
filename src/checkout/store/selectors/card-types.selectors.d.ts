@@ -1,8 +1,8 @@
 import { MemoizedSelector } from '@ngrx/store';
-import { CardTypesState, StateWithCheckout } from '../checkout-state';
-import { CardType } from '../../../model/cart.model';
-export declare const getCardTypesState: MemoizedSelector<StateWithCheckout, CardTypesState>;
-export declare const getCardTypesEntites: MemoizedSelector<StateWithCheckout, {
+import { CheckoutState, CardTypesState } from '../checkout-state';
+import { CardType } from '../../../occ/occ-models/index';
+export declare const getCardTypesState: MemoizedSelector<CheckoutState, CardTypesState>;
+export declare const getCardTypesEntites: MemoizedSelector<CheckoutState, {
     [code: string]: CardType;
 }>;
-export declare const getAllCardTypes: MemoizedSelector<StateWithCheckout, CardType[]>;
+export declare const getAllCardTypes: MemoizedSelector<CheckoutState, CardType[]>;

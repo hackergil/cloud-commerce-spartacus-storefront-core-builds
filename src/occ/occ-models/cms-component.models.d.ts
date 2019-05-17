@@ -1,4 +1,4 @@
-import { Component } from '../../model/cms.model';
+import { Component } from './occ.models';
 export declare type CmsComponent = Component;
 export interface CmsComponentList {
     component: CmsComponent[];
@@ -58,14 +58,6 @@ export interface CmsProductCarouselComponent extends CmsComponent {
     container?: string;
     popup?: string;
     scroll?: string;
-}
-export interface CmsProductReferencesComponent extends CmsComponent {
-    title?: string;
-    displayProductTitles?: string;
-    displayProductPrices?: string;
-    maximumNumberProducts?: number;
-    productReferenceTypes?: string;
-    container?: string;
 }
 export interface CmsMiniCartComponent extends CmsComponent {
     container?: string;

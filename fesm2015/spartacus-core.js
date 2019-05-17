@@ -1,81 +1,324 @@
-import { ROUTER_NAVIGATION, ROUTER_NAVIGATED, ROUTER_ERROR, ROUTER_CANCEL, StoreRouterConnectingModule, RouterStateSerializer } from '@ngrx/router-store';
+import { ROUTER_NAVIGATION, ROUTER_ERROR, ROUTER_CANCEL, StoreRouterConnectingModule, RouterStateSerializer } from '@ngrx/router-store';
+import { localStorageSync } from 'ngrx-store-localstorage';
 import { makeStateKey, TransferState } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
-import { Router, PRIMARY_OUTLET, DefaultUrlSerializer, RouterModule, NavigationStart, NavigationEnd, NavigationError, NavigationCancel, UrlSerializer } from '@angular/router';
+import { Router, PRIMARY_OUTLET, RouterModule, DefaultUrlSerializer, NavigationCancel, NavigationEnd, NavigationError, NavigationStart, UrlSerializer } from '@angular/router';
+import { __decorate, __metadata, __awaiter } from 'tslib';
+import { tap, map, retry, filter, switchMap, take, catchError, mergeMap, exhaustMap, groupBy, multicast, refCount, withLatestFrom, pluck, concatMap, takeWhile } from 'rxjs/operators';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams, HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
+import { createSelector, createFeatureSelector, select, Store, StoreModule, combineReducers, META_REDUCERS } from '@ngrx/store';
+import { Effect, Actions, ofType, EffectsModule } from '@ngrx/effects';
 import i18nextXhrBackend from 'i18next-xhr-backend';
 import i18next from 'i18next';
-import { __decorate, __metadata } from 'tslib';
-import { Observable, of, throwError, Subscription, combineLatest } from 'rxjs';
-import { createFeatureSelector, createSelector, select, Store, INIT, UPDATE, StoreModule, combineReducers, META_REDUCERS } from '@ngrx/store';
-import { Effect, Actions, ofType, EffectsModule } from '@ngrx/effects';
-import { InjectionToken, NgModule, Optional, Injectable, Inject, APP_INITIALIZER, Pipe, PLATFORM_ID, Injector, NgZone, ChangeDetectorRef, ComponentFactoryResolver, defineInjectable, inject, INJECTOR } from '@angular/core';
-import { HttpHeaders, HttpErrorResponse, HttpParams, HTTP_INTERCEPTORS, HttpClient, HttpClientModule, HttpResponse } from '@angular/common/http';
-import { tap, map, filter, switchMap, take, catchError, mergeMap, exhaustMap, pluck, groupBy, shareReplay, concatMap, takeWhile } from 'rxjs/operators';
-import { CommonModule, Location, DOCUMENT, isPlatformBrowser, isPlatformServer, DatePipe, getLocaleId } from '@angular/common';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @enum {string} */
-const PageType = {
-    CONTENT_PAGE: 'ContentPage',
-    PRODUCT_PAGE: 'ProductPage',
-    CATEGORY_PAGE: 'CategoryPage',
-    CATALOG_PAGE: 'CatalogPage',
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @enum {string} */
-const ImageType = {
-    PRIMARY: 'PRIMARY',
-    GALLERY: 'GALLERY',
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @enum {string} */
-const PriceType = {
-    BUY: 'BUY',
-    FROM: 'FROM',
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
+import { Observable, of, throwError, Subscription, ReplaySubject, combineLatest } from 'rxjs';
+import { CommonModule, Location, DOCUMENT, DatePipe, isPlatformBrowser, isPlatformServer, getLocaleId } from '@angular/common';
+import { InjectionToken, NgModule, Optional, Injectable, Inject, Pipe, APP_INITIALIZER, PLATFORM_ID, Injector, ChangeDetectorRef, ComponentFactoryResolver, defineInjectable, inject, INJECTOR } from '@angular/core';
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const testestsd = 'sare';
+const LOADER_LOAD_ACTION = '[LOADER] LOAD';
+/** @type {?} */
+const LOADER_FAIL_ACTION = '[LOADER] FAIL';
+/** @type {?} */
+const LOADER_SUCCESS_ACTION = '[LOADER] SUCCESS';
+/** @type {?} */
+const LOADER_RESET_ACTION = '[LOADER] RESET';
+/**
+ * @param {?} entityType
+ * @return {?}
+ */
+function loadMeta(entityType) {
+    return {
+        entityType: entityType,
+        loader: {
+            load: true,
+        },
+    };
+}
+/**
+ * @param {?} entityType
+ * @param {?=} error
+ * @return {?}
+ */
+function failMeta(entityType, error) {
+    return {
+        entityType: entityType,
+        loader: {
+            error: error ? error : true,
+        },
+    };
+}
+/**
+ * @param {?} entityType
+ * @return {?}
+ */
+function successMeta(entityType) {
+    return {
+        entityType: entityType,
+        loader: {
+            success: true,
+        },
+    };
+}
+/**
+ * @param {?} entityType
+ * @return {?}
+ */
+function resetMeta(entityType) {
+    return {
+        entityType: entityType,
+        loader: {},
+    };
+}
+class LoaderLoadAction {
+    /**
+     * @param {?} entityType
+     */
+    constructor(entityType) {
+        this.type = LOADER_LOAD_ACTION;
+        this.meta = loadMeta(entityType);
+    }
+}
+class LoaderFailAction {
+    /**
+     * @param {?} entityType
+     * @param {?=} error
+     */
+    constructor(entityType, error) {
+        this.type = LOADER_FAIL_ACTION;
+        this.meta = failMeta(entityType, error);
+    }
+}
+class LoaderSuccessAction {
+    /**
+     * @param {?} entityType
+     */
+    constructor(entityType) {
+        this.type = LOADER_SUCCESS_ACTION;
+        this.meta = successMeta(entityType);
+    }
+}
+class LoaderResetAction {
+    /**
+     * @param {?} entityType
+     */
+    constructor(entityType) {
+        this.type = LOADER_RESET_ACTION;
+        this.meta = resetMeta(entityType);
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const CART_FEATURE = 'cart';
+/** @type {?} */
+const CART_DATA = '[Cart] Cart Data';
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const CREATE_CART = '[Cart] Create Cart';
+/** @type {?} */
+const CREATE_CART_FAIL = '[Cart] Create Cart Fail';
+/** @type {?} */
+const CREATE_CART_SUCCESS = '[Cart] Create Cart Success';
+/** @type {?} */
+const LOAD_CART = '[Cart] Load Cart';
+/** @type {?} */
+const LOAD_CART_FAIL = '[Cart] Load Cart Fail';
+/** @type {?} */
+const LOAD_CART_SUCCESS = '[Cart] Load Cart Success';
+/** @type {?} */
+const MERGE_CART = '[Cart] Merge Cart';
+/** @type {?} */
+const MERGE_CART_SUCCESS = '[Cart] Merge Cart Success';
+class CreateCart extends LoaderLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = CREATE_CART;
+    }
+}
+class CreateCartFail extends LoaderFailAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA, payload);
+        this.payload = payload;
+        this.type = CREATE_CART_FAIL;
+    }
+}
+class CreateCartSuccess extends LoaderSuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = CREATE_CART_SUCCESS;
+    }
+}
+class LoadCart extends LoaderLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = LOAD_CART;
+    }
+}
+class LoadCartFail extends LoaderFailAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA, payload);
+        this.payload = payload;
+        this.type = LOAD_CART_FAIL;
+    }
+}
+class LoadCartSuccess extends LoaderSuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = LOAD_CART_SUCCESS;
+    }
+}
+class MergeCart {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = MERGE_CART;
+    }
+}
+class MergeCartSuccess {
+    constructor() {
+        this.type = MERGE_CART_SUCCESS;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const ADD_ENTRY = '[Cart-entry] Add Entry';
+/** @type {?} */
+const ADD_ENTRY_SUCCESS = '[Cart-entry] Add Entry Success';
+/** @type {?} */
+const ADD_ENTRY_FAIL = '[Cart-entry] Add Entry Fail';
+/** @type {?} */
+const REMOVE_ENTRY = '[Cart-entry] Remove Entry';
+/** @type {?} */
+const REMOVE_ENTRY_SUCCESS = '[Cart-entry] Remove Entry Success';
+/** @type {?} */
+const REMOVE_ENTRY_FAIL = '[Cart-entry] Remove Entry Fail';
+/** @type {?} */
+const UPDATE_ENTRY = '[Cart-entry] Update Entry';
+/** @type {?} */
+const UPDATE_ENTRY_SUCCESS = '[Cart-entry] Update Entry Success';
+/** @type {?} */
+const UPDATE_ENTRY_FAIL = '[Cart-entry] Update Entry Fail';
+class AddEntry extends LoaderLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = ADD_ENTRY;
+    }
+}
+class AddEntrySuccess extends LoaderSuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = ADD_ENTRY_SUCCESS;
+    }
+}
+class AddEntryFail extends LoaderFailAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA, payload);
+        this.payload = payload;
+        this.type = ADD_ENTRY_FAIL;
+    }
+}
+class RemoveEntry extends LoaderLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = REMOVE_ENTRY;
+    }
+}
+class RemoveEntrySuccess extends LoaderSuccessAction {
+    constructor() {
+        super(CART_DATA);
+        this.type = REMOVE_ENTRY_SUCCESS;
+    }
+}
+class RemoveEntryFail extends LoaderFailAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA, payload);
+        this.payload = payload;
+        this.type = REMOVE_ENTRY_FAIL;
+    }
+}
+class UpdateEntry extends LoaderLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA);
+        this.payload = payload;
+        this.type = UPDATE_ENTRY;
+    }
+}
+class UpdateEntrySuccess extends LoaderSuccessAction {
+    constructor() {
+        super(CART_DATA);
+        this.type = UPDATE_ENTRY_SUCCESS;
+    }
+}
+class UpdateEntryFail extends LoaderFailAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(CART_DATA, payload);
+        this.payload = payload;
+        this.type = UPDATE_ENTRY_FAIL;
+    }
+}
 
 /**
  * @fileoverview added by tsickle
@@ -86,6 +329,81 @@ const testestsd = 'sare';
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+/**
+ * @template T
+ * @param {?} state
+ * @return {?}
+ */
+function loaderValueSelector(state) {
+    return state.value;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @return {?}
+ */
+function loaderLoadingSelector(state) {
+    return state.loading;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @return {?}
+ */
+function loaderErrorSelector(state) {
+    return state.error;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @return {?}
+ */
+function loaderSuccessSelector(state) {
+    return state.success;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getCartContentSelector = (state) => state.content;
+/** @type {?} */
+const getRefreshSelector = (state) => state.refresh;
+/** @type {?} */
+const getEntriesSelector = (state) => state.entries;
+/** @type {?} */
+const getCartMergeCompleteSelector = (state) => state.cartMergeComplete;
+/** @type {?} */
+const getCartsState = createFeatureSelector(CART_FEATURE);
+/** @type {?} */
+const getActiveCartState = createSelector(getCartsState, (cartsState) => cartsState.active);
+/** @type {?} */
+const getCartState = createSelector(getActiveCartState, state => loaderValueSelector(state));
+/** @type {?} */
+const getCartContent = createSelector(getCartState, getCartContentSelector);
+/** @type {?} */
+const getRefresh = createSelector(getCartState, getRefreshSelector);
+/** @type {?} */
+const getLoaded = createSelector(getActiveCartState, state => loaderSuccessSelector(state) &&
+    !loaderLoadingSelector(state) &&
+    !loaderValueSelector(state).refresh);
+/** @type {?} */
+const getCartMergeComplete = createSelector(getCartState, getCartMergeCompleteSelector);
+/** @type {?} */
+const getEntriesMap = createSelector(getCartState, getEntriesSelector);
+/** @type {?} */
+const getEntrySelectorFactory = (productCode) => {
+    return createSelector(getEntriesMap, entries => {
+        if (entries) {
+            return entries[productCode];
+        }
+    });
+};
+/** @type {?} */
+const getEntries = createSelector(getEntriesMap, entities => {
+    return Object.keys(entities).map(code => entities[code]);
+});
 
 /**
  * @fileoverview added by tsickle
@@ -290,13 +608,6 @@ ConfigModule.decorators = [
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const ROUTING_FEATURE = 'router';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
 const GO = '[Router] Go';
 /** @type {?} */
 const GO_BY_URL = '[Router] Go By Url';
@@ -361,6 +672,429 @@ class ClearRedirectUrl {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
+const ROUTING_FEATURE = 'router';
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @enum {string} */
+const PriceType = {
+    BUY: 'BUY',
+    FROM: 'FROM',
+};
+/** @enum {string} */
+const ImageType = {
+    PRIMARY: 'PRIMARY',
+    GALLERY: 'GALLERY',
+};
+/** @enum {string} */
+const Fields = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields1 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields2 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields3 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields4 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields5 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields6 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const PageType = {
+    CONTENT_PAGE: 'ContentPage',
+    PRODUCT_PAGE: 'ProductPage',
+    CATEGORY_PAGE: 'CategoryPage',
+    CATALOG_PAGE: 'CatalogPage',
+};
+/** @enum {string} */
+const Fields7 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields8 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields9 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields10 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields11 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields12 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields13 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields14 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields15 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields16 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const SortEnum = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields17 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields18 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields19 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields20 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields21 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields22 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields23 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields24 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields25 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields26 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields27 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields28 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields29 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields30 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields31 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields32 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields33 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields34 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields35 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields36 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields37 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields38 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields39 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields40 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields41 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields42 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields43 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields44 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields45 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields46 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields47 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields48 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields49 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields50 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields51 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields52 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields53 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields54 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields55 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields56 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields57 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields58 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields59 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields60 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Fields61 = {
+    BASIC: 'BASIC',
+    DEFAULT: 'DEFAULT',
+    FULL: 'FULL',
+};
+/** @enum {string} */
+const Type = {
+    All: 'all',
+    Product: 'product',
+    Order: 'order',
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
 const initialState = {
     redirectUrl: '',
     navigationId: 0,
@@ -373,7 +1107,6 @@ const initialState = {
         },
         cmsRequired: false,
     },
-    nextState: undefined,
 };
 /**
  * @return {?}
@@ -396,10 +1129,7 @@ function reducer(state = initialState, action) {
         case CLEAR_REDIRECT_URL: {
             return Object.assign({}, state, { redirectUrl: '' });
         }
-        case ROUTER_NAVIGATION: {
-            return Object.assign({}, state, { nextState: action.payload.routerState, navigationId: action.payload.event.id });
-        }
-        case ROUTER_NAVIGATED:
+        case ROUTER_NAVIGATION:
         case ROUTER_ERROR:
         case ROUTER_CANCEL: {
             /** @type {?} */
@@ -412,10 +1142,8 @@ function reducer(state = initialState, action) {
                 : '';
             /** @type {?} */
             let redirectUrl;
-            if (
-            // TODO: Should be rafactored, utilizimg semantic pages configuration
-            contextId === '/login' ||
-                contextId === '/login/register' ||
+            if (contextId === 'login' ||
+                contextId === 'register' ||
                 currentUrl === state.redirectUrl) {
                 redirectUrl = state.redirectUrl;
             }
@@ -426,7 +1154,6 @@ function reducer(state = initialState, action) {
                 redirectUrl: redirectUrl,
                 state: action.payload.routerState,
                 navigationId: action.payload.event.id,
-                nextState: undefined,
             };
         }
         default: {
@@ -444,13 +1171,9 @@ const reducerProvider = {
 /** @type {?} */
 const getRouterFeatureState = createFeatureSelector(ROUTING_FEATURE);
 /** @type {?} */
-const getRouterState = createSelector(getRouterFeatureState, state => state.router);
+const getRouterState = createSelector(getRouterFeatureState, (state) => state[ROUTING_FEATURE]);
 /** @type {?} */
-const getPageContext = createSelector(getRouterState, (routingState) => (routingState.state && routingState.state.context) || { id: '' });
-/** @type {?} */
-const getNextPageContext = createSelector(getRouterState, (routingState) => routingState.nextState && routingState.nextState.context);
-/** @type {?} */
-const isNavigating = createSelector(getNextPageContext, context => !!context);
+const getPageContext = createSelector(getRouterState, (routingState) => routingState.state.context);
 /** @type {?} */
 const getRedirectUrl = createSelector(getRouterState, state => state.redirectUrl);
 /* The serializer is there to parse the RouterStateSnapshot,
@@ -503,6 +1226,9 @@ class CustomSerializer {
             }
             else if (params['brandCode']) {
                 context = { id: params['brandCode'], type: PageType.CATEGORY_PAGE };
+            }
+            else if (params['query']) {
+                context = { id: 'search', type: PageType.CONTENT_PAGE };
             }
             else if (state.data.pageLabel !== undefined) {
                 context = { id: state.data.pageLabel, type: PageType.CONTENT_PAGE };
@@ -724,6 +1450,407 @@ WindowRef.ctorParameters = () => [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+/**
+ * @abstract
+ */
+class ConfigurableRoutesConfig {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class OccConfig extends ServerConfig {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const ENDPOINT_ROUTES_CONFIG = 'routes-config';
+class RoutesConfigLoader {
+    /**
+     * @param {?} http
+     * @param {?} serverConfig
+     * @param {?} configurableRoutesConfig
+     */
+    constructor(http, serverConfig, configurableRoutesConfig) {
+        this.http = http;
+        this.serverConfig = serverConfig;
+        this.configurableRoutesConfig = configurableRoutesConfig;
+    }
+    /**
+     * @return {?}
+     */
+    get routesConfig() {
+        return this._routesConfig;
+    }
+    /**
+     * @return {?}
+     */
+    get endpoint() {
+        return ((this.serverConfig.backend.occ.baseUrl || '') +
+            '/' +
+            ENDPOINT_ROUTES_CONFIG);
+    }
+    /**
+     * @return {?}
+     */
+    load() {
+        return __awaiter(this, void 0, void 0, function* () {
+            /** @type {?} */
+            const shouldFetch = this.configurableRoutesConfig.routesConfig.fetch;
+            /** @type {?} */
+            const fetchedRoutesConfig = shouldFetch
+                ? yield this.fetch(this.endpoint)
+                : null;
+            this._routesConfig = this.extendStaticWith(fetchedRoutesConfig);
+        });
+    }
+    /**
+     * @private
+     * @param {?} url
+     * @return {?}
+     */
+    fetch(url) {
+        return this.http
+            .get(url)
+            .pipe(retry(2))
+            .toPromise()
+            .catch(() => {
+            throw new Error(`Could not get routes configuration from url ${url}!`);
+        });
+    }
+    /**
+     * @private
+     * @param {?} routesConfig
+     * @return {?}
+     */
+    extendStaticWith(routesConfig) {
+        /** @type {?} */
+        const mergedRoutesConfig = deepMerge({}, this.configurableRoutesConfig.routesConfig, routesConfig);
+        return this.extendLanguagesTranslationsWithDefault(mergedRoutesConfig);
+    }
+    /**
+     * @private
+     * @param {?} routesConfig
+     * @return {?}
+     */
+    extendLanguagesTranslationsWithDefault(routesConfig) {
+        /** @type {?} */
+        const defaultTranslations = routesConfig.translations.default;
+        Object.keys(routesConfig.translations).forEach(languageCode => {
+            /** @type {?} */
+            const languageTranslations = routesConfig.translations[languageCode];
+            routesConfig.translations[languageCode] = deepMerge({}, defaultTranslations, languageTranslations);
+        });
+        return routesConfig;
+    }
+}
+RoutesConfigLoader.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+RoutesConfigLoader.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccConfig },
+    { type: ConfigurableRoutesConfig }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ConfigurableRoutesService {
+    /**
+     * @param {?} config
+     * @param {?} injector
+     * @param {?} routesConfigLoader
+     */
+    constructor(config, injector, routesConfigLoader) {
+        this.config = config;
+        this.injector = injector;
+        this.routesConfigLoader = routesConfigLoader;
+        this.currentLanguageCode = 'en'; // TODO: hardcoded! should be removed when more languages are supported by localized routes
+        this.initCalled = false; // guard not to call init() more than once
+    }
+    /**
+     * @private
+     * @return {?}
+     */
+    get currentRoutesTranslations() {
+        return (/** @type {?} */ (this.allRoutesTranslations[this.currentLanguageCode]));
+    }
+    // guard not to call init() more than once
+    /**
+     * Initializes service with given translations and translates all existing Routes in the Router.
+     * @return {?}
+     */
+    init() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.initCalled) {
+                this.initCalled = true;
+                yield this.routesConfigLoader.load();
+                this.allRoutesTranslations = this.routesConfigLoader.routesConfig.translations;
+                this.translateRouterConfig();
+            }
+        });
+    }
+    /**
+     * @private
+     * @return {?}
+     */
+    translateRouterConfig() {
+        // Router could not be injected in constructor due to cyclic dependency with APP_INITIALIZER:
+        /** @type {?} */
+        const router = this.injector.get(Router);
+        /** @type {?} */
+        let translatedRoutes = this.translateRoutes(router.config, this.currentRoutesTranslations);
+        translatedRoutes = this.moveWildcardRouteToEnd(translatedRoutes);
+        router.resetConfig(translatedRoutes);
+    }
+    /**
+     * Move the Route with double asterisk (**) to the end of the list.
+     * If there are more Routes with **, only the first will be left and other removed.
+     *
+     * Reason: When some custom Routes are injected after Spartacus' ones,
+     *          then the Spartacus' wildcard Route needs being moved to the end -
+     *          even after custom Routes - to make custom Routes discoverable.
+     *          More than one wildcard Route is a sign of bad config, so redundant copies are removed.
+     * @private
+     * @param {?} routes
+     * @return {?}
+     */
+    moveWildcardRouteToEnd(routes) {
+        /** @type {?} */
+        const firstWildcardRoute = routes.find(route => route.path === '**');
+        return firstWildcardRoute
+            ? routes.filter(route => route.path !== '**').concat(firstWildcardRoute)
+            : routes;
+    }
+    /**
+     * Returns the list of routes translations for given list of nested routes
+     * using given object of routes translations.
+     * @param {?} nestedRouteNames
+     * @param {?=} routesTranslations
+     * @return {?}
+     */
+    getNestedRoutesTranslations(nestedRouteNames, routesTranslations = this.currentRoutesTranslations) {
+        return this.getNestedRoutesTranslationsRecursive(nestedRouteNames, routesTranslations, []);
+    }
+    /**
+     * @private
+     * @param {?} nestedRoutesNames
+     * @param {?} routesTranslations
+     * @param {?} accResult
+     * @return {?}
+     */
+    getNestedRoutesTranslationsRecursive(nestedRoutesNames, routesTranslations, accResult) {
+        if (!nestedRoutesNames.length) {
+            return accResult;
+        }
+        const [routeName, ...remainingRouteNames] = nestedRoutesNames;
+        /** @type {?} */
+        const translation = this.getRouteTranslation(routeName, routesTranslations);
+        if (!translation) {
+            return null;
+        }
+        if (remainingRouteNames.length) {
+            /** @type {?} */
+            const childrenTranslations = this.getChildrenRoutesTranslations(routeName, routesTranslations);
+            if (!childrenTranslations) {
+                this.warn(`No children routes translations were configured for page '${routeName}' in language '${this.currentLanguageCode}'!`);
+                return null;
+            }
+            return this.getNestedRoutesTranslationsRecursive(remainingRouteNames, childrenTranslations, accResult.concat(translation));
+        }
+        return accResult.concat(translation);
+    }
+    /**
+     * @private
+     * @param {?} routeName
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    getChildrenRoutesTranslations(routeName, routesTranslations) {
+        /** @type {?} */
+        const routeTranslation = this.getRouteTranslation(routeName, routesTranslations);
+        return routeTranslation && routeTranslation.children;
+    }
+    /**
+     * @private
+     * @param {?} routes
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    translateRoutes(routes, routesTranslations) {
+        /** @type {?} */
+        const result = [];
+        routes.forEach(route => {
+            /** @type {?} */
+            const translatedRouteAliases = this.translateRoute(route, routesTranslations);
+            if (route.children && route.children.length) {
+                /** @type {?} */
+                const translatedChildrenRoutes = this.translateChildrenRoutes(route, routesTranslations);
+                translatedRouteAliases.forEach(translatedRouteAlias => {
+                    translatedRouteAlias.children = translatedChildrenRoutes;
+                });
+            }
+            result.push(...translatedRouteAliases);
+        });
+        return result;
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    translateChildrenRoutes(route, routesTranslations) {
+        if (this.isConfigurable(route, 'cxPath')) {
+            /** @type {?} */
+            const routeName = this.getConfigurable(route, 'cxPath');
+            /** @type {?} */
+            const childrenTranslations = this.getChildrenRoutesTranslations(routeName, routesTranslations);
+            if (childrenTranslations === undefined) {
+                this.warn(`Could not translate children routes of route '${routeName}'`, route, `due to undefined 'children' key for '${routeName}' route in routes translations`, routesTranslations);
+                return [];
+            }
+            // null switches off the children routes:
+            if (childrenTranslations === null) {
+                return [];
+            }
+            return this.translateRoutes(route.children, childrenTranslations);
+        }
+        return route.children;
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    translateRoute(route, routesTranslations) {
+        if (this.isConfigurable(route, 'cxPath')) {
+            // we assume that 'path' and 'redirectTo' cannot be both configured for one route
+            if (this.isConfigurable(route, 'cxRedirectTo')) {
+                this.warn(`A path should not have set both "cxPath" and "cxRedirectTo" properties! Route: '${route}`);
+            }
+            return this.translateRoutePath(route, routesTranslations);
+        }
+        if (this.isConfigurable(route, 'cxRedirectTo')) {
+            return this.translateRouteRedirectTo(route, routesTranslations);
+        }
+        return [route]; // if nothing is configurable, just pass the original route
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} key
+     * @return {?}
+     */
+    isConfigurable(route, key) {
+        return !!this.getConfigurable(route, key);
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} key
+     * @return {?}
+     */
+    getConfigurable(route, key) {
+        return route.data && route.data[key];
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    translateRoutePath(route, routesTranslations) {
+        return this.getTranslatedPaths(route, 'cxPath', routesTranslations).map(translatedPath => {
+            return Object.assign({}, route, { path: translatedPath });
+        });
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} translations
+     * @return {?}
+     */
+    translateRouteRedirectTo(route, translations) {
+        /** @type {?} */
+        const translatedPaths = this.getTranslatedPaths(route, 'cxRedirectTo', translations);
+        return translatedPaths.length
+            ? [Object.assign({}, route, { redirectTo: translatedPaths[0] })] // take the first path from list by convention
+            : [];
+    }
+    /**
+     * @private
+     * @param {?} routeName
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    getRouteTranslation(routeName, routesTranslations) {
+        /** @type {?} */
+        const result = routesTranslations && routesTranslations[routeName];
+        if (!routesTranslations || result === undefined) {
+            this.warn(`No route translation was configured for page '${routeName}' in language '${this.currentLanguageCode}'!`);
+        }
+        return result;
+    }
+    /**
+     * @private
+     * @param {?} route
+     * @param {?} key
+     * @param {?} routesTranslations
+     * @return {?}
+     */
+    getTranslatedPaths(route, key, routesTranslations) {
+        /** @type {?} */
+        const routeName = this.getConfigurable(route, key);
+        /** @type {?} */
+        const translation = this.getRouteTranslation(routeName, routesTranslations);
+        if (translation === undefined) {
+            this.warn(`Could not translate key '${key}' of route '${routeName}'`, route, `due to undefined key '${routeName}' in routes translations`, routesTranslations);
+            return [];
+        }
+        if (translation && translation.paths === undefined) {
+            this.warn(`Could not translate key '${key}' of route '${routeName}'`, route, `due to undefined 'paths' key for '${routeName}' route in routes translations`, routesTranslations);
+            return [];
+        }
+        // translation or translation.paths can be null - which means switching off the route
+        return (translation && translation.paths) || [];
+    }
+    /**
+     * @private
+     * @param {...?} args
+     * @return {?}
+     */
+    warn(...args) {
+        if (!this.config.production) {
+            console.warn(...args);
+        }
+    }
+}
+ConfigurableRoutesService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ConfigurableRoutesService.ctorParameters = () => [
+    { type: ServerConfig },
+    { type: Injector },
+    { type: RoutesConfigLoader }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
 class UrlParsingService {
     /**
      * @param {?} router
@@ -756,13 +1883,12 @@ class UrlParsingService {
     }
 }
 UrlParsingService.decorators = [
-    { type: Injectable, args: [{ providedIn: 'root' },] }
+    { type: Injectable }
 ];
 /** @nocollapse */
 UrlParsingService.ctorParameters = () => [
     { type: Router }
 ];
-/** @nocollapse */ UrlParsingService.ngInjectableDef = defineInjectable({ factory: function UrlParsingService_Factory() { return new UrlParsingService(inject(Router)); }, token: UrlParsingService, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
@@ -777,153 +1903,158 @@ const getParamName = (segment) => segment.slice(1);
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class RoutingConfig extends ServerConfig {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class RoutingConfigService {
+class UrlTranslationService {
     /**
-     * @param {?} config
-     */
-    constructor(config) {
-        this.config = config;
-    }
-    /**
-     * @param {?} routeName
-     * @return {?}
-     */
-    getRouteConfig(routeName) {
-        /** @type {?} */
-        const routesConfig = this.config.routing.routes;
-        /** @type {?} */
-        const result = routesConfig && routesConfig[routeName];
-        if (!routesConfig || result === undefined) {
-            this.warn(`No path was configured for the named route '${routeName}'!`);
-        }
-        return result;
-    }
-    /**
-     * @private
-     * @param {...?} args
-     * @return {?}
-     */
-    warn(...args) {
-        if (!this.config.production) {
-            console.warn(...args);
-        }
-    }
-}
-RoutingConfigService.decorators = [
-    { type: Injectable, args: [{ providedIn: 'root' },] }
-];
-/** @nocollapse */
-RoutingConfigService.ctorParameters = () => [
-    { type: RoutingConfig }
-];
-/** @nocollapse */ RoutingConfigService.ngInjectableDef = defineInjectable({ factory: function RoutingConfigService_Factory() { return new RoutingConfigService(inject(RoutingConfig)); }, token: RoutingConfigService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UrlService {
-    /**
-     * @param {?} routingConfigService
+     * @param {?} configurableRoutesService
      * @param {?} urlParser
      * @param {?} config
      */
-    constructor(routingConfigService, urlParser, config) {
-        this.routingConfigService = routingConfigService;
+    constructor(configurableRoutesService, urlParser, config) {
+        this.configurableRoutesService = configurableRoutesService;
         this.urlParser = urlParser;
         this.config = config;
         this.ROOT_URL = ['/'];
     }
     /**
-     * @param {?} commands
+     * @param {?} options
      * @return {?}
      */
-    generateUrl(commands) {
-        if (!Array.isArray(commands)) {
-            commands = [commands];
+    translate(options) {
+        // if options are invalid, return the root url
+        if (!this.validateOptions(options)) {
+            return this.ROOT_URL;
         }
+        return this.generateUrl(options.route);
+    }
+    /**
+     * @private
+     * @param {?} options
+     * @return {?}
+     */
+    validateOptions(options) {
+        if (!options || typeof options !== 'object') {
+            this.warn(`Incorrect options for translating url. Options have to be an object. Options: `, options);
+            return false;
+        }
+        /** @type {?} */
+        const routeDefined = Boolean(options.route);
+        if (!routeDefined) {
+            this.warn(`Incorrect options for translating url. Options must have 'route' array property. Options: `, options);
+            return false;
+        }
+        if (routeDefined) {
+            return this.validateOptionsRoute(options.route);
+        }
+        return true;
+    }
+    /**
+     * @private
+     * @param {?} nestedRoutes
+     * @return {?}
+     */
+    validateOptionsRoute(nestedRoutes) {
+        if (!Array.isArray(nestedRoutes)) {
+            this.warn(`Incorrect options for translating url.`, `'route' property should be an array. Route: `, nestedRoutes);
+            return false;
+        }
+        /** @type {?} */
+        const length = nestedRoutes.length;
+        if (!length) {
+            this.warn(`Incorrect options for translating url.`, `'route' array should not be empty. Route: `, nestedRoutes);
+            return false;
+        }
+        for (let i = 0; i < length; i++) {
+            /** @type {?} */
+            const nestedRoute = nestedRoutes[i];
+            if (typeof nestedRoute !== 'string' && !nestedRoute.name) {
+                this.warn(`Incorrect options for translating url.`, `'route' array can contain only elements which are string or object with 'name' property. Route: `, nestedRoutes);
+                return false;
+            }
+        }
+        return true;
+    }
+    /**
+     * @private
+     * @param {?} nestedRoutes
+     * @return {?}
+     */
+    generateUrl(nestedRoutes) {
+        /** @type {?} */
+        const standarizedNestedRoutes = this.standarizeNestedRoutes(nestedRoutes);
+        // if no routes given, return root url
+        if (!standarizedNestedRoutes.length) {
+            return this.ROOT_URL;
+        }
+        const { nestedRoutesNames, nestedRoutesParams, } = this.splitRoutesNamesAndParams(standarizedNestedRoutes);
+        /** @type {?} */
+        const nestedRoutesTranslations = this.configurableRoutesService.getNestedRoutesTranslations(nestedRoutesNames);
+        // if no routes translations were configured, return root url:
+        if (!nestedRoutesTranslations) {
+            return this.ROOT_URL;
+        }
+        const [leafNestedRouteTranslation] = nestedRoutesTranslations.slice(-1);
+        // if leaf route was disabled in config (set to null), return root url:
+        if (!leafNestedRouteTranslation.paths) {
+            return this.ROOT_URL;
+        }
+        // find first path for every nested route that can satisfy it's parameters with given parameters
+        /** @type {?} */
+        const nestedRoutesPaths = this.findPathsWithFillableParams(nestedRoutesTranslations, nestedRoutesParams);
+        // if not every nested route had configured path that can be satisfied with given params, return root url
+        if (!nestedRoutesPaths) {
+            return this.ROOT_URL;
+        }
+        /** @type {?} */
+        const result = this.provideParamsValues(nestedRoutesPaths, nestedRoutesParams, nestedRoutesTranslations.map(routTranslation => routTranslation.paramsMapping));
+        result.unshift(''); // ensure absolute path ( leading '' in path array is equvalent to leading '/' in string)
+        return result;
+    }
+    /**
+     * Converts all elements to objects
+     * @private
+     * @param {?} nestedRoutes
+     * @return {?}
+     */
+    standarizeNestedRoutes(nestedRoutes) {
+        return (nestedRoutes || []).map(route => typeof route === 'string'
+            ? { name: route, params: {} }
+            : { name: route.name, params: route.params || {} });
+    }
+    /**
+     * @private
+     * @param {?} nestedRoutes
+     * @return {?}
+     */
+    splitRoutesNamesAndParams(nestedRoutes) {
+        return (nestedRoutes || []).reduce(({ nestedRoutesNames, nestedRoutesParams }, route) => ({
+            nestedRoutesNames: [...nestedRoutesNames, route.name],
+            nestedRoutesParams: [...nestedRoutesParams, route.params],
+        }), { nestedRoutesNames: [], nestedRoutesParams: [] });
+    }
+    /**
+     * @private
+     * @param {?} nestedRoutesPaths
+     * @param {?} nestedRoutesParams
+     * @param {?} nestedRoutesParamsMappings
+     * @return {?}
+     */
+    provideParamsValues(nestedRoutesPaths, nestedRoutesParams, nestedRoutesParamsMappings) {
+        /** @type {?} */
+        const length = nestedRoutesPaths.length;
         /** @type {?} */
         const result = [];
-        for (const command of commands) {
-            if (!this.isRouteCommand(command)) {
-                // don't modify segment that is not route command:
-                result.push(command);
-            }
-            else {
-                // generate array with url segments for given route command:
-                /** @type {?} */
-                const partialResult = this.generateUrlPart(command);
-                if (partialResult === null) {
-                    return this.ROOT_URL;
-                }
-                result.push(...partialResult);
-            }
-        }
-        if (this.shouldOutputAbsolute(commands)) {
-            result.unshift('/');
+        for (let i = 0; i < length; i++) {
+            /** @type {?} */
+            const path = nestedRoutesPaths[i];
+            /** @type {?} */
+            const paramsObject = nestedRoutesParams[i];
+            /** @type {?} */
+            const paramsMapping = nestedRoutesParamsMappings[i];
+            /** @type {?} */
+            const pathSegments = this.provideParamsValuesForSingleRoute(path, paramsObject, paramsMapping);
+            result.push(...pathSegments);
         }
         return result;
-    }
-    /**
-     * @private
-     * @param {?} command
-     * @return {?}
-     */
-    isRouteCommand(command) {
-        return command && Boolean(command.cxRoute);
-    }
-    /**
-     * @private
-     * @param {?} commands
-     * @return {?}
-     */
-    shouldOutputAbsolute(commands) {
-        return this.isRouteCommand(commands[0]);
-    }
-    /**
-     * @private
-     * @param {?} command
-     * @return {?}
-     */
-    generateUrlPart(command) {
-        this.standarizeRouteCommand(command);
-        if (!command.cxRoute) {
-            return null;
-        }
-        /** @type {?} */
-        const routeConfig = this.routingConfigService.getRouteConfig(command.cxRoute);
-        // if no route translation was configured, return null:
-        if (!routeConfig || !routeConfig.paths) {
-            return null;
-        }
-        // find first path that can satisfy it's parameters with given parameters
-        /** @type {?} */
-        const path = this.findPathWithFillableParams(routeConfig, command.params);
-        // if there is no configured path that can be satisfied with given params, return null
-        if (!path) {
-            return null;
-        }
-        /** @type {?} */
-        const result = this.provideParamsValues(path, command.params, routeConfig.paramsMapping);
-        return result;
-    }
-    /**
-     * @private
-     * @param {?} command
-     * @return {?}
-     */
-    standarizeRouteCommand(command) {
-        command.params = command.params || {};
     }
     /**
      * @private
@@ -932,7 +2063,7 @@ class UrlService {
      * @param {?} paramsMapping
      * @return {?}
      */
-    provideParamsValues(path, params, paramsMapping) {
+    provideParamsValuesForSingleRoute(path, params, paramsMapping) {
         return this.urlParser.getPrimarySegments(path).map(segment => {
             if (isParam(segment)) {
                 /** @type {?} */
@@ -946,22 +2077,44 @@ class UrlService {
     }
     /**
      * @private
-     * @param {?} routeConfig
-     * @param {?} params
+     * @param {?} nestedRoutesTranslations
+     * @param {?} nestedRoutesParams
      * @return {?}
      */
-    findPathWithFillableParams(routeConfig, params) {
+    findPathsWithFillableParams(nestedRoutesTranslations, nestedRoutesParams) {
         /** @type {?} */
-        const foundPath = routeConfig.paths.find(path => this.getParams(path).every(paramName => {
+        const length = nestedRoutesTranslations.length;
+        /** @type {?} */
+        const result = [];
+        for (let i = 0; i < length; i++) {
             /** @type {?} */
-            const mappedParamName = this.getMappedParamName(paramName, routeConfig.paramsMapping);
+            const routeTranslation = nestedRoutesTranslations[i];
+            /** @type {?} */
+            const paramsObject = nestedRoutesParams[i];
+            /** @type {?} */
+            const path = this.findPartialPathWithFillableParams(routeTranslation.paths, paramsObject, routeTranslation.paramsMapping);
+            if (path === undefined || path === null) {
+                this.warn(`No configured path matches all its params to given object. `, `Route translation: `, routeTranslation, `(in nested routes translations list`, nestedRoutesTranslations, `). Params object: `, paramsObject, `(in params objects list`, nestedRoutesParams, `)`);
+                return null;
+            }
+            result.push(path);
+        }
+        return result;
+    }
+    // find first path that can fill all its params with values from given object
+    /**
+     * @private
+     * @param {?} paths
+     * @param {?} params
+     * @param {?} paramsMapping
+     * @return {?}
+     */
+    findPartialPathWithFillableParams(paths, params, paramsMapping) {
+        return paths.find(path => this.getParams(path).every(paramName => {
+            /** @type {?} */
+            const mappedParamName = this.getMappedParamName(paramName, paramsMapping);
             return params[mappedParamName] !== undefined;
         }));
-        if (foundPath === undefined || foundPath === null) {
-            this.warn(`No configured path matches all its params to given object. `, `Route config: `, routeConfig, `Params object: `, params);
-            return null;
-        }
-        return foundPath;
     }
     /**
      * @private
@@ -997,16 +2150,15 @@ class UrlService {
         }
     }
 }
-UrlService.decorators = [
-    { type: Injectable, args: [{ providedIn: 'root' },] }
+UrlTranslationService.decorators = [
+    { type: Injectable }
 ];
 /** @nocollapse */
-UrlService.ctorParameters = () => [
-    { type: RoutingConfigService },
+UrlTranslationService.ctorParameters = () => [
+    { type: ConfigurableRoutesService },
     { type: UrlParsingService },
     { type: ServerConfig }
 ];
-/** @nocollapse */ UrlService.ngInjectableDef = defineInjectable({ factory: function UrlService_Factory() { return new UrlService(inject(RoutingConfigService), inject(UrlParsingService), inject(ServerConfig)); }, token: UrlService, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
@@ -1016,12 +2168,12 @@ class RoutingService {
     /**
      * @param {?} store
      * @param {?} winRef
-     * @param {?} urlService
+     * @param {?} urlTranslator
      */
-    constructor(store, winRef, urlService) {
+    constructor(store, winRef, urlTranslator) {
         this.store = store;
         this.winRef = winRef;
-        this.urlService = urlService;
+        this.urlTranslator = urlTranslator;
     }
     /**
      * Get the current router state
@@ -1038,29 +2190,25 @@ class RoutingService {
         return this.store.pipe(select(getPageContext));
     }
     /**
-     * Get the next `PageContext` from the state
-     * @return {?}
-     */
-    getNextPageContext() {
-        return this.store.pipe(select(getNextPageContext));
-    }
-    /**
-     * Get the `isNavigating` info from the state
-     * @return {?}
-     */
-    isNavigating() {
-        return this.store.pipe(select(isNavigating));
-    }
-    /**
      * Navigation with a new state into history
-     * @param {?} commands
+     * @param {?} pathOrTranslateUrlOptions
      * @param {?=} query
      * @param {?=} extras
      * @return {?}
      */
-    go(commands, query, extras) {
+    go(pathOrTranslateUrlOptions, query, extras) {
         /** @type {?} */
-        const path = this.urlService.generateUrl(commands);
+        let path;
+        if (Array.isArray(pathOrTranslateUrlOptions)) {
+            path = pathOrTranslateUrlOptions;
+        }
+        else {
+            /** @type {?} */
+            const translateUrlOptions = pathOrTranslateUrlOptions;
+            /** @type {?} */
+            const translatedPath = this.urlTranslator.translate(translateUrlOptions);
+            path = Array.isArray(translatedPath) ? translatedPath : [translatedPath];
+        }
         return this.navigate(path, query, extras);
     }
     /**
@@ -1077,7 +2225,7 @@ class RoutingService {
      */
     back() {
         /** @type {?} */
-        const isLastPageInApp = this.winRef.document.referrer.includes(this.winRef.nativeWindow.location.origin);
+        const isLastPageInApp = this.winRef.document.referrer.indexOf(this.winRef.nativeWindow.location.origin) > -1;
         if (isLastPageInApp) {
             this.store.dispatch(new Back());
             return;
@@ -1139,223 +2287,60 @@ RoutingService.decorators = [
 RoutingService.ctorParameters = () => [
     { type: Store },
     { type: WindowRef },
-    { type: UrlService }
+    { type: UrlTranslationService }
 ];
-/** @nocollapse */ RoutingService.ngInjectableDef = defineInjectable({ factory: function RoutingService_Factory() { return new RoutingService(inject(Store), inject(WindowRef), inject(UrlService)); }, token: RoutingService, providedIn: "root" });
+/** @nocollapse */ RoutingService.ngInjectableDef = defineInjectable({ factory: function RoutingService_Factory() { return new RoutingService(inject(Store), inject(WindowRef), inject(UrlTranslationService)); }, token: RoutingService, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class UrlMatcherFactoryService {
-    /**
-     * @return {?}
-     */
-    getFalsyUrlMatcher() {
-        return function falsyUrlMatcher() {
-            return null;
-        };
-    }
-    /**
-     * @param {?} paths
-     * @return {?}
-     */
-    getMultiplePathsUrlMatcher(paths) {
-        /** @type {?} */
-        const self = this;
-        /** @type {?} */
-        const matcher = function multiplePathsUrlMatcher(segments, segmentGroup, route) {
-            for (let i = 0; i < paths.length; i++) {
-                /** @type {?} */
-                const result = self.getPathUrlMatcher(paths[i])(segments, segmentGroup, route);
-                if (result) {
-                    return result;
-                }
-            }
-            return null;
-        };
-        matcher.paths = paths; // property added for easier debugging of routes
-        return matcher;
-    }
-    // Similar to Angular's defaultUrlMatcher. The difference is that `path` comes from function's argument, not from `route.path`
-    /**
-     * @private
-     * @param {?=} path
-     * @return {?}
-     */
-    getPathUrlMatcher(path = '') {
-        return (segments, segmentGroup, route) => {
-            /** @type {?} */
-            const parts = path.split('/');
-            if (parts.length > segments.length) {
-                // The actual URL is shorter than the config, no match
-                return null;
-            }
-            if (route.pathMatch === 'full' &&
-                (segmentGroup.hasChildren() || parts.length < segments.length)) {
-                // The config is longer than the actual URL but we are looking for a full match, return null
-                return null;
-            }
-            /** @type {?} */
-            const posParams = {};
-            // Check each config part against the actual URL
-            for (let index = 0; index < parts.length; index++) {
-                /** @type {?} */
-                const part = parts[index];
-                /** @type {?} */
-                const segment = segments[index];
-                /** @type {?} */
-                const isParameter = part.startsWith(':');
-                if (isParameter) {
-                    posParams[part.substring(1)] = segment;
-                }
-                else if (part !== segment.path) {
-                    // The actual URL part does not match the config, no match
-                    return null;
-                }
-            }
-            return { consumed: segments.slice(0, parts.length), posParams };
-        };
-    }
-}
-UrlMatcherFactoryService.decorators = [
-    { type: Injectable, args: [{ providedIn: 'root' },] }
-];
-/** @nocollapse */ UrlMatcherFactoryService.ngInjectableDef = defineInjectable({ factory: function UrlMatcherFactoryService_Factory() { return new UrlMatcherFactoryService(); }, token: UrlMatcherFactoryService, providedIn: "root" });
+/** @type {?} */
+const defaultStorefrontRoutesTranslations = {
+    default: {
+        home: { paths: [''] },
+        cart: { paths: ['cart'] },
+        search: { paths: ['search/:query'] },
+        login: { paths: ['login'] },
+        register: { paths: ['register'] },
+        resetPassword: { paths: ['login/pw/change'] },
+        forgotPassword: { paths: ['forgot-password'] },
+        checkout: { paths: ['checkout'] },
+        orderConfirmation: { paths: ['order-confirmation'] },
+        product: {
+            paths: ['product/:productCode'],
+            paramsMapping: { productCode: 'code' },
+        },
+        category: {
+            paths: ['category/:categoryCode'],
+            paramsMapping: { categoryCode: 'code' },
+        },
+        brand: { paths: ['Brands/:brandName/c/:brandCode'] },
+        termsAndConditions: { paths: ['termsAndConditions'] },
+        orders: { paths: ['my-account/orders'] },
+        orderDetails: {
+            paths: ['my-account/orders/:orderCode'],
+            paramsMapping: { orderCode: 'code' },
+        },
+        addressBook: { paths: ['my-account/address-book'] },
+        updatePassword: { paths: ['my-account/update-password'] },
+        paymentManagement: { paths: ['my-account/payment-details'] },
+        updateProfile: { paths: ['my-account/update-profile'] },
+    },
+    en: (/** @type {?} */ ({})),
+};
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class ConfigurableRoutesService {
-    /**
-     * @param {?} config
-     * @param {?} injector
-     * @param {?} routingConfigService
-     * @param {?} urlMatcherFactory
-     */
-    constructor(config, injector, routingConfigService, urlMatcherFactory) {
-        this.config = config;
-        this.injector = injector;
-        this.routingConfigService = routingConfigService;
-        this.urlMatcherFactory = urlMatcherFactory;
-        this.initCalled = false; // guard not to call init() more than once
-    }
-    // guard not to call init() more than once
-    /**
-     * Configures all existing Routes in the Router
-     * @return {?}
-     */
-    init() {
-        if (!this.initCalled) {
-            this.initCalled = true;
-            this.configureRouter();
-        }
-    }
-    /**
-     * @private
-     * @return {?}
-     */
-    configureRouter() {
-        // Router could not be injected in constructor due to cyclic dependency with APP_INITIALIZER:
-        /** @type {?} */
-        const router = this.injector.get(Router);
-        /** @type {?} */
-        const configuredRoutes = this.configureRoutes(router.config);
-        router.resetConfig(configuredRoutes);
-    }
-    /**
-     * @private
-     * @param {?} routes
-     * @return {?}
-     */
-    configureRoutes(routes) {
-        /** @type {?} */
-        const result = [];
-        routes.forEach(route => {
-            /** @type {?} */
-            const configuredRoute = this.configureRoute(route);
-            if (route.children && route.children.length) {
-                configuredRoute.children = this.configureRoutes(route.children);
-            }
-            result.push(configuredRoute);
-        });
-        return result;
-    }
-    /**
-     * @private
-     * @param {?} route
-     * @return {?}
-     */
-    configureRoute(route) {
-        if (this.getRouteName(route)) {
-            /** @type {?} */
-            const paths = this.getConfiguredPaths(route);
-            switch (paths.length) {
-                case 0:
-                    delete route.path;
-                    return Object.assign({}, route, { matcher: this.urlMatcherFactory.getFalsyUrlMatcher() });
-                case 1:
-                    delete route.matcher;
-                    return Object.assign({}, route, { path: paths[0] });
-                default:
-                    delete route.path;
-                    return Object.assign({}, route, { matcher: this.urlMatcherFactory.getMultiplePathsUrlMatcher(paths) });
-            }
-        }
-        return route; // if route doesn't have a name, just pass the original route
-    }
-    /**
-     * @private
-     * @param {?} route
-     * @return {?}
-     */
-    getRouteName(route) {
-        return route.data && route.data.cxRoute;
-    }
-    /**
-     * @private
-     * @param {?} route
-     * @return {?}
-     */
-    getConfiguredPaths(route) {
-        /** @type {?} */
-        const routeName = this.getRouteName(route);
-        /** @type {?} */
-        const routeConfig = this.routingConfigService.getRouteConfig(routeName);
-        if (routeConfig === undefined) {
-            this.warn(`Could not configure the named route '${routeName}'`, route, `due to undefined key '${routeName}' in the routes config`);
-            return [];
-        }
-        if (routeConfig && routeConfig.paths === undefined) {
-            this.warn(`Could not configure the named route '${routeName}'`, route, `due to undefined 'paths' for the named route '${routeName}' in the routes config`);
-            return [];
-        }
-        // routeConfig or routeConfig.paths can be null - which means switching off the route
-        return (routeConfig && routeConfig.paths) || [];
-    }
-    /**
-     * @private
-     * @param {...?} args
-     * @return {?}
-     */
-    warn(...args) {
-        if (!this.config.production) {
-            console.warn(...args);
-        }
-    }
-}
-ConfigurableRoutesService.decorators = [
-    { type: Injectable, args: [{ providedIn: 'root' },] }
-];
-/** @nocollapse */
-ConfigurableRoutesService.ctorParameters = () => [
-    { type: ServerConfig },
-    { type: Injector },
-    { type: RoutingConfigService },
-    { type: UrlMatcherFactoryService }
-];
-/** @nocollapse */ ConfigurableRoutesService.ngInjectableDef = defineInjectable({ factory: function ConfigurableRoutesService_Factory() { return new ConfigurableRoutesService(inject(ServerConfig), inject(INJECTOR), inject(RoutingConfigService), inject(UrlMatcherFactoryService)); }, token: ConfigurableRoutesService, providedIn: "root" });
+/** @type {?} */
+const defaultConfigurableRoutesConfig = {
+    routesConfig: {
+        translations: defaultStorefrontRoutesTranslations,
+        fetch: false,
+    },
+};
 
 /**
  * @fileoverview added by tsickle
@@ -1374,15 +2359,24 @@ class ConfigurableRoutesModule {
 }
 ConfigurableRoutesModule.decorators = [
     { type: NgModule, args: [{
-                imports: [CommonModule],
+                imports: [
+                    CommonModule,
+                    ConfigModule.withConfig(defaultConfigurableRoutesConfig),
+                ],
+                declarations: [],
+                exports: [],
                 providers: [
+                    ConfigurableRoutesService,
+                    RoutesConfigLoader,
+                    UrlTranslationService,
+                    UrlParsingService,
                     {
                         provide: APP_INITIALIZER,
                         useFactory: initConfigurableRoutes,
                         deps: [ConfigurableRoutesService],
                         multi: true,
                     },
-                    { provide: RoutingConfig, useExisting: Config },
+                    { provide: ConfigurableRoutesConfig, useExisting: Config },
                 ],
             },] }
 ];
@@ -1425,16 +2419,6 @@ RoutingModule.decorators = [
 /**
  * @abstract
  */
-class OccConfig extends ServerConfig {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
 class AuthConfig extends OccConfig {
 }
 
@@ -1458,103 +2442,6 @@ const defaultAuthConfig = {
 const AUTH_FEATURE = 'auth';
 /** @type {?} */
 const CLIENT_TOKEN_DATA = '[Auth] Client Token Data';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOADER_LOAD_ACTION = '[LOADER] LOAD';
-/** @type {?} */
-const LOADER_FAIL_ACTION = '[LOADER] FAIL';
-/** @type {?} */
-const LOADER_SUCCESS_ACTION = '[LOADER] SUCCESS';
-/** @type {?} */
-const LOADER_RESET_ACTION = '[LOADER] RESET';
-/**
- * @param {?} entityType
- * @return {?}
- */
-function loadMeta(entityType) {
-    return {
-        entityType: entityType,
-        loader: {
-            load: true,
-        },
-    };
-}
-/**
- * @param {?} entityType
- * @param {?=} error
- * @return {?}
- */
-function failMeta(entityType, error) {
-    return {
-        entityType: entityType,
-        loader: {
-            error: error ? error : true,
-        },
-    };
-}
-/**
- * @param {?} entityType
- * @return {?}
- */
-function successMeta(entityType) {
-    return {
-        entityType: entityType,
-        loader: {
-            success: true,
-        },
-    };
-}
-/**
- * @param {?} entityType
- * @return {?}
- */
-function resetMeta(entityType) {
-    return {
-        entityType: entityType,
-        loader: {},
-    };
-}
-class LoaderLoadAction {
-    /**
-     * @param {?} entityType
-     */
-    constructor(entityType) {
-        this.type = LOADER_LOAD_ACTION;
-        this.meta = loadMeta(entityType);
-    }
-}
-class LoaderFailAction {
-    /**
-     * @param {?} entityType
-     * @param {?=} error
-     */
-    constructor(entityType, error) {
-        this.type = LOADER_FAIL_ACTION;
-        this.meta = failMeta(entityType, error);
-    }
-}
-class LoaderSuccessAction {
-    /**
-     * @param {?} entityType
-     */
-    constructor(entityType) {
-        this.type = LOADER_SUCCESS_ACTION;
-        this.meta = successMeta(entityType);
-    }
-}
-class LoaderResetAction {
-    /**
-     * @param {?} entityType
-     */
-    constructor(entityType) {
-        this.type = LOADER_RESET_ACTION;
-        this.meta = resetMeta(entityType);
-    }
-}
 
 /**
  * @fileoverview added by tsickle
@@ -1739,6 +2626,13 @@ class AuthService {
         this.store.dispatch(new LoadUserTokenSuccess(token));
     }
     /**
+     * Login
+     * @return {?}
+     */
+    login() {
+        this.store.dispatch(new Login());
+    }
+    /**
      * Logout
      * @return {?}
      */
@@ -1878,7 +2772,7 @@ class UserErrorHandlingService {
                 this.authService.refreshUserToken(token);
             }
             else if (!token.access_token && !token.refresh_token) {
-                this.routingService.go({ cxRoute: 'login' });
+                this.routingService.go({ route: ['login'] });
             }
             oldToken = oldToken || token;
         }), filter((token) => oldToken.access_token !== token.access_token), take(1));
@@ -1999,7 +2893,7 @@ class AuthErrorInterceptor {
                             else if (
                             // Refresh expired token
                             // Check that the OAUTH endpoint was called and the error is for refresh token is expired
-                            errResponse.url.includes(OAUTH_ENDPOINT) &&
+                            errResponse.url.indexOf(OAUTH_ENDPOINT) !== -1 &&
                                 errResponse.error.error === 'invalid_token') {
                                 this.userErrorHandlingService.handleExpiredRefreshToken();
                                 return of();
@@ -2007,7 +2901,7 @@ class AuthErrorInterceptor {
                         }
                         break;
                     case 400: // Bad Request
-                        if (errResponse.url.includes(OAUTH_ENDPOINT) &&
+                        if (errResponse.url.indexOf(OAUTH_ENDPOINT) !== -1 &&
                             errResponse.error.error === 'invalid_grant') {
                             if (request.body.get('grant_type') === 'refresh_token') {
                                 // refresh token fail, force user logout
@@ -2234,7 +3128,7 @@ class OccEndpointsService {
         if (queryParams) {
             /** @type {?} */
             let httpParamsOptions;
-            if (endpoint.includes('?')) {
+            if (endpoint.indexOf('?') !== -1) {
                 /** @type {?} */
                 let queryParamsFromEndpoint;
                 [endpoint, queryParamsFromEndpoint] = endpoint.split('?');
@@ -2296,7 +3190,7 @@ class ClientTokenInterceptor {
     intercept(request, next) {
         return this.getClientToken(request).pipe(take(1), switchMap((token) => {
             if (token &&
-                request.url.includes(this.occEndpoints.getBaseEndpoint())) {
+                request.url.indexOf(this.occEndpoints.getBaseEndpoint()) > -1) {
                 request = request.clone({
                     setHeaders: {
                         Authorization: `${token.token_type} ${token.access_token}`,
@@ -2366,7 +3260,7 @@ class UserTokenInterceptor {
      * @return {?}
      */
     isOccUrl(url) {
-        return url.includes(this.occEndpoints.getBaseEndpoint());
+        return url.indexOf(this.occEndpoints.getBaseEndpoint()) > -1;
     }
 }
 UserTokenInterceptor.decorators = [
@@ -2544,479 +3438,6 @@ const services = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @enum {string} */
-const StorageSyncType = {
-    NO_STORAGE: 'NO_STORAGE',
-    LOCAL_STORAGE: 'LOCAL_STORAGE',
-    SESSION_STORAGE: 'SESSION_STORAGE',
-};
-/** @enum {string} */
-const StateTransferType = {
-    TRANSFER_STATE: 'SSR',
-};
-/**
- * @abstract
- */
-class StateConfig {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const META_REDUCER = new InjectionToken('metaReducer');
-/**
- * @param {?} metaReducers
- * @return {?}
- */
-function metaReducersFactory(metaReducers) {
-    return (metaReducers || []).filter(Boolean);
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @template T, E
- * @param {?} keys
- * @param {?} state
- * @return {?}
- */
-function getStateSliceValue(keys, state) {
-    return keys
-        .split('.')
-        .reduce((previous, current) => (previous ? previous[current] : undefined), state);
-}
-/**
- * @template T, E
- * @param {?} key
- * @param {?} value
- * @return {?}
- */
-function createShellObject(key, value) {
-    if (!key || !value || Object.keys(value).length === 0) {
-        return (/** @type {?} */ ({}));
-    }
-    /** @type {?} */
-    const keySplit = key.split('.');
-    /** @type {?} */
-    const newObject = {};
-    /** @type {?} */
-    let tempNewObject = newObject;
-    for (let i = 0; i < keySplit.length; i++) {
-        /** @type {?} */
-        const currentKey = keySplit[i];
-        // last iteration
-        if (i === keySplit.length - 1) {
-            tempNewObject = tempNewObject[currentKey] = value;
-        }
-        else {
-            tempNewObject = tempNewObject[currentKey] = {};
-        }
-    }
-    return (/** @type {?} */ (newObject));
-}
-/**
- * @template T, E
- * @param {?} keys
- * @param {?} state
- * @return {?}
- */
-function getStateSlice(keys, state) {
-    if (keys && keys.length === 0) {
-        return (/** @type {?} */ ({}));
-    }
-    /** @type {?} */
-    let stateSlices = {};
-    for (const currentKey of keys) {
-        /** @type {?} */
-        const stateValue = getStateSliceValue(currentKey, state);
-        /** @type {?} */
-        const shell = createShellObject(currentKey, stateValue);
-        stateSlices = deepMerge(stateSlices, shell);
-    }
-    return (/** @type {?} */ (stateSlices));
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @template T
- * @param {?} winRef
- * @param {?=} config
- * @return {?}
- */
-function getStorageSyncReducer(winRef, config) {
-    if (!winRef.nativeWindow ||
-        !config ||
-        !config.state ||
-        !config.state.storageSync ||
-        !config.state.storageSync.keys) {
-        return undefined;
-    }
-    /** @type {?} */
-    const storageSyncConfig = config.state.storageSync;
-    return (reducer) => {
-        return (state, action) => {
-            /** @type {?} */
-            let newState = Object.assign({}, state);
-            if (action.type === INIT && !exists(newState)) {
-                newState = reducer(state, action);
-            }
-            if (action.type === INIT || action.type === UPDATE) {
-                /** @type {?} */
-                const rehydratedState = rehydrate(config, winRef);
-                return deepMerge(newState, rehydratedState);
-            }
-            newState = reducer(newState, action);
-            if (action.type !== INIT) {
-                // handle local storage
-                /** @type {?} */
-                const localStorageKeys = getKeysForStorage(storageSyncConfig.keys, StorageSyncType.LOCAL_STORAGE);
-                /** @type {?} */
-                const localStorageStateSlices = getStateSlice(localStorageKeys, state);
-                persistToStorage(config.state.storageSync.localStorageKeyName, localStorageStateSlices, winRef.localStorage);
-                // handle session storage
-                /** @type {?} */
-                const sessionStorageKeys = getKeysForStorage(storageSyncConfig.keys, StorageSyncType.SESSION_STORAGE);
-                /** @type {?} */
-                const sessionStorageStateSlices = getStateSlice(sessionStorageKeys, state);
-                persistToStorage(config.state.storageSync.sessionStorageKeyName, sessionStorageStateSlices, winRef.sessionStorage);
-            }
-            return newState;
-        };
-    };
-}
-/**
- * @param {?} keys
- * @param {?} storageType
- * @return {?}
- */
-function getKeysForStorage(keys, storageType) {
-    return Object.keys(keys).filter(key => keys[key] === storageType);
-}
-/**
- * @template T
- * @param {?} config
- * @param {?} winRef
- * @return {?}
- */
-function rehydrate(config, winRef) {
-    /** @type {?} */
-    const localStorageValue = readFromStorage(winRef.localStorage, config.state.storageSync.localStorageKeyName);
-    /** @type {?} */
-    const sessionStorageValue = readFromStorage(winRef.sessionStorage, config.state.storageSync.sessionStorageKeyName);
-    return deepMerge(localStorageValue, sessionStorageValue);
-}
-/**
- * @param {?} value
- * @return {?}
- */
-function exists(value) {
-    if (value != null) {
-        if (typeof value === 'object') {
-            return Object.keys(value).length !== 0;
-        }
-        else if (value === '') {
-            return false;
-        }
-        else {
-            return true;
-        }
-    }
-    return false;
-}
-/**
- * @param {?} configKey
- * @param {?} value
- * @param {?} storage
- * @return {?}
- */
-function persistToStorage(configKey, value, storage) {
-    if (!isSsr(storage) && value) {
-        storage.setItem(configKey, JSON.stringify(value));
-    }
-}
-/**
- * @param {?} storage
- * @param {?} key
- * @return {?}
- */
-function readFromStorage(storage, key) {
-    if (isSsr(storage)) {
-        return;
-    }
-    /** @type {?} */
-    const storageValue = storage.getItem(key);
-    if (!storageValue) {
-        return;
-    }
-    return JSON.parse(storageValue);
-}
-/**
- * @param {?} storage
- * @return {?}
- */
-function isSsr(storage) {
-    return !Boolean(storage);
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CX_KEY = makeStateKey('cx-state');
-/**
- * @param {?} platformId
- * @param {?=} transferState
- * @param {?=} config
- * @return {?}
- */
-function getTransferStateReducer(platformId, transferState, config) {
-    if (transferState &&
-        config &&
-        config.state &&
-        config.state.ssrTransfer &&
-        config.state.ssrTransfer.keys) {
-        if (isPlatformBrowser(platformId)) {
-            return getBrowserTransferStateReducer(transferState, config.state.ssrTransfer.keys);
-        }
-        else if (isPlatformServer(platformId)) {
-            return getServerTransferStateReducer(transferState, config.state.ssrTransfer.keys);
-        }
-    }
-    return undefined;
-}
-/**
- * @param {?} transferState
- * @param {?} keys
- * @return {?}
- */
-function getServerTransferStateReducer(transferState, keys) {
-    return function (reducer) {
-        return function (state, action) {
-            /** @type {?} */
-            const newState = reducer(state, action);
-            if (newState) {
-                /** @type {?} */
-                const stateSlice = getStateSlice(Object.keys(keys), newState);
-                transferState.set(CX_KEY, stateSlice);
-            }
-            return newState;
-        };
-    };
-}
-/**
- * @param {?} transferState
- * @param {?} keys
- * @return {?}
- */
-function getBrowserTransferStateReducer(transferState, keys) {
-    return function (reducer) {
-        return function (state, action) {
-            if (action.type === INIT) {
-                if (!state) {
-                    state = reducer(state, action);
-                }
-                // we should not utilize transfer state if user is logged in
-                /** @type {?} */
-                const authState = ((/** @type {?} */ (state)))[AUTH_FEATURE];
-                /** @type {?} */
-                const isLoggedIn = authState && authState.userToken && authState.userToken.token;
-                if (!isLoggedIn && transferState.hasKey(CX_KEY)) {
-                    /** @type {?} */
-                    const cxKey = transferState.get(CX_KEY, {});
-                    /** @type {?} */
-                    const transferredStateSlice = getStateSlice(Object.keys(keys), cxKey);
-                    state = deepMerge({}, state, transferredStateSlice);
-                }
-                return state;
-            }
-            return reducer(state, action);
-        };
-    };
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const stateMetaReducers = [
-    {
-        provide: META_REDUCER,
-        useFactory: getTransferStateReducer,
-        deps: [
-            PLATFORM_ID,
-            [new Optional(), TransferState],
-            [new Optional(), Config],
-        ],
-        multi: true,
-    },
-    {
-        provide: META_REDUCER,
-        useFactory: getStorageSyncReducer,
-        deps: [WindowRef, [new Optional(), Config]],
-        multi: true,
-    },
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const DEFAULT_LOCAL_STORAGE_KEY = 'spartacus-local-data';
-/** @type {?} */
-const DEFAULT_SESSION_STORAGE_KEY = 'spartacus-session-data';
-/** @type {?} */
-const defaultStateConfig = {
-    state: {
-        storageSync: {
-            localStorageKeyName: DEFAULT_LOCAL_STORAGE_KEY,
-            sessionStorageKeyName: DEFAULT_SESSION_STORAGE_KEY,
-            keys: {},
-        },
-    },
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-const ɵ0 = metaReducersFactory;
-class StateModule {
-}
-StateModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [
-                    StoreModule.forRoot({}),
-                    EffectsModule.forRoot([]),
-                    ConfigModule.withConfig(defaultStateConfig),
-                ],
-                providers: [
-                    ...stateMetaReducers,
-                    {
-                        provide: META_REDUCERS,
-                        useFactory: ɵ0,
-                        deps: [[new Optional(), META_REDUCER]],
-                    },
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UserTokenEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} userTokenService
-     */
-    constructor(actions$, userTokenService) {
-        this.actions$ = actions$;
-        this.userTokenService = userTokenService;
-        this.loadUserToken$ = this.actions$.pipe(ofType(LOAD_USER_TOKEN), map((action) => action.payload), mergeMap(({ userId, password }) => {
-            return this.userTokenService.loadToken(userId, password).pipe(map((token) => {
-                /** @type {?} */
-                const date = new Date();
-                date.setSeconds(date.getSeconds() + token.expires_in);
-                token.userId = userId;
-                token.expiration_time = date;
-                return new LoadUserTokenSuccess(token);
-            }), catchError(error => of(new LoadUserTokenFail(error))));
-        }));
-        this.login$ = this.actions$.pipe(ofType(LOAD_USER_TOKEN_SUCCESS), map(() => new Login()));
-        this.refreshUserToken$ = this.actions$.pipe(ofType(REFRESH_USER_TOKEN), map((action) => action.payload), switchMap(({ userId, refreshToken }) => {
-            return this.userTokenService.refreshToken(refreshToken).pipe(map((token) => {
-                token.userId = userId;
-                /** @type {?} */
-                const date = new Date();
-                date.setSeconds(date.getSeconds() + token.expires_in);
-                token.userId = userId;
-                token.expiration_time = date;
-                return new RefreshUserTokenSuccess(token);
-            }, catchError(error => of(new RefreshUserTokenFail(error)))));
-        }));
-    }
-}
-UserTokenEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-UserTokenEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: UserAuthenticationTokenService }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserTokenEffects.prototype, "loadUserToken$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserTokenEffects.prototype, "login$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserTokenEffects.prototype, "refreshUserToken$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ClientTokenEffect {
-    /**
-     * @param {?} actions$
-     * @param {?} clientAuthenticationTokenService
-     */
-    constructor(actions$, clientAuthenticationTokenService) {
-        this.actions$ = actions$;
-        this.clientAuthenticationTokenService = clientAuthenticationTokenService;
-        this.loadClientToken$ = this.actions$.pipe(ofType(LOAD_CLIENT_TOKEN), exhaustMap(() => {
-            return this.clientAuthenticationTokenService
-                .loadClientAuthenticationToken()
-                .pipe(map((token) => {
-                return new LoadClientTokenSuccess(token);
-            }), catchError(error => of(new LoadClientTokenFail(error))));
-        }));
-    }
-}
-ClientTokenEffect.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ClientTokenEffect.ctorParameters = () => [
-    { type: Actions },
-    { type: ClientAuthenticationTokenService }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ClientTokenEffect.prototype, "loadClientToken$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const effects$1 = [UserTokenEffects, ClientTokenEffect];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 /** @type {?} */
 const initialLoaderState = {
     loading: false,
@@ -3073,7 +3494,9 @@ function loaderReducer(loadActionType, reducer) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$1 = (/** @type {?} */ ({}));
+const initialState$1 = {
+    token: (/** @type {?} */ ({})),
+};
 /**
  * @param {?=} state
  * @param {?=} action
@@ -3087,7 +3510,9 @@ function reducer$1(state = initialState$1, action) {
         }
         case LOAD_USER_TOKEN_SUCCESS:
         case REFRESH_USER_TOKEN_SUCCESS: {
-            return Object.assign({}, state, action.payload);
+            /** @type {?} */
+            const token = action.payload;
+            return Object.assign({}, state, { token });
         }
         case LOAD_USER_TOKEN_FAIL:
         case REFRESH_USER_TOKEN_FAIL: {
@@ -3106,7 +3531,7 @@ function reducer$1(state = initialState$1, action) {
  */
 function getReducers$1() {
     return {
-        userToken: combineReducers({ token: reducer$1 }),
+        userToken: reducer$1,
         clientToken: loaderReducer(CLIENT_TOKEN_DATA),
     };
 }
@@ -3136,6 +3561,334 @@ const metaReducers = [clearAuthState];
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+class UserTokenEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} userTokenService
+     */
+    constructor(actions$, userTokenService) {
+        this.actions$ = actions$;
+        this.userTokenService = userTokenService;
+        this.loadUserToken$ = this.actions$.pipe(ofType(LOAD_USER_TOKEN), map((action) => action.payload), mergeMap(({ userId, password }) => {
+            return this.userTokenService.loadToken(userId, password).pipe(map((token) => {
+                /** @type {?} */
+                const date = new Date();
+                date.setSeconds(date.getSeconds() + token.expires_in);
+                token.userId = userId;
+                token.expiration_time = date;
+                return new LoadUserTokenSuccess(token);
+            }), catchError(error => of(new LoadUserTokenFail(error))));
+        }));
+        this.refreshUserToken$ = this.actions$.pipe(ofType(REFRESH_USER_TOKEN), map((action) => action.payload), switchMap(({ userId, refreshToken }) => {
+            return this.userTokenService.refreshToken(refreshToken).pipe(map((token) => {
+                token.userId = userId;
+                /** @type {?} */
+                const date = new Date();
+                date.setSeconds(date.getSeconds() + token.expires_in);
+                token.userId = userId;
+                token.expiration_time = date;
+                return new RefreshUserTokenSuccess(token);
+            }, catchError(error => of(new RefreshUserTokenFail(error)))));
+        }));
+    }
+}
+UserTokenEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+UserTokenEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: UserAuthenticationTokenService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], UserTokenEffects.prototype, "loadUserToken$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], UserTokenEffects.prototype, "refreshUserToken$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ClientTokenEffect {
+    /**
+     * @param {?} actions$
+     * @param {?} clientAuthenticationTokenService
+     */
+    constructor(actions$, clientAuthenticationTokenService) {
+        this.actions$ = actions$;
+        this.clientAuthenticationTokenService = clientAuthenticationTokenService;
+        this.loadClientToken$ = this.actions$.pipe(ofType(LOAD_CLIENT_TOKEN), exhaustMap(() => {
+            return this.clientAuthenticationTokenService
+                .loadClientAuthenticationToken()
+                .pipe(map((token) => {
+                return new LoadClientTokenSuccess(token);
+            }), catchError(error => of(new LoadClientTokenFail(error))));
+        }));
+    }
+}
+ClientTokenEffect.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ClientTokenEffect.ctorParameters = () => [
+    { type: Actions },
+    { type: ClientAuthenticationTokenService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ClientTokenEffect.prototype, "loadClientToken$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const effects$1 = [UserTokenEffects, ClientTokenEffect];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @enum {string} */
+const StorageSyncType = {
+    NO_STORAGE: 'NO_STORAGE',
+    LOCAL_STORAGE: 'LOCAL_STORAGE',
+    SESSION_STORAGE: 'SESSION_STORAGE',
+};
+/**
+ * @abstract
+ */
+class StateConfig {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @param {?} config
+ * @param {?} winRef
+ * @return {?}
+ */
+function storageConfig(config, winRef) {
+    /** @type {?} */
+    let storage;
+    switch (config.state.storageSync.type) {
+        case StorageSyncType.LOCAL_STORAGE: {
+            storage = winRef.localStorage;
+            break;
+        }
+        case StorageSyncType.SESSION_STORAGE: {
+            storage = winRef.sessionStorage;
+            break;
+        }
+    }
+    return {
+        keys: config.state.storageSync.keys,
+        rehydrate: true,
+        storage: storage ? storage : winRef.sessionStorage,
+    };
+}
+/**
+ * @param {?} winRef
+ * @param {?=} config
+ * @return {?}
+ */
+function getStorageSyncReducer(winRef, config) {
+    if (!winRef.nativeWindow ||
+        !config ||
+        !config.state ||
+        !config.state.storageSync ||
+        config.state.storageSync.type === StorageSyncType.NO_STORAGE ||
+        !config.state.storageSync.keys) {
+        return undefined;
+    }
+    /** @type {?} */
+    const storage = storageConfig(config, winRef);
+    return function (reducer) {
+        return localStorageSync(storage)(reducer);
+    };
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const META_REDUCER = new InjectionToken('metaReducer');
+/**
+ * @param {?} metaReducers
+ * @return {?}
+ */
+function metaReducersFactory(metaReducers) {
+    return (metaReducers || []).filter(Boolean);
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @param {?} state
+ * @param {?} keys
+ * @return {?}
+ */
+function getStateSlice(state, keys) {
+    return Object.keys(keys).reduce((acc, key) => {
+        /** @type {?} */
+        const keyValue = keys[key];
+        if (state.hasOwnProperty(key)) {
+            if (typeof keyValue === 'object') {
+                acc[key] = getStateSlice(state[key], keyValue);
+            }
+            else if (keyValue) {
+                acc[key] = state[key];
+            }
+        }
+        return acc;
+    }, {});
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const INIT_ACTION = '@ngrx/store/init';
+/** @type {?} */
+const CX_KEY = makeStateKey('cx-state');
+/**
+ * @param {?} platformId
+ * @param {?=} transferState
+ * @param {?=} config
+ * @return {?}
+ */
+function getTransferStateReducer(platformId, transferState, config) {
+    if (transferState &&
+        config &&
+        config.state &&
+        config.state.ssrTransfer &&
+        config.state.ssrTransfer.keys) {
+        if (isPlatformBrowser(platformId)) {
+            return getBrowserTransferStateReducer(transferState, config.state.ssrTransfer.keys);
+        }
+        else if (isPlatformServer(platformId)) {
+            return getServerTransferStateReducer(transferState, config.state.ssrTransfer.keys);
+        }
+    }
+    return undefined;
+}
+/**
+ * @param {?} transferState
+ * @param {?} keys
+ * @return {?}
+ */
+function getServerTransferStateReducer(transferState, keys) {
+    return function (reducer) {
+        return function (state, action) {
+            /** @type {?} */
+            const newState = reducer(state, action);
+            if (newState) {
+                transferState.set(CX_KEY, getStateSlice(newState, keys));
+            }
+            return newState;
+        };
+    };
+}
+/**
+ * @param {?} transferState
+ * @param {?} keys
+ * @return {?}
+ */
+function getBrowserTransferStateReducer(transferState, keys) {
+    return function (reducer) {
+        return function (state, action) {
+            if (action.type === INIT_ACTION && transferState.hasKey(CX_KEY)) {
+                /** @type {?} */
+                const transferedState = getStateSlice(transferState.get(CX_KEY, {}), keys);
+                state = deepMerge({}, state, transferedState);
+            }
+            return reducer(state, action);
+        };
+    };
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const stateMetaReducers = [
+    {
+        provide: META_REDUCER,
+        useFactory: getStorageSyncReducer,
+        deps: [WindowRef, [new Optional(), Config]],
+        multi: true,
+    },
+    {
+        provide: META_REDUCER,
+        useFactory: getTransferStateReducer,
+        deps: [
+            PLATFORM_ID,
+            [new Optional(), TransferState],
+            [new Optional(), Config],
+        ],
+        multi: true,
+    },
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const defaultStateConfig = {
+    state: {
+        storageSync: {
+            type: StorageSyncType.SESSION_STORAGE,
+        },
+    },
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+const ɵ0 = metaReducersFactory;
+class StateModule {
+}
+StateModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [
+                    StoreModule.forRoot({}),
+                    EffectsModule.forRoot([]),
+                    ConfigModule.withConfig(defaultStateConfig),
+                ],
+                providers: [
+                    ...stateMetaReducers,
+                    {
+                        provide: META_REDUCERS,
+                        useFactory: ɵ0,
+                        deps: [[new Optional(), META_REDUCER]],
+                    },
+                ],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
 /**
  * @return {?}
  */
@@ -3145,9 +3898,7 @@ function authStoreConfigFactory() {
     const config = {
         state: {
             storageSync: {
-                keys: {
-                    'auth.userToken.token': StorageSyncType.LOCAL_STORAGE,
-                },
+                keys: [{ [AUTH_FEATURE]: ['userToken', 'clientToken'] }],
             },
         },
     };
@@ -3223,7 +3974,7 @@ class AuthGuard {
     canActivate(_route, state) {
         return this.authService.getUserToken().pipe(map((token) => {
             if (!token.access_token) {
-                this.routingService.go({ cxRoute: 'login' });
+                this.routingService.go({ route: ['login'] });
                 this.routingService.saveRedirectUrl(state.url);
             }
             return !!token.access_token;
@@ -3262,7 +4013,7 @@ class NotAuthGuard {
     canActivate() {
         return this.authService.getUserToken().pipe(map(token => {
             if (token.access_token) {
-                this.routingService.go({ cxRoute: 'home' });
+                this.routingService.go({ route: ['home'] });
             }
             return !token.access_token;
         }));
@@ -3290,309 +4041,6 @@ NotAuthGuard.ctorParameters = () => [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CART_FEATURE = 'cart';
-/** @type {?} */
-const CART_DATA = '[Cart] Cart Data';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CREATE_CART = '[Cart] Create Cart';
-/** @type {?} */
-const CREATE_CART_FAIL = '[Cart] Create Cart Fail';
-/** @type {?} */
-const CREATE_CART_SUCCESS = '[Cart] Create Cart Success';
-/** @type {?} */
-const LOAD_CART = '[Cart] Load Cart';
-/** @type {?} */
-const LOAD_CART_FAIL = '[Cart] Load Cart Fail';
-/** @type {?} */
-const LOAD_CART_SUCCESS = '[Cart] Load Cart Success';
-/** @type {?} */
-const MERGE_CART = '[Cart] Merge Cart';
-/** @type {?} */
-const MERGE_CART_SUCCESS = '[Cart] Merge Cart Success';
-class CreateCart extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = CREATE_CART;
-    }
-}
-class CreateCartFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA, payload);
-        this.payload = payload;
-        this.type = CREATE_CART_FAIL;
-    }
-}
-class CreateCartSuccess extends LoaderSuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = CREATE_CART_SUCCESS;
-    }
-}
-class LoadCart extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = LOAD_CART;
-    }
-}
-class LoadCartFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA, payload);
-        this.payload = payload;
-        this.type = LOAD_CART_FAIL;
-    }
-}
-class LoadCartSuccess extends LoaderSuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = LOAD_CART_SUCCESS;
-    }
-}
-class MergeCart {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = MERGE_CART;
-    }
-}
-class MergeCartSuccess {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = MERGE_CART_SUCCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const ADD_ENTRY = '[Cart-entry] Add Entry';
-/** @type {?} */
-const ADD_ENTRY_SUCCESS = '[Cart-entry] Add Entry Success';
-/** @type {?} */
-const ADD_ENTRY_FAIL = '[Cart-entry] Add Entry Fail';
-/** @type {?} */
-const REMOVE_ENTRY = '[Cart-entry] Remove Entry';
-/** @type {?} */
-const REMOVE_ENTRY_SUCCESS = '[Cart-entry] Remove Entry Success';
-/** @type {?} */
-const REMOVE_ENTRY_FAIL = '[Cart-entry] Remove Entry Fail';
-/** @type {?} */
-const UPDATE_ENTRY = '[Cart-entry] Update Entry';
-/** @type {?} */
-const UPDATE_ENTRY_SUCCESS = '[Cart-entry] Update Entry Success';
-/** @type {?} */
-const UPDATE_ENTRY_FAIL = '[Cart-entry] Update Entry Fail';
-class AddEntry extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = ADD_ENTRY;
-    }
-}
-class AddEntrySuccess extends LoaderSuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = ADD_ENTRY_SUCCESS;
-    }
-}
-class AddEntryFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA, payload);
-        this.payload = payload;
-        this.type = ADD_ENTRY_FAIL;
-    }
-}
-class RemoveEntry extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = REMOVE_ENTRY;
-    }
-}
-class RemoveEntrySuccess extends LoaderSuccessAction {
-    constructor() {
-        super(CART_DATA);
-        this.type = REMOVE_ENTRY_SUCCESS;
-    }
-}
-class RemoveEntryFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA, payload);
-        this.payload = payload;
-        this.type = REMOVE_ENTRY_FAIL;
-    }
-}
-class UpdateEntry extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA);
-        this.payload = payload;
-        this.type = UPDATE_ENTRY;
-    }
-}
-class UpdateEntrySuccess extends LoaderSuccessAction {
-    constructor() {
-        super(CART_DATA);
-        this.type = UPDATE_ENTRY_SUCCESS;
-    }
-}
-class UpdateEntryFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CART_DATA, payload);
-        this.payload = payload;
-        this.type = UPDATE_ENTRY_FAIL;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @template T
- * @param {?} state
- * @return {?}
- */
-function loaderValueSelector(state) {
-    return state.value;
-}
-/**
- * @template T
- * @param {?} state
- * @return {?}
- */
-function loaderLoadingSelector(state) {
-    return state.loading;
-}
-/**
- * @template T
- * @param {?} state
- * @return {?}
- */
-function loaderErrorSelector(state) {
-    return state.error;
-}
-/**
- * @template T
- * @param {?} state
- * @return {?}
- */
-function loaderSuccessSelector(state) {
-    return state.success;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getCartContentSelector = (state) => state.content;
-/** @type {?} */
-const getRefreshSelector = (state) => state.refresh;
-/** @type {?} */
-const getEntriesSelector = (state) => state.entries;
-/** @type {?} */
-const getCartMergeCompleteSelector = (state) => state.cartMergeComplete;
-/** @type {?} */
-const getCartsState = createFeatureSelector(CART_FEATURE);
-/** @type {?} */
-const getActiveCartState = createSelector(getCartsState, (cartsState) => cartsState.active);
-/** @type {?} */
-const getCartState = createSelector(getActiveCartState, state => loaderValueSelector(state));
-/** @type {?} */
-const getCartContent = createSelector(getCartState, getCartContentSelector);
-/** @type {?} */
-const getRefresh = createSelector(getCartState, getRefreshSelector);
-/** @type {?} */
-const getLoaded = createSelector(getActiveCartState, state => loaderSuccessSelector(state) &&
-    !loaderLoadingSelector(state) &&
-    !loaderValueSelector(state).refresh);
-/** @type {?} */
-const getCartMergeComplete = createSelector(getCartState, getCartMergeCompleteSelector);
-/** @type {?} */
-const getEntriesMap = createSelector(getCartState, getEntriesSelector);
-/** @type {?} */
-const getEntrySelectorFactory = (productCode) => {
-    return createSelector(getEntriesMap, entries => {
-        if (entries) {
-            return entries[productCode];
-        }
-    });
-};
-/** @type {?} */
-const getEntries = createSelector(getEntriesMap, entities => {
-    return Object.keys(entities).map(code => entities[code]);
-});
 
 /**
  * @fileoverview added by tsickle
@@ -3904,786 +4352,6 @@ const services$1 = [CartService, CartDataService];
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class CartAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CartConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @param {?=} details
-     * @return {?}
-     */
-    loadAll(userId, details) {
-        return this.adapter.loadAll(userId, details);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?=} details
-     * @return {?}
-     */
-    load(userId, cartId, details) {
-        return this.adapter.load(userId, cartId, details);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    loadCheckoutDetails(userId, cartId) {
-        return this.adapter.loadCheckoutDetails(userId, cartId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?=} oldCartId
-     * @param {?=} toMergeCartGuid
-     * @return {?}
-     */
-    create(userId, oldCartId, toMergeCartGuid) {
-        return this.adapter.create(userId, oldCartId, toMergeCartGuid);
-    }
-}
-CartConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CartConnector.ctorParameters = () => [
-    { type: CartAdapter }
-];
-/** @nocollapse */ CartConnector.ngInjectableDef = defineInjectable({ factory: function CartConnector_Factory() { return new CartConnector(inject(CartAdapter)); }, token: CartConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CART_NORMALIZER = new InjectionToken('CartNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class CartDeliveryAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CartDeliveryConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} address
-     * @return {?}
-     */
-    createAddress(userId, cartId, address) {
-        return this.adapter.createAddress(userId, cartId, address);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} addressId
-     * @return {?}
-     */
-    setAddress(userId, cartId, addressId) {
-        return this.adapter.setAddress(userId, cartId, addressId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} deliveryModeId
-     * @return {?}
-     */
-    setMode(userId, cartId, deliveryModeId) {
-        return this.adapter.setMode(userId, cartId, deliveryModeId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    getMode(userId, cartId) {
-        return this.adapter.getMode(userId, cartId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    getSupportedModes(userId, cartId) {
-        return this.adapter.getSupportedModes(userId, cartId);
-    }
-}
-CartDeliveryConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CartDeliveryConnector.ctorParameters = () => [
-    { type: CartDeliveryAdapter }
-];
-/** @nocollapse */ CartDeliveryConnector.ngInjectableDef = defineInjectable({ factory: function CartDeliveryConnector_Factory() { return new CartDeliveryConnector(inject(CartDeliveryAdapter)); }, token: CartDeliveryConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const DELIVERY_ADDRESS_NORMALIZER = new InjectionToken('DeliveryAddressNormalizer');
-/** @type {?} */
-const DELIVERY_ADDRESS_SERIALIZER = new InjectionToken('DeliveryAddressSerializer');
-/** @type {?} */
-const DELIVERY_MODE_NORMALIZER = new InjectionToken('DeliveryModeNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class CartEntryAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CartEntryConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} productCode
-     * @param {?=} quantity
-     * @return {?}
-     */
-    add(userId, cartId, productCode, quantity) {
-        return this.adapter.add(userId, cartId, productCode, quantity);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} entryNumber
-     * @param {?} qty
-     * @param {?=} pickupStore
-     * @return {?}
-     */
-    update(userId, cartId, entryNumber, qty, pickupStore) {
-        return this.adapter.update(userId, cartId, entryNumber, qty, pickupStore);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} entryNumber
-     * @return {?}
-     */
-    remove(userId, cartId, entryNumber) {
-        return this.adapter.remove(userId, cartId, entryNumber);
-    }
-}
-CartEntryConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CartEntryConnector.ctorParameters = () => [
-    { type: CartEntryAdapter }
-];
-/** @nocollapse */ CartEntryConnector.ngInjectableDef = defineInjectable({ factory: function CartEntryConnector_Factory() { return new CartEntryConnector(inject(CartEntryAdapter)); }, token: CartEntryConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CART_MODIFICATION_NORMALIZER = new InjectionToken('CartModificationNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class CartPaymentAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CartPaymentConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} paymentDetails
-     * @return {?}
-     */
-    create(userId, cartId, paymentDetails) {
-        return this.adapter.create(userId, cartId, paymentDetails);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} paymentDetailsId
-     * @return {?}
-     */
-    set(userId, cartId, paymentDetailsId) {
-        return this.adapter.set(userId, cartId, paymentDetailsId);
-    }
-}
-CartPaymentConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CartPaymentConnector.ctorParameters = () => [
-    { type: CartPaymentAdapter }
-];
-/** @nocollapse */ CartPaymentConnector.ngInjectableDef = defineInjectable({ factory: function CartPaymentConnector_Factory() { return new CartPaymentConnector(inject(CartPaymentAdapter)); }, token: CartPaymentConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PAYMENT_DETAILS_NORMALIZER = new InjectionToken('PaymentDetailsNormalizer');
-/** @type {?} */
-const PAYMENT_DETAILS_SERIALIZER = new InjectionToken('PaymentDetailsSerializer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ConverterService {
-    /**
-     * @param {?} injector
-     */
-    constructor(injector) {
-        this.injector = injector;
-        this.converters = new Map();
-    }
-    /**
-     * @private
-     * @template S, T
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    getConverters(injectionToken) {
-        if (!this.converters.has(injectionToken)) {
-            /** @type {?} */
-            const converters = this.injector.get(injectionToken, []);
-            if (!Array.isArray(converters)) {
-                console.warn('Converter must be multi-provided, please use "multi: true" for', injectionToken.toString());
-            }
-            this.converters.set(injectionToken, converters);
-        }
-        return this.converters.get(injectionToken);
-    }
-    /**
-     * Will return true if converters for specified token were provided
-     * @template S, T
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    hasConverters(injectionToken) {
-        /** @type {?} */
-        const converters = this.getConverters(injectionToken);
-        return Array.isArray(converters) && converters.length > 0;
-    }
-    /**
-     * Pipeable operator to apply converter logic in a observable stream
-     * @template S, T
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    pipeable(injectionToken) {
-        if (this.hasConverters(injectionToken)) {
-            return map((model) => this.convertSource(model, injectionToken));
-        }
-        else {
-            return (observable) => (/** @type {?} */ (observable));
-        }
-    }
-    /**
-     * Pipeable operator to apply converter logic in a observable stream to collection of items
-     * @template S, T
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    pipeableMany(injectionToken) {
-        if (this.hasConverters(injectionToken)) {
-            return map((model) => this.convertMany(model, injectionToken));
-        }
-        else {
-            return (observable) => (/** @type {?} */ (observable));
-        }
-    }
-    /**
-     * Apply converter logic specified by injection token to source data
-     * @template S, T
-     * @param {?} source
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    convert(source, injectionToken) {
-        if (this.hasConverters(injectionToken)) {
-            return this.convertSource(source, injectionToken);
-        }
-        else {
-            return (/** @type {?} */ (source));
-        }
-    }
-    /**
-     * Apply converter logic specified by injection token to a collection
-     * @template S, T
-     * @param {?} sources
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    convertMany(sources, injectionToken) {
-        if (this.hasConverters(injectionToken) && Array.isArray(sources)) {
-            return sources.map(source => this.convertSource(source, injectionToken));
-        }
-        else {
-            return (/** @type {?} */ (sources));
-        }
-    }
-    /**
-     * @private
-     * @template S, T
-     * @param {?} source
-     * @param {?} injectionToken
-     * @return {?}
-     */
-    convertSource(source, injectionToken) {
-        return this.getConverters(injectionToken).reduce((target, converter) => {
-            return converter.convert(source, target);
-        }, (/** @type {?} */ (undefined)));
-    }
-}
-ConverterService.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ConverterService.ctorParameters = () => [
-    { type: Injector }
-];
-/** @nocollapse */ ConverterService.ngInjectableDef = defineInjectable({ factory: function ConverterService_Factory() { return new ConverterService(inject(INJECTOR)); }, token: ConverterService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-// for mini cart
-/** @type {?} */
-const BASIC_PARAMS = 'DEFAULT,deliveryItemsQuantity,totalPrice(formattedValue),' +
-    'entries(totalPrice(formattedValue),product(images(FULL)))';
-// for cart details page
-/** @type {?} */
-const DETAILS_PARAMS = 'DEFAULT,potentialProductPromotions,appliedProductPromotions,potentialOrderPromotions,appliedOrderPromotions,' +
-    'entries(totalPrice(formattedValue),product(images(FULL),stock(FULL)),basePrice(formattedValue)),' +
-    'totalPrice(formattedValue),totalItems,totalPriceWithTax(formattedValue),totalDiscounts(formattedValue),subTotal(formattedValue),' +
-    'deliveryItemsQuantity,deliveryCost(formattedValue),totalTax(formattedValue),pickupItemsQuantity,net,' +
-    'appliedVouchers,productDiscounts(formattedValue)';
-/** @type {?} */
-const CHECKOUT_PARAMS = 'deliveryAddress(FULL),deliveryMode,paymentInfo(FULL)';
-class OccCartAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @protected
-     * @param {?} userId
-     * @return {?}
-     */
-    getCartEndpoint(userId) {
-        /** @type {?} */
-        const cartEndpoint = `users/${userId}/carts/`;
-        return this.occEndpoints.getEndpoint(cartEndpoint);
-    }
-    /**
-     * @param {?} userId
-     * @param {?=} details
-     * @return {?}
-     */
-    loadAll(userId, details) {
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId);
-        /** @type {?} */
-        const params = details
-            ? new HttpParams({
-                fromString: `fields=carts(${DETAILS_PARAMS},saveTime)`,
-            })
-            : new HttpParams({
-                fromString: `fields=carts(${BASIC_PARAMS},saveTime)`,
-            });
-        return this.http.get(url, { params: params }).pipe(catchError((error) => throwError(error)), pluck('carts'), this.converter.pipeableMany(CART_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?=} details
-     * @return {?}
-     */
-    load(userId, cartId, details) {
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId) + cartId;
-        /** @type {?} */
-        const params = details
-            ? new HttpParams({
-                fromString: `fields=${DETAILS_PARAMS}`,
-            })
-            : new HttpParams({
-                fromString: `fields=${BASIC_PARAMS}`,
-            });
-        if (cartId === 'current') {
-            return this.loadAll(userId, details).pipe(map(carts => {
-                if (carts) {
-                    /** @type {?} */
-                    const activeCart = carts.find(cart => {
-                        return cart['saveTime'] === undefined;
-                    });
-                    return activeCart;
-                }
-                else {
-                    return null;
-                }
-            }));
-        }
-        else {
-            return this.http.get(url, { params: params }).pipe(catchError((error) => throwError(error)), this.converter.pipeable(CART_NORMALIZER));
-        }
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    loadCheckoutDetails(userId, cartId) {
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId) + cartId;
-        /** @type {?} */
-        const params = new HttpParams({
-            fromString: `fields=${CHECKOUT_PARAMS}`,
-        });
-        return this.http
-            .get(url, { params })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?=} oldCartId
-     * @param {?=} toMergeCartGuid
-     * @return {?}
-     */
-    create(userId, oldCartId, toMergeCartGuid) {
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId);
-        /** @type {?} */
-        const toAdd = JSON.stringify({});
-        /** @type {?} */
-        let queryString = `fields=${BASIC_PARAMS}`;
-        if (oldCartId) {
-            queryString = `${queryString}&oldCartId=${oldCartId}`;
-        }
-        if (toMergeCartGuid) {
-            queryString = `${queryString}&toMergeCartGuid=${toMergeCartGuid}`;
-        }
-        /** @type {?} */
-        const params = new HttpParams({
-            fromString: queryString,
-        });
-        return this.http.post(url, toAdd, { params: params }).pipe(this.converter.pipeable(CART_NORMALIZER), catchError((error) => throwError(error.json())));
-    }
-}
-OccCartAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccCartAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccCartDeliveryAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @protected
-     * @param {?} userId
-     * @return {?}
-     */
-    getCartEndpoint(userId) {
-        /** @type {?} */
-        const cartEndpoint = 'users/' + userId + '/carts/';
-        return this.occEndpoints.getEndpoint(cartEndpoint);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} address
-     * @return {?}
-     */
-    createAddress(userId, cartId, address) {
-        address = this.converter.convert(address, DELIVERY_ADDRESS_SERIALIZER);
-        return this.http
-            .post(this.getCartEndpoint(userId) + cartId + '/addresses/delivery', address, {
-            headers: new HttpHeaders().set('Content-Type', 'application/json'),
-        })
-            .pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(DELIVERY_ADDRESS_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} addressId
-     * @return {?}
-     */
-    setAddress(userId, cartId, addressId) {
-        return this.http
-            .put(this.getCartEndpoint(userId) + cartId + '/addresses/delivery', {}, {
-            params: { addressId: addressId },
-        })
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} deliveryModeId
-     * @return {?}
-     */
-    setMode(userId, cartId, deliveryModeId) {
-        return this.http
-            .put(this.getCartEndpoint(userId) + cartId + '/deliverymode', {}, {
-            params: { deliveryModeId: deliveryModeId },
-        })
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    getMode(userId, cartId) {
-        return this.http
-            .get(this.getCartEndpoint(userId) + cartId + '/deliverymode')
-            .pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(DELIVERY_MODE_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    getSupportedModes(userId, cartId) {
-        return this.http
-            .get(this.getCartEndpoint(userId) + cartId + '/deliverymodes')
-            .pipe(catchError((error) => throwError(error.json())), pluck('deliveryModes'), this.converter.pipeableMany(DELIVERY_MODE_NORMALIZER));
-    }
-}
-OccCartDeliveryAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccCartDeliveryAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccCartEntryAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @protected
-     * @param {?} userId
-     * @return {?}
-     */
-    getCartEndpoint(userId) {
-        /** @type {?} */
-        const cartEndpoint = 'users/' + userId + '/carts/';
-        return this.occEndpoints.getEndpoint(cartEndpoint);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} productCode
-     * @param {?=} quantity
-     * @return {?}
-     */
-    add(userId, cartId, productCode, quantity = 1) {
-        /** @type {?} */
-        const toAdd = JSON.stringify({});
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId) + cartId + '/entries';
-        /** @type {?} */
-        const params = new HttpParams({
-            fromString: 'code=' + productCode + '&qty=' + quantity,
-        });
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        return this.http
-            .post(url, toAdd, { headers, params })
-            .pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(CART_MODIFICATION_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} entryNumber
-     * @param {?} qty
-     * @param {?=} pickupStore
-     * @return {?}
-     */
-    update(userId, cartId, entryNumber, qty, pickupStore) {
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId) + cartId + '/entries/' + entryNumber;
-        /** @type {?} */
-        let queryString = 'qty=' + qty;
-        if (pickupStore) {
-            queryString = queryString + '&pickupStore=' + pickupStore;
-        }
-        /** @type {?} */
-        const params = new HttpParams({
-            fromString: queryString,
-        });
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        return this.http.patch(url, {}, { headers, params }).pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(CART_MODIFICATION_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @param {?} entryNumber
-     * @return {?}
-     */
-    remove(userId, cartId, entryNumber) {
-        /** @type {?} */
-        const url = this.getCartEndpoint(userId) + cartId + '/entries/' + entryNumber;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        return this.http
-            .delete(url, { headers })
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-}
-OccCartEntryAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccCartEntryAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 class CustomEncoder {
     /**
      * @param {?} key
@@ -4719,19 +4387,25 @@ class CustomEncoder {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class OccCartPaymentAdapter {
+// for mini cart
+/** @type {?} */
+const BASIC_PARAMS = 'DEFAULT,deliveryItemsQuantity,totalPrice(formattedValue),' +
+    'entries(totalPrice(formattedValue),product(images(FULL)))';
+// for cart details page
+/** @type {?} */
+const DETAILS_PARAMS = 'DEFAULT,potentialProductPromotions,appliedProductPromotions,potentialOrderPromotions,appliedOrderPromotions,' +
+    'entries(totalPrice(formattedValue),product(images(FULL),stock(FULL)),basePrice(formattedValue)),' +
+    'totalPrice(formattedValue),totalItems,totalPriceWithTax(formattedValue),totalDiscounts(formattedValue),subTotal(formattedValue),' +
+    'deliveryItemsQuantity,deliveryCost(formattedValue),totalTax(formattedValue),pickupItemsQuantity,net,' +
+    'appliedVouchers,productDiscounts(formattedValue)';
+class OccCartService {
     /**
      * @param {?} http
      * @param {?} occEndpoints
-     * @param {?} converter
      */
-    constructor(http, occEndpoints, converter) {
+    constructor(http, occEndpoints) {
         this.http = http;
         this.occEndpoints = occEndpoints;
-        this.converter = converter;
-        if (typeof DOMParser !== 'undefined') {
-            this.domparser = new DOMParser();
-        }
     }
     /**
      * @protected
@@ -4745,47 +4419,222 @@ class OccCartPaymentAdapter {
     }
     /**
      * @param {?} userId
-     * @param {?} cartId
-     * @param {?} paymentDetails
+     * @param {?=} details
      * @return {?}
      */
-    create(userId, cartId, paymentDetails) {
-        paymentDetails = this.converter.convert(paymentDetails, PAYMENT_DETAILS_SERIALIZER);
-        return this.getProviderSubInfo(userId, cartId).pipe(map(data => {
-            /** @type {?} */
-            const labelsMap = this.convertToMap(data.mappingLabels.entry);
-            return {
-                url: data.postUrl,
-                parameters: this.getParamsForPaymentProvider(paymentDetails, data.parameters.entry, labelsMap),
-                mappingLabels: labelsMap,
-            };
-        }), mergeMap(sub => {
-            // create a subscription directly with payment provider
-            return this.createSubWithProvider(sub.url, sub.parameters).pipe(map(response => this.extractPaymentDetailsFromHtml(response)), mergeMap(fromPaymentProvider => {
-                return this.createDetailsWithParameters(userId, cartId, fromPaymentProvider).pipe(this.converter.pipeable(PAYMENT_DETAILS_NORMALIZER));
-            }));
-        }));
+    loadAllCarts(userId, details) {
+        /** @type {?} */
+        const url = this.getCartEndpoint(userId);
+        /** @type {?} */
+        const params = details
+            ? new HttpParams({
+                fromString: 'fields=carts(' + DETAILS_PARAMS + ',saveTime)',
+            })
+            : new HttpParams({
+                fromString: 'fields=carts(' + BASIC_PARAMS + ',saveTime)',
+            });
+        return this.http
+            .get(url, { params: params })
+            .pipe(catchError((error) => throwError(error)));
     }
     /**
      * @param {?} userId
      * @param {?} cartId
-     * @param {?} paymentDetailsId
+     * @param {?=} details
      * @return {?}
      */
-    set(userId, cartId, paymentDetailsId) {
+    loadCart(userId, cartId, details) {
+        /** @type {?} */
+        const url = this.getCartEndpoint(userId) + cartId;
+        /** @type {?} */
+        const params = details
+            ? new HttpParams({
+                fromString: 'fields=' + DETAILS_PARAMS,
+            })
+            : new HttpParams({
+                fromString: 'fields=' + BASIC_PARAMS,
+            });
+        if (cartId === 'current') {
+            return this.loadAllCarts(userId, details).pipe(map(cartsData => {
+                if (cartsData && cartsData.carts) {
+                    /** @type {?} */
+                    const activeCart = cartsData.carts.find(cart => {
+                        return cart['saveTime'] === undefined;
+                    });
+                    return activeCart;
+                }
+                else {
+                    return null;
+                }
+            }));
+        }
+        else {
+            return this.http
+                .get(url, { params: params })
+                .pipe(catchError((error) => throwError(error)));
+        }
+    }
+    /**
+     * @param {?} userId
+     * @param {?=} oldCartId
+     * @param {?=} toMergeCartGuid
+     * @return {?}
+     */
+    createCart(userId, oldCartId, toMergeCartGuid) {
+        /** @type {?} */
+        const url = this.getCartEndpoint(userId);
+        /** @type {?} */
+        const toAdd = JSON.stringify({});
+        /** @type {?} */
+        let queryString = 'fields=' + BASIC_PARAMS;
+        if (oldCartId) {
+            queryString = queryString + '&oldCartId=' + oldCartId;
+        }
+        if (toMergeCartGuid) {
+            queryString = queryString + '&toMergeCartGuid=' + toMergeCartGuid;
+        }
+        /** @type {?} */
+        const params = new HttpParams({
+            fromString: queryString,
+        });
         return this.http
-            .put(this.getCartEndpoint(userId) + cartId + '/paymentdetails', {}, {
-            params: { paymentDetailsId: paymentDetailsId },
+            .post(url, toAdd, { params: params })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} productCode
+     * @param {?=} quantity
+     * @return {?}
+     */
+    addEntry(userId, cartId, productCode, quantity = 1) {
+        /** @type {?} */
+        const toAdd = JSON.stringify({});
+        /** @type {?} */
+        const url = this.getCartEndpoint(userId) + cartId + '/entries';
+        /** @type {?} */
+        const params = new HttpParams({
+            fromString: 'code=' + productCode + '&qty=' + quantity,
+        });
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        return this.http
+            .post(url, toAdd, { headers, params })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} entryNumber
+     * @param {?} qty
+     * @param {?=} pickupStore
+     * @return {?}
+     */
+    updateEntry(userId, cartId, entryNumber, qty, pickupStore) {
+        /** @type {?} */
+        const url = this.getCartEndpoint(userId) + cartId + '/entries/' + entryNumber;
+        /** @type {?} */
+        let queryString = 'qty=' + qty;
+        if (pickupStore) {
+            queryString = queryString + '&pickupStore=' + pickupStore;
+        }
+        /** @type {?} */
+        const params = new HttpParams({
+            fromString: queryString,
+        });
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        return this.http
+            .patch(url, {}, { headers, params })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} entryNumber
+     * @return {?}
+     */
+    removeEntry(userId, cartId, entryNumber) {
+        /** @type {?} */
+        const url = this.getCartEndpoint(userId) + cartId + '/entries/' + entryNumber;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        return this.http
+            .delete(url, { headers })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} address
+     * @return {?}
+     */
+    createAddressOnCart(userId, cartId, address) {
+        return this.http
+            .post(this.getCartEndpoint(userId) + cartId + '/addresses/delivery', address, {
+            headers: new HttpHeaders().set('Content-Type', 'application/json'),
         })
             .pipe(catchError((error) => throwError(error.json())));
     }
     /**
-     * @protected
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} addressId
+     * @return {?}
+     */
+    setDeliveryAddress(userId, cartId, addressId) {
+        return this.http
+            .put(this.getCartEndpoint(userId) + cartId + '/addresses/delivery', {}, {
+            params: { addressId: addressId },
+        })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} deliveryModeId
+     * @return {?}
+     */
+    setDeliveryMode(userId, cartId, deliveryModeId) {
+        return this.http
+            .put(this.getCartEndpoint(userId) + cartId + '/deliverymode', {}, {
+            params: { deliveryModeId: deliveryModeId },
+        })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
      * @param {?} userId
      * @param {?} cartId
      * @return {?}
      */
-    getProviderSubInfo(userId, cartId) {
+    getDeliveryMode(userId, cartId) {
+        return this.http
+            .get(this.getCartEndpoint(userId) + cartId + '/deliverymode')
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @return {?}
+     */
+    getSupportedDeliveryModes(userId, cartId) {
+        return this.http
+            .get(this.getCartEndpoint(userId) + cartId + '/deliverymodes')
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @return {?}
+     */
+    getPaymentProviderSubInfo(userId, cartId) {
         return this.http
             .get(this.getCartEndpoint(userId) +
             cartId +
@@ -4793,12 +4642,11 @@ class OccCartPaymentAdapter {
             .pipe(catchError((error) => throwError(error.json())));
     }
     /**
-     * @private
      * @param {?} postUrl
      * @param {?} parameters
      * @return {?}
      */
-    createSubWithProvider(postUrl, parameters) {
+    createSubWithPaymentProvider(postUrl, parameters) {
         /** @type {?} */
         const headers = new HttpHeaders({
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -4815,13 +4663,12 @@ class OccCartPaymentAdapter {
         });
     }
     /**
-     * @protected
      * @param {?} userId
      * @param {?} cartId
      * @param {?} parameters
      * @return {?}
      */
-    createDetailsWithParameters(userId, cartId, parameters) {
+    createPaymentDetails(userId, cartId, parameters) {
         /** @type {?} */
         let httpParams = new HttpParams({ encoder: new CustomEncoder() });
         Object.keys(parameters).forEach(key => {
@@ -4836,95 +4683,26 @@ class OccCartPaymentAdapter {
             .pipe(catchError((error) => throwError(error)));
     }
     /**
-     * @private
-     * @param {?} paymentDetails
-     * @param {?} parameters
-     * @param {?} mappingLabels
+     * @param {?} userId
+     * @param {?} cartId
+     * @param {?} paymentDetailsId
      * @return {?}
      */
-    getParamsForPaymentProvider(paymentDetails, parameters, mappingLabels) {
-        /** @type {?} */
-        const params = this.convertToMap(parameters);
-        params[mappingLabels['hybris_account_holder_name']] =
-            paymentDetails.accountHolderName;
-        params[mappingLabels['hybris_card_type']] = paymentDetails.cardType.code;
-        params[mappingLabels['hybris_card_number']] = paymentDetails.cardNumber;
-        if (mappingLabels['hybris_combined_expiry_date'] === 'true') {
-            params[mappingLabels['hybris_card_expiry_date']] =
-                paymentDetails.expiryMonth +
-                    mappingLabels['hybris_separator_expiry_date'] +
-                    paymentDetails.expiryYear;
-        }
-        else {
-            params[mappingLabels['hybris_card_expiration_month']] =
-                paymentDetails.expiryMonth;
-            params[mappingLabels['hybris_card_expiration_year']] =
-                paymentDetails.expiryYear;
-        }
-        params[mappingLabels['hybris_card_cvn']] = paymentDetails.cvn;
-        // billing address
-        params[mappingLabels['hybris_billTo_country']] =
-            paymentDetails.billingAddress.country.isocode;
-        params[mappingLabels['hybris_billTo_firstname']] =
-            paymentDetails.billingAddress.firstName;
-        params[mappingLabels['hybris_billTo_lastname']] =
-            paymentDetails.billingAddress.lastName;
-        params[mappingLabels['hybris_billTo_street1']] =
-            paymentDetails.billingAddress.line1 +
-                ' ' +
-                paymentDetails.billingAddress.line2;
-        params[mappingLabels['hybris_billTo_city']] =
-            paymentDetails.billingAddress.town;
-        params[mappingLabels['hybris_billTo_postalcode']] =
-            paymentDetails.billingAddress.postalCode;
-        return params;
-    }
-    /**
-     * @private
-     * @param {?} html
-     * @return {?}
-     */
-    extractPaymentDetailsFromHtml(html) {
-        /** @type {?} */
-        const domdoc = this.domparser.parseFromString(html, 'text/xml');
-        /** @type {?} */
-        const responseForm = domdoc.getElementsByTagName('form')[0];
-        /** @type {?} */
-        const inputs = responseForm.getElementsByTagName('input');
-        /** @type {?} */
-        const values = {};
-        for (let i = 0; inputs[i]; i++) {
-            /** @type {?} */
-            const input = inputs[i];
-            if (input.getAttribute('name') !== '{}' &&
-                input.getAttribute('value') !== '') {
-                values[input.getAttribute('name')] = input.getAttribute('value');
-            }
-        }
-        return values;
-    }
-    /**
-     * @private
-     * @param {?} paramList
-     * @return {?}
-     */
-    convertToMap(paramList) {
-        return paramList.reduce(function (result, item) {
-            /** @type {?} */
-            const key = item.key;
-            result[key] = item.value;
-            return result;
-        }, {});
+    setPaymentDetails(userId, cartId, paymentDetailsId) {
+        return this.http
+            .put(this.getCartEndpoint(userId) + cartId + '/paymentdetails', {}, {
+            params: { paymentDetailsId: paymentDetailsId },
+        })
+            .pipe(catchError((error) => throwError(error.json())));
     }
 }
-OccCartPaymentAdapter.decorators = [
+OccCartService.decorators = [
     { type: Injectable }
 ];
 /** @nocollapse */
-OccCartPaymentAdapter.ctorParameters = () => [
+OccCartService.ctorParameters = () => [
     { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
+    { type: OccEndpointsService }
 ];
 
 /**
@@ -4946,7 +4724,6 @@ const defaultOccConfig = {
         occ: {
             prefix: '/rest/v2/',
         },
-        media: {},
     },
 };
 
@@ -4991,86 +4768,14 @@ OccModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @type {?} */
-const PRODUCT_NORMALIZER = new InjectionToken('ProductNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccCartNormalizer {
-    /**
-     * @param {?} converter
-     */
-    constructor(converter) {
-        this.converter = converter;
-    }
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target) {
-        if (target === undefined) {
-            target = Object.assign({}, ((/** @type {?} */ (source))));
-        }
-        if (source && source.entries) {
-            target.entries = source.entries.map(entry => (Object.assign({}, entry, { product: this.converter.convert(entry.product, PRODUCT_NORMALIZER) })));
-        }
-        return target;
-    }
-}
-OccCartNormalizer.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccCartNormalizer.ctorParameters = () => [
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 class CartOccModule {
 }
 CartOccModule.decorators = [
     { type: NgModule, args: [{
                 imports: [CommonModule, HttpClientModule, OccModule],
-                providers: [
-                    {
-                        provide: CartAdapter,
-                        useClass: OccCartAdapter,
-                    },
-                    {
-                        provide: CART_NORMALIZER,
-                        useClass: OccCartNormalizer,
-                        multi: true,
-                    },
-                    {
-                        provide: CartDeliveryAdapter,
-                        useClass: OccCartDeliveryAdapter,
-                    },
-                    {
-                        provide: CartEntryAdapter,
-                        useClass: OccCartEntryAdapter,
-                    },
-                    {
-                        provide: CartPaymentAdapter,
-                        useClass: OccCartPaymentAdapter,
-                    },
-                ],
+                providers: [OccCartService],
             },] }
 ];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CHECKOUT_FEATURE = 'checkout';
-/** @type {?} */
-const CHECKOUT_DETAILS = '[Checkout] Checkout Details';
 
 /**
  * @fileoverview added by tsickle
@@ -5124,12 +4829,6 @@ const PLACE_ORDER_SUCCESS = '[Checkout] Place Order Success';
 const CLEAR_CHECKOUT_STEP = '[Checkout] Clear One Checkout Step';
 /** @type {?} */
 const CLEAR_CHECKOUT_DATA = '[Checkout] Clear Checkout Data';
-/** @type {?} */
-const LOAD_CHECKOUT_DETAILS = '[Checkout] Load Checkout Details';
-/** @type {?} */
-const LOAD_CHECKOUT_DETAILS_FAIL = '[Checkout] Load Checkout Details Fail';
-/** @type {?} */
-const LOAD_CHECKOUT_DETAILS_SUCCESS = '[Checkout] Load Checkout Details Success';
 class AddDeliveryAddress {
     /**
      * @param {?} payload
@@ -5338,36 +5037,6 @@ class ClearCheckoutData {
         this.type = CLEAR_CHECKOUT_DATA;
     }
 }
-class LoadCheckoutDetails extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CHECKOUT_DETAILS);
-        this.payload = payload;
-        this.type = LOAD_CHECKOUT_DETAILS;
-    }
-}
-class LoadCheckoutDetailsFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CHECKOUT_DETAILS, payload);
-        this.payload = payload;
-        this.type = LOAD_CHECKOUT_DETAILS_FAIL;
-    }
-}
-class LoadCheckoutDetailsSuccess extends LoaderSuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(CHECKOUT_DETAILS);
-        this.payload = payload;
-        this.type = LOAD_CHECKOUT_DETAILS_SUCCESS;
-    }
-}
 
 /**
  * @fileoverview added by tsickle
@@ -5461,8 +5130,1263 @@ const metaReducers$1 = [clearCartState];
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ConverterService {
+    /**
+     * @param {?} injector
+     */
+    constructor(injector) {
+        this.injector = injector;
+        this.converters = new Map();
+    }
+    /**
+     * @private
+     * @template S, T
+     * @param {?} injectionToken
+     * @return {?}
+     */
+    getConverters(injectionToken) {
+        if (!this.converters.has(injectionToken)) {
+            /** @type {?} */
+            const converters = this.injector.get(injectionToken, []);
+            if (!Array.isArray(converters)) {
+                console.warn('Converter must be multi-provided, please use "multi: true" for', injectionToken.toString());
+            }
+            this.converters.set(injectionToken, converters);
+        }
+        return this.converters.get(injectionToken);
+    }
+    /**
+     * Will return true if converters for specified token were provided
+     * @template S, T
+     * @param {?} injectionToken
+     * @return {?}
+     */
+    hasConverters(injectionToken) {
+        /** @type {?} */
+        const converters = this.getConverters(injectionToken);
+        return Array.isArray(converters) && converters.length > 0;
+    }
+    /**
+     * Pipeable operator to apply converter logic in a observable stream
+     * @template S, T
+     * @param {?} injectionToken
+     * @return {?}
+     */
+    pipeable(injectionToken) {
+        if (this.hasConverters(injectionToken)) {
+            return map((model) => this.convertSource(model, injectionToken));
+        }
+        else {
+            return (observable) => (/** @type {?} */ (observable));
+        }
+    }
+    /**
+     * Apply converter logic specified by injection token to source data
+     * @template S, T
+     * @param {?} source
+     * @param {?} injectionToken
+     * @return {?}
+     */
+    convert(source, injectionToken) {
+        if (this.hasConverters(injectionToken)) {
+            return this.convertSource(source, injectionToken);
+        }
+        else {
+            return (/** @type {?} */ (source));
+        }
+    }
+    /**
+     * @private
+     * @template S, T
+     * @param {?} source
+     * @param {?} injectionToken
+     * @return {?}
+     */
+    convertSource(source, injectionToken) {
+        return this.getConverters(injectionToken).reduce((target, converter) => {
+            return converter.convert(source, target);
+        }, (/** @type {?} */ (undefined)));
+    }
+}
+ConverterService.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+ConverterService.ctorParameters = () => [
+    { type: Injector }
+];
+/** @nocollapse */ ConverterService.ngInjectableDef = defineInjectable({ factory: function ConverterService_Factory() { return new ConverterService(inject(INJECTOR)); }, token: ConverterService, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const PRODUCT_NORMALIZER = new InjectionToken('ProductNormalizer');
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class OccProductAdapter {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     * @param {?} converter
+     */
+    constructor(http, occEndpoints, converter) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+        this.converter = converter;
+    }
+    /**
+     * @param {?} productCode
+     * @return {?}
+     */
+    load(productCode) {
+        return this.http
+            .get(this.getEndpoint(productCode))
+            .pipe(this.converter.pipeable(PRODUCT_NORMALIZER));
+    }
+    /**
+     * @protected
+     * @param {?} code
+     * @return {?}
+     */
+    getEndpoint(code) {
+        return this.occEndpoints.getUrl('product', {
+            productCode: code,
+        });
+    }
+}
+OccProductAdapter.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccProductAdapter.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService },
+    { type: ConverterService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const DEFAULT_SEARCH_CONFIG = {
+    pageSize: 20,
+};
+class ProductSearchLoaderService {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     */
+    constructor(http, occEndpoints) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+    }
+    /**
+     * @param {?} fullQuery
+     * @param {?=} searchConfig
+     * @return {?}
+     */
+    loadSearch(fullQuery, searchConfig = DEFAULT_SEARCH_CONFIG) {
+        return this.http
+            .get(this.getSearchEndpoint(fullQuery, searchConfig))
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} term
+     * @param {?=} pageSize
+     * @return {?}
+     */
+    loadSuggestions(term, pageSize = 3) {
+        return this.http
+            .get(this.getSuggestionEndpoint(term, pageSize.toString()))
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @protected
+     * @param {?} query
+     * @param {?} searchConfig
+     * @return {?}
+     */
+    getSearchEndpoint(query, searchConfig) {
+        return this.occEndpoints.getUrl('productSearch', {
+            query,
+        }, {
+            pageSize: searchConfig.pageSize,
+            currentPage: searchConfig.currentPage,
+            sort: searchConfig.sortCode,
+        });
+    }
+    /**
+     * @protected
+     * @param {?} term
+     * @param {?} max
+     * @return {?}
+     */
+    getSuggestionEndpoint(term, max) {
+        return this.occEndpoints.getUrl('productSuggestions', {
+            term,
+            max,
+        });
+    }
+}
+ProductSearchLoaderService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductSearchLoaderService.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const PRODUCT_REVIEWS_NORMALIZER = new InjectionToken('ProductReviewsListNormalizer');
+/** @type {?} */
+const PRODUCT_REVIEW_SERIALIZER = new InjectionToken('ProductReviewsAddSerializer');
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class OccProductReviewsAdapter {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     * @param {?} converter
+     */
+    constructor(http, occEndpoints, converter) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+        this.converter = converter;
+    }
+    /**
+     * @param {?} productCode
+     * @param {?=} maxCount
+     * @return {?}
+     */
+    load(productCode, maxCount) {
+        return this.http
+            .get(this.getEndpoint(productCode, maxCount))
+            .pipe(this.converter.pipeable(PRODUCT_REVIEWS_NORMALIZER));
+    }
+    /**
+     * @param {?} productCode
+     * @param {?} review
+     * @return {?}
+     */
+    post(productCode, review) {
+        review = this.converter.convert(review, PRODUCT_REVIEW_SERIALIZER);
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        /** @type {?} */
+        const body = new URLSearchParams();
+        body.append('headline', review.headline);
+        body.append('comment', review.comment);
+        body.append('rating', review.rating.toString());
+        body.append('alias', review.alias);
+        return this.http.post(this.getEndpoint(productCode), body.toString(), {
+            headers,
+        });
+    }
+    /**
+     * @protected
+     * @param {?} code
+     * @param {?=} maxCount
+     * @return {?}
+     */
+    getEndpoint(code, maxCount) {
+        return this.occEndpoints.getUrl('productReviews', {
+            productCode: code,
+        }, { maxCount });
+    }
+}
+OccProductReviewsAdapter.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccProductReviewsAdapter.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService },
+    { type: ConverterService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class OccProductReviewsListNormalizer {
+    /**
+     * @param {?} sources
+     * @param {?=} targets
+     * @return {?}
+     */
+    convert(sources, targets = []) {
+        return sources.reviews.map((review, index) => (Object.assign({}, targets[index], review)));
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const SERVER_BASE_URL_META_TAG_NAME = 'occ-backend-base-url';
+/** @type {?} */
+const SERVER_BASE_URL_META_TAG_PLACEHOLDER = 'OCC_BACKEND_BASE_URL_VALUE';
+/**
+ * @param {?} meta
+ * @return {?}
+ */
+function serverConfigFromMetaTagFactory(meta) {
+    /** @type {?} */
+    const baseUrl = getMetaTagContent(SERVER_BASE_URL_META_TAG_NAME, meta);
+    return baseUrl && baseUrl !== SERVER_BASE_URL_META_TAG_PLACEHOLDER
+        ? { backend: { occ: { baseUrl } } }
+        : {};
+}
+/**
+ * @param {?} name
+ * @param {?} meta
+ * @return {?}
+ */
+function getMetaTagContent(name, meta) {
+    /** @type {?} */
+    const metaTag = meta.getTag(`name="${name}"`);
+    return metaTag && metaTag.content;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const ENDPOINT_COUNTRIES = 'countries';
+/** @type {?} */
+const ENDPOINT_TITLES = 'titles';
+/** @type {?} */
+const ENDPOINT_CARD_TYPES = 'cardtypes';
+/** @type {?} */
+const ENDPOINT_REGIONS = 'regions';
+/** @type {?} */
+const COUNTRIES_TYPE_SHIPPING = 'SHIPPING';
+/** @type {?} */
+const COUNTRIES_TYPE_BILLING = 'BILLING';
+class OccMiscsService {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     */
+    constructor(http, occEndpoints) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+    }
+    /**
+     * @return {?}
+     */
+    loadDeliveryCountries() {
+        return this.http
+            .get(this.occEndpoints.getEndpoint(ENDPOINT_COUNTRIES), {
+            params: new HttpParams().set('type', COUNTRIES_TYPE_SHIPPING),
+        })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @return {?}
+     */
+    loadBillingCountries() {
+        return this.http
+            .get(this.occEndpoints.getEndpoint(ENDPOINT_COUNTRIES), {
+            params: new HttpParams().set('type', COUNTRIES_TYPE_BILLING),
+        })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @return {?}
+     */
+    loadTitles() {
+        return this.http
+            .get(this.occEndpoints.getEndpoint(ENDPOINT_TITLES))
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @return {?}
+     */
+    loadCardTypes() {
+        return this.http
+            .get(this.occEndpoints.getEndpoint(ENDPOINT_CARD_TYPES))
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} countryIsoCode
+     * @return {?}
+     */
+    loadRegions(countryIsoCode) {
+        return this.http
+            .get(this.occEndpoints.getEndpoint(this.buildRegionsUrl(countryIsoCode)))
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @private
+     * @param {?} countryIsoCode
+     * @return {?}
+     */
+    buildRegionsUrl(countryIsoCode) {
+        return `${ENDPOINT_COUNTRIES}/${countryIsoCode}/${ENDPOINT_REGIONS}`;
+    }
+}
+OccMiscsService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccMiscsService.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductImageNormalizer {
+    /**
+     * @param {?} config
+     */
+    constructor(config) {
+        this.config = config;
+    }
+    /**
+     * @param {?} source
+     * @param {?=} target
+     * @return {?}
+     */
+    convert(source, target) {
+        if (target === undefined) {
+            target = Object.assign({}, ((/** @type {?} */ (source))));
+        }
+        if (source.images) {
+            target.images = this.normalize(source.images);
+        }
+        return target;
+    }
+    /**
+     * @deprecated Use `convert(source, target?) => target` instead
+     *
+     * TODO: Should be removed when all use cases will be refactored
+     * @param {?} list
+     * @return {?}
+     */
+    convertList(list) {
+        if (!list) {
+            return;
+        }
+        for (const product of list) {
+            this.convertProduct(product);
+        }
+    }
+    /**
+     * @deprecated Use `convert(source, target?) => target` instead
+     *
+     * TODO: Should be removed when all use cases will be refactored
+     * @param {?} product
+     * @return {?}
+     */
+    convertProduct(product) {
+        if (product.images) {
+            product.images = this.normalize(product.images);
+        }
+    }
+    /**
+     * @desc
+     * Creates the image structure we'd like to have. Instead of
+     * having a single list with all images despite type and format
+     * we create a proper structure. With that we can do:
+     * - images.primary.thumnail.url
+     * - images.GALLERY[0].thumnail.url
+     * @param {?} source
+     * @return {?}
+     */
+    normalize(source) {
+        /** @type {?} */
+        const images = {};
+        if (source) {
+            for (const image of source) {
+                /** @type {?} */
+                const isList = image.hasOwnProperty('galleryIndex');
+                if (!images.hasOwnProperty(image.imageType)) {
+                    images[image.imageType] = isList ? [] : {};
+                }
+                /** @type {?} */
+                let imageContainer;
+                if (isList && !images[image.imageType][image.galleryIndex]) {
+                    images[image.imageType][image.galleryIndex] = {};
+                }
+                if (isList) {
+                    imageContainer = images[image.imageType][image.galleryIndex];
+                }
+                else {
+                    imageContainer = images[image.imageType];
+                }
+                // set full image URL path
+                image.url = (this.config.backend.occ.baseUrl || '') + image.url;
+                imageContainer[image.format] = image;
+            }
+        }
+        return images;
+    }
+}
+ProductImageNormalizer.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+ProductImageNormalizer.ctorParameters = () => [
+    { type: OccConfig }
+];
+/** @nocollapse */ ProductImageNormalizer.ngInjectableDef = defineInjectable({ factory: function ProductImageNormalizer_Factory() { return new ProductImageNormalizer(inject(OccConfig)); }, token: ProductImageNormalizer, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductReferenceNormalizer {
+    /**
+     * @param {?} source
+     * @param {?=} target
+     * @return {?}
+     */
+    convert(source, target) {
+        if (target === undefined) {
+            target = Object.assign({}, ((/** @type {?} */ (source))));
+        }
+        if (source.productReferences) {
+            target.productReferences = this.normalize(source.productReferences);
+        }
+        return target;
+    }
+    /**
+     * @desc
+     * Creates the reference structure we'd like to have. Instead of
+     * having a single list with all references we create a proper structure.
+     * With that we have a semantic API for the clients
+     * - product.references.SIMILAR[0].code
+     * @protected
+     * @param {?} source
+     * @return {?}
+     */
+    normalize(source) {
+        /** @type {?} */
+        const references = {};
+        if (source) {
+            for (const reference of source) {
+                if (!references.hasOwnProperty(reference.referenceType)) {
+                    references[reference.referenceType] = [];
+                }
+                references[reference.referenceType].push(reference);
+            }
+        }
+        return references;
+    }
+}
+ProductReferenceNormalizer.decorators = [
+    { type: Injectable }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const defaultOccProductConfig = {
+    backend: {
+        occ: {
+            endpoints: {
+                product: 'products/${productCode}?fields=DEFAULT,averageRating,images(FULL),classifications,numberOfReviews',
+                productReviews: 'products/${productCode}/reviews',
+                // tslint:disable:max-line-length
+                productSearch: 'products/search?fields=products(code,name,summary,price(FULL),images(DEFAULT),stock(FULL),averageRating),facets,breadcrumbs,pagination(DEFAULT),sorts(DEFAULT)&query=${query}',
+                // tslint:enable
+                productSuggestions: 'products/suggestions?term=${term}&max=${max}',
+            },
+        },
+    },
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class ProductReviewsAdapter {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class ProductAdapter {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductOccModule {
+}
+ProductOccModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [
+                    CommonModule,
+                    HttpClientModule,
+                    OccModule,
+                    ConfigModule.withConfig(defaultOccProductConfig),
+                ],
+                providers: [
+                    ProductSearchLoaderService,
+                    {
+                        provide: ProductAdapter,
+                        useClass: OccProductAdapter,
+                    },
+                    {
+                        provide: PRODUCT_NORMALIZER,
+                        useExisting: ProductImageNormalizer,
+                        multi: true,
+                    },
+                    {
+                        provide: PRODUCT_NORMALIZER,
+                        useClass: ProductReferenceNormalizer,
+                        multi: true,
+                    },
+                    {
+                        provide: ProductReviewsAdapter,
+                        useClass: OccProductReviewsAdapter,
+                    },
+                    {
+                        provide: PRODUCT_REVIEWS_NORMALIZER,
+                        useClass: OccProductReviewsListNormalizer,
+                        multi: true,
+                    },
+                ],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const PRODUCT_FEATURE = 'product';
+/** @type {?} */
+const PRODUCT_DETAIL_ENTITY = '[Product] Detail Entity';
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const SEARCH_PRODUCTS = '[Product] Search Products';
+/** @type {?} */
+const SEARCH_PRODUCTS_FAIL = '[Product] Search Products Fail';
+/** @type {?} */
+const SEARCH_PRODUCTS_SUCCESS = '[Product] Search Products Success';
+/** @type {?} */
+const GET_PRODUCT_SUGGESTIONS = '[Product] Get Product Suggestions';
+/** @type {?} */
+const GET_PRODUCT_SUGGESTIONS_SUCCESS = '[Product] Get Product Suggestions Success';
+/** @type {?} */
+const GET_PRODUCT_SUGGESTIONS_FAIL = '[Product] Get Product Suggestions Fail';
+/** @type {?} */
+const CLEAN_PRODUCT_SEARCH = '[Product] Clean Product Search State';
+class SearchProducts {
+    /**
+     * @param {?} payload
+     * @param {?=} auxiliary
+     */
+    constructor(payload, auxiliary) {
+        this.payload = payload;
+        this.auxiliary = auxiliary;
+        this.type = SEARCH_PRODUCTS;
+    }
+}
+class SearchProductsFail {
+    /**
+     * @param {?} payload
+     * @param {?=} auxiliary
+     */
+    constructor(payload, auxiliary) {
+        this.payload = payload;
+        this.auxiliary = auxiliary;
+        this.type = SEARCH_PRODUCTS_FAIL;
+    }
+}
+class SearchProductsSuccess {
+    /**
+     * @param {?} payload
+     * @param {?=} auxiliary
+     */
+    constructor(payload, auxiliary) {
+        this.payload = payload;
+        this.auxiliary = auxiliary;
+        this.type = SEARCH_PRODUCTS_SUCCESS;
+    }
+}
+class GetProductSuggestions {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = GET_PRODUCT_SUGGESTIONS;
+    }
+}
+class GetProductSuggestionsSuccess {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = GET_PRODUCT_SUGGESTIONS_SUCCESS;
+    }
+}
+class GetProductSuggestionsFail {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = GET_PRODUCT_SUGGESTIONS_FAIL;
+    }
+}
+class CleanProductSearchState {
+    constructor() {
+        this.type = CLEAN_PRODUCT_SEARCH;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const ENTITY_REMOVE_ACTION = '[ENTITY] REMOVE';
+/** @type {?} */
+const ENTITY_REMOVE_ALL_ACTION = '[ENTITY] REMOVE ALL';
+/**
+ * @param {?} type
+ * @param {?} id
+ * @return {?}
+ */
+function entityMeta(type, id) {
+    return {
+        entityType: type,
+        entityId: id,
+    };
+}
+/**
+ * @param {?} type
+ * @param {?} id
+ * @return {?}
+ */
+function entityRemoveMeta(type, id) {
+    return {
+        entityId: id,
+        entityType: type,
+        entityRemove: true,
+    };
+}
+/**
+ * @param {?} type
+ * @return {?}
+ */
+function entityRemoveAllMeta(type) {
+    return {
+        entityId: null,
+        entityType: type,
+        entityRemove: true,
+    };
+}
+class EntityRemoveAction {
+    /**
+     * @param {?} entityType
+     * @param {?} id
+     */
+    constructor(entityType, id) {
+        this.type = ENTITY_REMOVE_ACTION;
+        this.meta = entityRemoveMeta(entityType, id);
+    }
+}
+class EntityRemoveAllAction {
+    /**
+     * @param {?} entityType
+     */
+    constructor(entityType) {
+        this.type = ENTITY_REMOVE_ALL_ACTION;
+        this.meta = entityRemoveAllMeta(entityType);
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const ENTITY_LOAD_ACTION = '[ENTITY] LOAD';
+/** @type {?} */
+const ENTITY_FAIL_ACTION = '[ENTITY] LOAD FAIL';
+/** @type {?} */
+const ENTITY_SUCCESS_ACTION = '[ENTITY] LOAD SUCCESS';
+/** @type {?} */
+const ENTITY_RESET_ACTION = '[ENTITY] RESET';
+/**
+ * @param {?} entityType
+ * @param {?} id
+ * @return {?}
+ */
+function entityLoadMeta(entityType, id) {
+    return Object.assign({}, loadMeta(entityType), entityMeta(entityType, id));
+}
+/**
+ * @param {?} entityType
+ * @param {?} id
+ * @param {?=} error
+ * @return {?}
+ */
+function entityFailMeta(entityType, id, error) {
+    return Object.assign({}, failMeta(entityType, error), entityMeta(entityType, id));
+}
+/**
+ * @param {?} entityType
+ * @param {?} id
+ * @return {?}
+ */
+function entitySuccessMeta(entityType, id) {
+    return Object.assign({}, successMeta(entityType), entityMeta(entityType, id));
+}
+/**
+ * @param {?} entityType
+ * @param {?} id
+ * @return {?}
+ */
+function entityResetMeta(entityType, id) {
+    return Object.assign({}, resetMeta(entityType), entityMeta(entityType, id));
+}
+class EntityLoadAction {
+    /**
+     * @param {?} entityType
+     * @param {?} id
+     */
+    constructor(entityType, id) {
+        this.type = ENTITY_LOAD_ACTION;
+        this.meta = entityLoadMeta(entityType, id);
+    }
+}
+class EntityFailAction {
+    /**
+     * @param {?} entityType
+     * @param {?} id
+     * @param {?=} error
+     */
+    constructor(entityType, id, error) {
+        this.type = ENTITY_FAIL_ACTION;
+        this.meta = entityFailMeta(entityType, id, error);
+    }
+}
+class EntitySuccessAction {
+    /**
+     * @param {?} entityType
+     * @param {?} id
+     * @param {?=} payload
+     */
+    constructor(entityType, id, payload) {
+        this.payload = payload;
+        this.type = ENTITY_SUCCESS_ACTION;
+        this.meta = entitySuccessMeta(entityType, id);
+    }
+}
+class EntityResetAction {
+    /**
+     * @param {?} entityType
+     * @param {?} id
+     */
+    constructor(entityType, id) {
+        this.type = ENTITY_RESET_ACTION;
+        this.meta = entityResetMeta(entityType, id);
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const LOAD_PRODUCT = '[Product] Load Product Data';
+/** @type {?} */
+const LOAD_PRODUCT_FAIL = '[Product] Load Product Data Fail';
+/** @type {?} */
+const LOAD_PRODUCT_SUCCESS = '[Product] Load Product Data Success';
+class LoadProduct extends EntityLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(PRODUCT_DETAIL_ENTITY, payload);
+        this.payload = payload;
+        this.type = LOAD_PRODUCT;
+    }
+}
+class LoadProductFail extends EntityFailAction {
+    /**
+     * @param {?} productCode
+     * @param {?} payload
+     */
+    constructor(productCode, payload) {
+        super(PRODUCT_DETAIL_ENTITY, productCode, payload);
+        this.payload = payload;
+        this.type = LOAD_PRODUCT_FAIL;
+    }
+}
+class LoadProductSuccess extends EntitySuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(PRODUCT_DETAIL_ENTITY, payload.code);
+        this.payload = payload;
+        this.type = LOAD_PRODUCT_SUCCESS;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const LOAD_PRODUCT_REVIEWS = '[Product] Load Product Reviews Data';
+/** @type {?} */
+const LOAD_PRODUCT_REVIEWS_FAIL = '[Product] Load Product Reviews Data Fail';
+/** @type {?} */
+const LOAD_PRODUCT_REVIEWS_SUCCESS = '[Product] Load Product Reviews Data Success';
+/** @type {?} */
+const POST_PRODUCT_REVIEW = '[Product] Post Product Review';
+/** @type {?} */
+const POST_PRODUCT_REVIEW_FAIL = '[Product] Post Product Review Fail';
+/** @type {?} */
+const POST_PRODUCT_REVIEW_SUCCESS = '[Product] Post Product Review Success';
+class LoadProductReviews {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = LOAD_PRODUCT_REVIEWS;
+    }
+}
+class LoadProductReviewsFail {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = LOAD_PRODUCT_REVIEWS_FAIL;
+    }
+}
+class LoadProductReviewsSuccess {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = LOAD_PRODUCT_REVIEWS_SUCCESS;
+    }
+}
+class PostProductReview {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = POST_PRODUCT_REVIEW;
+    }
+}
+class PostProductReviewFail {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = POST_PRODUCT_REVIEW_FAIL;
+    }
+}
+class PostProductReviewSuccess {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        this.payload = payload;
+        this.type = POST_PRODUCT_REVIEW_SUCCESS;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getProductsState = createFeatureSelector(PRODUCT_FEATURE);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @template T
+ * @param {?} state
+ * @param {?} id
+ * @return {?}
+ */
+function entityStateSelector(state, id) {
+    return state.entities[id] || initialLoaderState;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @param {?} id
+ * @return {?}
+ */
+function entityValueSelector(state, id) {
+    /** @type {?} */
+    const entityState = entityStateSelector(state, id);
+    return entityState.value;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @param {?} id
+ * @return {?}
+ */
+function entityLoadingSelector(state, id) {
+    /** @type {?} */
+    const entityState = entityStateSelector(state, id);
+    return entityState.loading;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @param {?} id
+ * @return {?}
+ */
+function entityErrorSelector(state, id) {
+    /** @type {?} */
+    const entityState = entityStateSelector(state, id);
+    return entityState.error;
+}
+/**
+ * @template T
+ * @param {?} state
+ * @param {?} id
+ * @return {?}
+ */
+function entitySuccessSelector(state, id) {
+    /** @type {?} */
+    const entityState = entityStateSelector(state, id);
+    return entityState.success;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getProductState = createSelector(getProductsState, (state) => state.details);
+/** @type {?} */
+const getSelectedProductsFactory = (codes) => {
+    return createSelector(getProductState, (details) => {
+        return codes
+            .map(code => details.entities[code] ? details.entities[code].value : undefined)
+            .filter(product => product !== undefined);
+    });
+};
+/** @type {?} */
+const getSelectedProductStateFactory = (code) => {
+    return createSelector(getProductState, details => entityStateSelector(details, code));
+};
+/** @type {?} */
+const getSelectedProductFactory = (code) => {
+    return createSelector(getSelectedProductStateFactory(code), productState => loaderValueSelector(productState));
+};
+/** @type {?} */
+const getSelectedProductLoadingFactory = (code) => {
+    return createSelector(getSelectedProductStateFactory(code), productState => loaderLoadingSelector(productState));
+};
+/** @type {?} */
+const getSelectedProductSuccessFactory = (code) => {
+    return createSelector(getSelectedProductStateFactory(code), productState => loaderSuccessSelector(productState));
+};
+/** @type {?} */
+const getSelectedProductErrorFactory = (code) => {
+    return createSelector(getSelectedProductStateFactory(code), productState => loaderErrorSelector(productState));
+};
+/** @type {?} */
+const getAllProductCodes = createSelector(getProductState, details => {
+    return Object.keys(details.entities);
+});
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
 /** @type {?} */
 const initialState$3 = {
+    results: {},
+    suggestions: [],
+    auxResults: {},
+};
+/**
+ * @param {?=} state
+ * @param {?=} action
+ * @return {?}
+ */
+function reducer$3(state = initialState$3, action) {
+    switch (action.type) {
+        case SEARCH_PRODUCTS_SUCCESS: {
+            /** @type {?} */
+            const results = action.payload;
+            /** @type {?} */
+            const res = action.auxiliary ? { auxResults: results } : { results };
+            return Object.assign({}, state, res);
+        }
+        case GET_PRODUCT_SUGGESTIONS_SUCCESS: {
+            /** @type {?} */
+            const suggestions = action.payload;
+            return Object.assign({}, state, { suggestions });
+        }
+        case CLEAN_PRODUCT_SEARCH: {
+            return initialState$3;
+        }
+    }
+    return state;
+}
+/** @type {?} */
+const getSearchResults = (state) => state.results;
+/** @type {?} */
+const getAuxSearchResults = (state) => state.auxResults;
+/** @type {?} */
+const getProductSuggestions = (state) => state.suggestions;
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getProductsSearchState = createSelector(getProductsState, (state) => state.search);
+/** @type {?} */
+const getSearchResults$1 = createSelector(getProductsSearchState, getSearchResults);
+/** @type {?} */
+const getAuxSearchResults$1 = createSelector(getProductsSearchState, getAuxSearchResults);
+/** @type {?} */
+const getProductSuggestions$1 = createSelector(getProductsSearchState, getProductSuggestions);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getProductReviewsState = createSelector(getProductsState, (state) => state.reviews);
+/** @type {?} */
+const getSelectedProductReviewsFactory = (productCode) => {
+    return createSelector(getProductReviewsState, reviewData => {
+        if (reviewData.productCode === productCode) {
+            return reviewData.list;
+        }
+    });
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$4 = {
+    productCode: '',
+    list: [],
+};
+/**
+ * @param {?=} state
+ * @param {?=} action
+ * @return {?}
+ */
+function reducer$4(state = initialState$4, action) {
+    switch (action.type) {
+        case LOAD_PRODUCT_REVIEWS_SUCCESS: {
+            /** @type {?} */
+            const productCode = action.payload.productCode;
+            /** @type {?} */
+            const list = action.payload.list;
+            return Object.assign({}, state, { productCode,
+                list });
+        }
+    }
+    return state;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$5 = {
     entities: null,
     activeLanguage: null,
 };
@@ -5471,7 +6395,7 @@ const initialState$3 = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$3(state = initialState$3, action) {
+function reducer$5(state = initialState$5, action) {
     switch (action.type) {
         case LOAD_LANGUAGES_SUCCESS: {
             /** @type {?} */
@@ -5548,7 +6472,7 @@ class CurrencyChange {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$4 = {
+const initialState$6 = {
     entities: null,
     activeCurrency: null,
 };
@@ -5557,7 +6481,7 @@ const initialState$4 = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$4(state = initialState$4, action) {
+function reducer$6(state = initialState$6, action) {
     switch (action.type) {
         case LOAD_CURRENCIES_SUCCESS: {
             /** @type {?} */
@@ -5582,13 +6506,13 @@ function reducer$4(state = initialState$4, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$5 = '';
+const initialState$7 = '';
 /**
  * @param {?=} state
  * @param {?=} action
  * @return {?}
  */
-function reducer$5(state = initialState$5, action) {
+function reducer$7(state = initialState$7, action) {
     switch (action.type) {
         case SET_ACTIVE_BASE_SITE: {
             return action.payload;
@@ -5606,9 +6530,9 @@ function reducer$5(state = initialState$5, action) {
  */
 function getReducers$3() {
     return {
-        languages: reducer$3,
-        currencies: reducer$4,
-        baseSite: reducer$5,
+        languages: reducer$5,
+        currencies: reducer$6,
+        baseSite: reducer$7,
     };
 }
 /** @type {?} */
@@ -5628,46 +6552,43 @@ const reducerProvider$3 = {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class SiteAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class SiteConnector {
+class OccSiteService {
     /**
-     * @param {?} adapter
+     * @param {?} http
+     * @param {?} occEndpoints
      */
-    constructor(adapter) {
-        this.adapter = adapter;
+    constructor(http, occEndpoints) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
     }
     /**
      * @return {?}
      */
-    getLanguages() {
-        return this.adapter.loadLanguages();
+    loadLanguages() {
+        return this.http
+            .get(this.occEndpoints.getEndpoint('languages'))
+            .pipe(catchError((error) => throwError(error.json())));
     }
     /**
      * @return {?}
      */
-    getCurrencies() {
-        return this.adapter.loadCurrencies();
+    loadCurrencies() {
+        return this.http
+            .get(this.occEndpoints.getEndpoint('currencies'))
+            .pipe(catchError((error) => throwError(error.json())));
     }
 }
-SiteConnector.decorators = [
+OccSiteService.decorators = [
     { type: Injectable, args: [{
                 providedIn: 'root',
             },] }
 ];
 /** @nocollapse */
-SiteConnector.ctorParameters = () => [
-    { type: SiteAdapter }
+OccSiteService.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService }
 ];
-/** @nocollapse */ SiteConnector.ngInjectableDef = defineInjectable({ factory: function SiteConnector_Factory() { return new SiteConnector(inject(SiteAdapter)); }, token: SiteConnector, providedIn: "root" });
+/** @nocollapse */ OccSiteService.ngInjectableDef = defineInjectable({ factory: function OccSiteService_Factory() { return new OccSiteService(inject(HttpClient), inject(OccEndpointsService)); }, token: OccSiteService, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
@@ -5676,15 +6597,15 @@ SiteConnector.ctorParameters = () => [
 class LanguagesEffects {
     /**
      * @param {?} actions$
-     * @param {?} siteConnector
+     * @param {?} occSiteService
      * @param {?} winRef
      */
-    constructor(actions$, siteConnector, winRef) {
+    constructor(actions$, occSiteService, winRef) {
         this.actions$ = actions$;
-        this.siteConnector = siteConnector;
+        this.occSiteService = occSiteService;
         this.winRef = winRef;
         this.loadLanguages$ = this.actions$.pipe(ofType(LOAD_LANGUAGES), exhaustMap(() => {
-            return this.siteConnector.getLanguages().pipe(map(languages => new LoadLanguagesSuccess(languages)), catchError(error => of(new LoadLanguagesFail(error))));
+            return this.occSiteService.loadLanguages().pipe(map(data => new LoadLanguagesSuccess(data.languages)), catchError(error => of(new LoadLanguagesFail(error))));
         }));
         this.activateLanguage$ = this.actions$.pipe(ofType(SET_ACTIVE_LANGUAGE), tap((action) => {
             if (this.winRef.sessionStorage) {
@@ -5699,7 +6620,7 @@ LanguagesEffects.decorators = [
 /** @nocollapse */
 LanguagesEffects.ctorParameters = () => [
     { type: Actions },
-    { type: SiteConnector },
+    { type: OccSiteService },
     { type: WindowRef }
 ];
 __decorate([
@@ -5718,15 +6639,15 @@ __decorate([
 class CurrenciesEffects {
     /**
      * @param {?} actions$
-     * @param {?} siteConnector
+     * @param {?} occSiteService
      * @param {?} winRef
      */
-    constructor(actions$, siteConnector, winRef) {
+    constructor(actions$, occSiteService, winRef) {
         this.actions$ = actions$;
-        this.siteConnector = siteConnector;
+        this.occSiteService = occSiteService;
         this.winRef = winRef;
         this.loadCurrencies$ = this.actions$.pipe(ofType(LOAD_CURRENCIES), exhaustMap(() => {
-            return this.siteConnector.getCurrencies().pipe(map(currencies => new LoadCurrenciesSuccess(currencies)), catchError(error => of(new LoadCurrenciesFail(error))));
+            return this.occSiteService.loadCurrencies().pipe(map(data => new LoadCurrenciesSuccess(data.currencies)), catchError(error => of(new LoadCurrenciesFail(error))));
         }));
         this.activateCurrency$ = this.actions$.pipe(ofType(SET_ACTIVE_CURRENCY), tap((action) => {
             if (this.winRef.sessionStorage) {
@@ -5741,7 +6662,7 @@ CurrenciesEffects.decorators = [
 /** @nocollapse */
 CurrenciesEffects.ctorParameters = () => [
     { type: Actions },
-    { type: SiteConnector },
+    { type: OccSiteService },
     { type: WindowRef }
 ];
 __decorate([
@@ -5967,7 +6888,7 @@ class SiteContextOccModule {
 SiteContextOccModule.decorators = [
     { type: NgModule, args: [{
                 imports: [OccModule, CommonModule, HttpClientModule],
-                providers: [OccModule],
+                providers: [OccModule, OccSiteService],
             },] }
 ];
 
@@ -5982,11 +6903,7 @@ function siteContextStoreConfigFactory() {
     // if we want to reuse SITE_CONTEXT_FEATURE const in config, we have to use factory instead of plain object
     /** @type {?} */
     const config = {
-        state: {
-            ssrTransfer: {
-                keys: { [SITE_CONTEXT_FEATURE]: StateTransferType.TRANSFER_STATE },
-            },
-        },
+        state: { ssrTransfer: { keys: { [SITE_CONTEXT_FEATURE]: true } } },
     };
     return config;
 }
@@ -6009,157 +6926,6 @@ SiteContextStoreModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const ENTITY_REMOVE_ACTION = '[ENTITY] REMOVE';
-/** @type {?} */
-const ENTITY_REMOVE_ALL_ACTION = '[ENTITY] REMOVE ALL';
-/**
- * @param {?} type
- * @param {?} id
- * @return {?}
- */
-function entityMeta(type, id) {
-    return {
-        entityType: type,
-        entityId: id,
-    };
-}
-/**
- * @param {?} type
- * @param {?} id
- * @return {?}
- */
-function entityRemoveMeta(type, id) {
-    return {
-        entityId: id,
-        entityType: type,
-        entityRemove: true,
-    };
-}
-/**
- * @param {?} type
- * @return {?}
- */
-function entityRemoveAllMeta(type) {
-    return {
-        entityId: null,
-        entityType: type,
-        entityRemove: true,
-    };
-}
-class EntityRemoveAction {
-    /**
-     * @param {?} entityType
-     * @param {?} id
-     */
-    constructor(entityType, id) {
-        this.type = ENTITY_REMOVE_ACTION;
-        this.meta = entityRemoveMeta(entityType, id);
-    }
-}
-class EntityRemoveAllAction {
-    /**
-     * @param {?} entityType
-     */
-    constructor(entityType) {
-        this.type = ENTITY_REMOVE_ALL_ACTION;
-        this.meta = entityRemoveAllMeta(entityType);
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const ENTITY_LOAD_ACTION = '[ENTITY] LOAD';
-/** @type {?} */
-const ENTITY_FAIL_ACTION = '[ENTITY] LOAD FAIL';
-/** @type {?} */
-const ENTITY_SUCCESS_ACTION = '[ENTITY] LOAD SUCCESS';
-/** @type {?} */
-const ENTITY_RESET_ACTION = '[ENTITY] RESET';
-/**
- * @param {?} entityType
- * @param {?} id
- * @return {?}
- */
-function entityLoadMeta(entityType, id) {
-    return Object.assign({}, loadMeta(entityType), entityMeta(entityType, id));
-}
-/**
- * @param {?} entityType
- * @param {?} id
- * @param {?=} error
- * @return {?}
- */
-function entityFailMeta(entityType, id, error) {
-    return Object.assign({}, failMeta(entityType, error), entityMeta(entityType, id));
-}
-/**
- * @param {?} entityType
- * @param {?} id
- * @return {?}
- */
-function entitySuccessMeta(entityType, id) {
-    return Object.assign({}, successMeta(entityType), entityMeta(entityType, id));
-}
-/**
- * @param {?} entityType
- * @param {?} id
- * @return {?}
- */
-function entityResetMeta(entityType, id) {
-    return Object.assign({}, resetMeta(entityType), entityMeta(entityType, id));
-}
-class EntityLoadAction {
-    /**
-     * @param {?} entityType
-     * @param {?} id
-     */
-    constructor(entityType, id) {
-        this.type = ENTITY_LOAD_ACTION;
-        this.meta = entityLoadMeta(entityType, id);
-    }
-}
-class EntityFailAction {
-    /**
-     * @param {?} entityType
-     * @param {?} id
-     * @param {?=} error
-     */
-    constructor(entityType, id, error) {
-        this.type = ENTITY_FAIL_ACTION;
-        this.meta = entityFailMeta(entityType, id, error);
-    }
-}
-class EntitySuccessAction {
-    /**
-     * @param {?} entityType
-     * @param {?} id
-     * @param {?=} payload
-     */
-    constructor(entityType, id, payload) {
-        this.payload = payload;
-        this.type = ENTITY_SUCCESS_ACTION;
-        this.meta = entitySuccessMeta(entityType, id);
-    }
-}
-class EntityResetAction {
-    /**
-     * @param {?} entityType
-     * @param {?} id
-     */
-    constructor(entityType, id) {
-        this.type = ENTITY_RESET_ACTION;
-        this.meta = entityResetMeta(entityType, id);
-    }
-}
 
 /**
  * @fileoverview added by tsickle
@@ -6196,7 +6962,7 @@ function entityReducer(entityType, reducer) {
                     let removed = false;
                     /** @type {?} */
                     const newEntities = Object.keys(state.entities).reduce((acc, cur) => {
-                        if (ids.includes(cur)) {
+                        if (ids.indexOf(cur) > -1) {
                             removed = true;
                         }
                         else {
@@ -6233,90 +6999,6 @@ function entityReducer(entityType, reducer) {
         return state;
     };
 }
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * Higher order reducer that wraps LoaderReducer and EntityReducer enhancing
- * single state reducer to support multiple entities with generic loading flags
- * @template T
- * @param {?} entityType
- * @param {?=} reducer
- * @return {?}
- */
-function entityLoaderReducer(entityType, reducer) {
-    return entityReducer(entityType, loaderReducer(entityType, reducer));
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @template T
- * @param {?} state
- * @param {?} id
- * @return {?}
- */
-function entityStateSelector(state, id) {
-    return state.entities[id] || initialLoaderState;
-}
-/**
- * @template T
- * @param {?} state
- * @param {?} id
- * @return {?}
- */
-function entityValueSelector(state, id) {
-    /** @type {?} */
-    const entityState = entityStateSelector(state, id);
-    return entityState.value;
-}
-/**
- * @template T
- * @param {?} state
- * @param {?} id
- * @return {?}
- */
-function entityLoadingSelector(state, id) {
-    /** @type {?} */
-    const entityState = entityStateSelector(state, id);
-    return entityState.loading;
-}
-/**
- * @template T
- * @param {?} state
- * @param {?} id
- * @return {?}
- */
-function entityErrorSelector(state, id) {
-    /** @type {?} */
-    const entityState = entityStateSelector(state, id);
-    return entityState.error;
-}
-/**
- * @template T
- * @param {?} state
- * @param {?} id
- * @return {?}
- */
-function entitySuccessSelector(state, id) {
-    /** @type {?} */
-    const entityState = entityStateSelector(state, id);
-    return entityState.success;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 
 /**
  * @fileoverview added by tsickle
@@ -6376,6 +7058,32 @@ function ofLoaderSuccess(entityType) {
         action.meta.entityType === entityType &&
         !action.meta.loader.load &&
         !action.meta.loader.error);
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * Higher order reducer that wraps LoaderReducer and EntityReducer enhancing
+ * single state reducer to support multiple entities with generic loading flags
+ * @template T
+ * @param {?} entityType
+ * @param {?=} reducer
+ * @return {?}
+ */
+function entityLoaderReducer(entityType, reducer) {
+    return entityReducer(entityType, loaderReducer(entityType, reducer));
 }
 
 /**
@@ -6694,7 +7402,7 @@ class SiteContextUrlSerializer extends DefaultUrlSerializer {
             const paramName = this.urlEncodingParameters[paramId];
             /** @type {?} */
             const paramValues = this.siteContextParams.getParamValues(paramName);
-            if (paramValues.includes(segments[segmentId])) {
+            if (paramValues.indexOf(segments[segmentId]) > -1) {
                 params[paramName] = segments[segmentId];
                 segmentId++;
             }
@@ -6919,7 +7627,7 @@ class SiteContextInterceptor {
      * @return {?}
      */
     intercept(request, next) {
-        if (request.url.includes(this.occEndpoints.getBaseEndpoint())) {
+        if (request.url.indexOf(this.occEndpoints.getBaseEndpoint()) > -1) {
             request = request.clone({
                 setParams: {
                     lang: this.activeLang,
@@ -6946,66 +7654,11 @@ SiteContextInterceptor.ctorParameters = () => [
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const LANGUAGE_NORMALIZER = new InjectionToken('LanguageNormalizer');
-/** @type {?} */
-const CURRENCY_NORMALIZER = new InjectionToken('CurrencyNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccSiteAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @return {?}
-     */
-    loadLanguages() {
-        return this.http
-            .get(this.occEndpoints.getEndpoint('languages'))
-            .pipe(catchError((error) => throwError(error.json())), map(languageList => languageList.languages), this.converter.pipeableMany(LANGUAGE_NORMALIZER));
-    }
-    /**
-     * @return {?}
-     */
-    loadCurrencies() {
-        return this.http
-            .get(this.occEndpoints.getEndpoint('currencies'))
-            .pipe(catchError((error) => throwError(error.json())), map(currencyList => currencyList.currencies), this.converter.pipeableMany(CURRENCY_NORMALIZER));
-    }
-}
-OccSiteAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccSiteAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
 const interceptors$1 = [
     {
         provide: HTTP_INTERCEPTORS,
         useClass: SiteContextInterceptor,
         multi: true,
-    },
-    {
-        provide: SiteAdapter,
-        useClass: OccSiteAdapter,
     },
 ];
 
@@ -7056,6 +7709,2623 @@ SiteContextModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+/**
+ * @return {?}
+ */
+function getReducers$4() {
+    return {
+        search: reducer$3,
+        details: entityLoaderReducer(PRODUCT_DETAIL_ENTITY),
+        reviews: reducer$4,
+    };
+}
+/** @type {?} */
+const reducerToken$4 = new InjectionToken('ProductReducers');
+/** @type {?} */
+const reducerProvider$4 = {
+    provide: reducerToken$4,
+    useFactory: getReducers$4,
+};
+/**
+ * @param {?} reducer
+ * @return {?}
+ */
+function clearProductsState(reducer) {
+    return function (state, action) {
+        if (action.type === CURRENCY_CHANGE || action.type === LANGUAGE_CHANGE) {
+            state = undefined;
+        }
+        return reducer(state, action);
+    };
+}
+/** @type {?} */
+const metaReducers$2 = [clearProductsState];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductsSearchEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} occProductSearchService
+     * @param {?} productImageConverter
+     */
+    constructor(actions$, occProductSearchService, productImageConverter) {
+        this.actions$ = actions$;
+        this.occProductSearchService = occProductSearchService;
+        this.productImageConverter = productImageConverter;
+        this.searchProducts$ = this.actions$.pipe(ofType(SEARCH_PRODUCTS), switchMap((action) => {
+            return this.occProductSearchService
+                .loadSearch(action.payload.queryText, action.payload.searchConfig)
+                .pipe(map(data => {
+                this.productImageConverter.convertList(data.products);
+                return new SearchProductsSuccess(data, action.auxiliary);
+            }), catchError(error => of(new SearchProductsFail(error, action.auxiliary))));
+        }));
+        this.getProductSuggestions$ = this.actions$.pipe(ofType(GET_PRODUCT_SUGGESTIONS), map((action) => action.payload), switchMap(payload => {
+            return this.occProductSearchService
+                .loadSuggestions(payload.term, payload.searchConfig.pageSize)
+                .pipe(map(data => {
+                if (data.suggestions === undefined) {
+                    return new GetProductSuggestionsSuccess([]);
+                }
+                return new GetProductSuggestionsSuccess(data.suggestions);
+            }), catchError(error => of(new GetProductSuggestionsFail(error))));
+        }));
+    }
+}
+ProductsSearchEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductsSearchEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: ProductSearchLoaderService },
+    { type: ProductImageNormalizer }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ProductsSearchEffects.prototype, "searchProducts$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ProductsSearchEffects.prototype, "getProductSuggestions$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductConnector {
+    /**
+     * @param {?} adapter
+     */
+    constructor(adapter) {
+        this.adapter = adapter;
+    }
+    /**
+     * @param {?} productCode
+     * @return {?}
+     */
+    get(productCode) {
+        return this.adapter.load(productCode);
+    }
+}
+ProductConnector.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+ProductConnector.ctorParameters = () => [
+    { type: ProductAdapter }
+];
+/** @nocollapse */ ProductConnector.ngInjectableDef = defineInjectable({ factory: function ProductConnector_Factory() { return new ProductConnector(inject(ProductAdapter)); }, token: ProductConnector, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} productConnector
+     */
+    constructor(actions$, productConnector) {
+        this.actions$ = actions$;
+        this.productConnector = productConnector;
+        this.loadProduct$ = this.actions$.pipe(ofType(LOAD_PRODUCT), map((action) => action.payload), groupBy(productCode => productCode), mergeMap(group => group.pipe(switchMap(productCode => {
+            return this.productConnector.get(productCode).pipe(map(product => {
+                return new LoadProductSuccess(product);
+            }), catchError(error => of(new LoadProductFail(productCode, error))));
+        }))));
+    }
+}
+ProductEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: ProductConnector }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ProductEffects.prototype, "loadProduct$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductReviewsConnector {
+    /**
+     * @param {?} adapter
+     */
+    constructor(adapter) {
+        this.adapter = adapter;
+    }
+    /**
+     * @param {?} productCode
+     * @param {?=} maxCount
+     * @return {?}
+     */
+    get(productCode, maxCount) {
+        return this.adapter.load(productCode, maxCount);
+    }
+    /**
+     * @param {?} productCode
+     * @param {?} review
+     * @return {?}
+     */
+    add(productCode, review) {
+        return this.adapter.post(productCode, review);
+    }
+}
+ProductReviewsConnector.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+ProductReviewsConnector.ctorParameters = () => [
+    { type: ProductReviewsAdapter }
+];
+/** @nocollapse */ ProductReviewsConnector.ngInjectableDef = defineInjectable({ factory: function ProductReviewsConnector_Factory() { return new ProductReviewsConnector(inject(ProductReviewsAdapter)); }, token: ProductReviewsConnector, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductReviewsEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} productReviewsConnector
+     */
+    constructor(actions$, productReviewsConnector) {
+        this.actions$ = actions$;
+        this.productReviewsConnector = productReviewsConnector;
+        this.loadProductReviews$ = this.actions$.pipe(ofType(LOAD_PRODUCT_REVIEWS), map((action) => action.payload), mergeMap(productCode => {
+            return this.productReviewsConnector.get(productCode).pipe(map(data => {
+                return new LoadProductReviewsSuccess({
+                    productCode,
+                    list: data,
+                });
+            }), catchError(_error => of(new LoadProductReviewsFail((/** @type {?} */ ({
+                message: productCode,
+            }))))));
+        }));
+        this.postProductReview = this.actions$.pipe(ofType(POST_PRODUCT_REVIEW), map((action) => action.payload), mergeMap(payload => {
+            return this.productReviewsConnector
+                .add(payload.productCode, payload.review)
+                .pipe(map(reviewResponse => {
+                return new PostProductReviewSuccess(reviewResponse);
+            }), catchError(_error => of(new PostProductReviewFail(payload.productCode))));
+        }));
+    }
+}
+ProductReviewsEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductReviewsEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: ProductReviewsConnector }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ProductReviewsEffects.prototype, "loadProductReviews$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ProductReviewsEffects.prototype, "postProductReview", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const effects$3 = [
+    ProductsSearchEffects,
+    ProductEffects,
+    ProductReviewsEffects,
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductService {
+    /**
+     * @param {?} store
+     */
+    constructor(store) {
+        this.store = store;
+        this.products = {};
+    }
+    /**
+     * Returns the product observable. The product will be loaded
+     * whenever there's no value observed.
+     *
+     * The underlying product loader ensures that the product is
+     * only loaded once, even in case of parallel observers.
+     * @param {?} productCode
+     * @return {?}
+     */
+    get(productCode) {
+        if (!this.products[productCode]) {
+            this.products[productCode] = this.store.pipe(select(getSelectedProductStateFactory(productCode)), tap(productState => {
+                /** @type {?} */
+                const attemptedLoad = productState.loading || productState.success || productState.error;
+                if (!attemptedLoad) {
+                    this.store.dispatch(new LoadProduct(productCode));
+                }
+            }), map(productState => productState.value), 
+            // TODO: Replace next two lines with shareReplay(1, undefined, true) when RxJS 6.4 will be in use
+            multicast(() => new ReplaySubject(1)), refCount());
+        }
+        return this.products[productCode];
+    }
+    /**
+     * Returns boolean observable for product's loading state
+     * @param {?} productCode
+     * @return {?}
+     */
+    isLoading(productCode) {
+        return this.store.pipe(select(getSelectedProductLoadingFactory(productCode)));
+    }
+    /**
+     * Returns boolean observable for product's load success state
+     * @param {?} productCode
+     * @return {?}
+     */
+    isSuccess(productCode) {
+        return this.store.pipe(select(getSelectedProductSuccessFactory(productCode)));
+    }
+    /**
+     * Returns boolean observable for product's load error state
+     * @param {?} productCode
+     * @return {?}
+     */
+    hasError(productCode) {
+        return this.store.pipe(select(getSelectedProductErrorFactory(productCode)));
+    }
+    /**
+     * Reloads the product. The product is loaded implicetly
+     * whenever selected by the `get`, but in some cases an
+     * explicit reload might be needed.
+     * @param {?} productCode
+     * @return {?}
+     */
+    reload(productCode) {
+        this.store.dispatch(new LoadProduct(productCode));
+    }
+}
+ProductService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductService.ctorParameters = () => [
+    { type: Store }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductSearchService {
+    /**
+     * @param {?} store
+     * @param {?} router
+     */
+    constructor(store, router) {
+        this.store = store;
+        this.router = router;
+    }
+    /**
+     * @param {?} query
+     * @param {?=} searchConfig
+     * @return {?}
+     */
+    search(query, searchConfig) {
+        /** @type {?} */
+        const urlTree = this.router.createUrlTree([], {
+            queryParams: Object.assign({}, searchConfig, { query }),
+            preserveFragment: false,
+        });
+        this.router.navigateByUrl(urlTree);
+        this.store.dispatch(new SearchProducts({
+            queryText: query,
+            searchConfig: searchConfig,
+        }));
+    }
+    /**
+     * @return {?}
+     */
+    getSearchResults() {
+        return this.store.pipe(select(getSearchResults$1));
+    }
+    /**
+     * @return {?}
+     */
+    clearSearchResults() {
+        this.store.dispatch(new CleanProductSearchState());
+    }
+    /**
+     * @return {?}
+     */
+    getAuxSearchResults() {
+        return this.store.pipe(select(getAuxSearchResults$1), filter(results => Object.keys(results).length > 0));
+    }
+    /**
+     * @return {?}
+     */
+    getSearchSuggestions() {
+        return this.store.pipe(select(getProductSuggestions$1));
+    }
+    /**
+     * @param {?} query
+     * @param {?=} searchConfig
+     * @return {?}
+     */
+    searchAuxiliary(query, searchConfig) {
+        this.store.dispatch(new SearchProducts({
+            queryText: query,
+            searchConfig: searchConfig,
+        }, true));
+    }
+    /**
+     * @param {?} query
+     * @param {?=} searchConfig
+     * @return {?}
+     */
+    getSuggestions(query, searchConfig) {
+        this.store.dispatch(new GetProductSuggestions({
+            term: query,
+            searchConfig: searchConfig,
+        }));
+    }
+}
+ProductSearchService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductSearchService.ctorParameters = () => [
+    { type: Store },
+    { type: Router }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductReviewService {
+    /**
+     * @param {?} store
+     */
+    constructor(store) {
+        this.store = store;
+    }
+    /**
+     * @param {?} productCode
+     * @return {?}
+     */
+    getByProductCode(productCode) {
+        /** @type {?} */
+        const selector = getSelectedProductReviewsFactory(productCode);
+        return this.store.pipe(select(selector), tap(reviews => {
+            if (reviews === undefined && productCode !== undefined) {
+                this.store.dispatch(new LoadProductReviews(productCode));
+            }
+        }));
+    }
+    /**
+     * @param {?} productCode
+     * @param {?} review
+     * @return {?}
+     */
+    add(productCode, review) {
+        this.store.dispatch(new PostProductReview({
+            productCode: productCode,
+            review,
+        }));
+    }
+}
+ProductReviewService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ProductReviewService.ctorParameters = () => [
+    { type: Store }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @return {?}
+ */
+function productStoreConfigFactory() {
+    // if we want to reuse PRODUCT_FEATURE const in config, we have to use factory instead of plain object
+    /** @type {?} */
+    const config = {
+        state: { ssrTransfer: { keys: { [PRODUCT_FEATURE]: true } } },
+    };
+    return config;
+}
+class ProductStoreModule {
+}
+ProductStoreModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [
+                    CommonModule,
+                    HttpClientModule,
+                    ProductOccModule,
+                    StoreModule.forFeature(PRODUCT_FEATURE, reducerToken$4, { metaReducers: metaReducers$2 }),
+                    EffectsModule.forFeature(effects$3),
+                    ConfigModule.withConfigFactory(productStoreConfigFactory),
+                ],
+                providers: [reducerProvider$4],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const CMS_FEATURE = 'cms';
+/** @type {?} */
+const NAVIGATION_DETAIL_ENTITY = '[Cms] Navigation Entity';
+/** @type {?} */
+const COMPONENT_ENTITY = '[Cms[ Component Entity';
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const LOAD_NAVIGATION_ITEMS = '[Cms] Load NavigationEntry items';
+/** @type {?} */
+const LOAD_NAVIGATION_ITEMS_FAIL = '[Cms] Load NavigationEntry items Fail';
+/** @type {?} */
+const LOAD_NAVIGATION_ITEMS_SUCCESS = '[Cms] Load NavigationEntry items Success';
+class LoadNavigationItems extends EntityLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(NAVIGATION_DETAIL_ENTITY, payload.nodeId);
+        this.payload = payload;
+        this.type = LOAD_NAVIGATION_ITEMS;
+    }
+}
+class LoadNavigationItemsFail extends EntityFailAction {
+    /**
+     * @param {?} nodeId
+     * @param {?} payload
+     */
+    constructor(nodeId, payload) {
+        super(NAVIGATION_DETAIL_ENTITY, nodeId, payload);
+        this.payload = payload;
+        this.type = LOAD_NAVIGATION_ITEMS_FAIL;
+    }
+}
+class LoadNavigationItemsSuccess extends EntitySuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(NAVIGATION_DETAIL_ENTITY, payload.nodeId);
+        this.payload = payload;
+        this.type = LOAD_NAVIGATION_ITEMS_SUCCESS;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$8 = undefined;
+/**
+ * @param {?=} state
+ * @param {?=} action
+ * @return {?}
+ */
+function reducer$8(state = initialState$8, action) {
+    switch (action.type) {
+        case LOAD_NAVIGATION_ITEMS_SUCCESS: {
+            if (action.payload.components) {
+                /** @type {?} */
+                const components = action.payload.components;
+                /** @type {?} */
+                const newItem = components.reduce((compItems, component) => {
+                    return Object.assign({}, compItems, { [`${component.uid}_AbstractCMSComponent`]: component });
+                }, Object.assign({}));
+                return Object.assign({}, state, newItem);
+            }
+        }
+    }
+    return state;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const LOAD_PAGE_DATA = '[Cms] Load Page Data';
+/** @type {?} */
+const LOAD_PAGE_DATA_FAIL = '[Cms] Load Page Data Fail';
+/** @type {?} */
+const LOAD_PAGE_DATA_SUCCESS = '[Cms] Load Page Data Success';
+class LoadPageData extends EntityLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(payload.type, payload.id);
+        this.payload = payload;
+        this.type = LOAD_PAGE_DATA;
+    }
+}
+class LoadPageDataFail extends EntityFailAction {
+    /**
+     * @param {?} pageContext
+     * @param {?} error
+     */
+    constructor(pageContext, error) {
+        super(pageContext.type, pageContext.id, error);
+        this.type = LOAD_PAGE_DATA_FAIL;
+    }
+}
+class LoadPageDataSuccess extends EntitySuccessAction {
+    /**
+     * @param {?} pageContext
+     * @param {?} payload
+     */
+    constructor(pageContext, payload) {
+        super(pageContext.type, pageContext.id, payload);
+        this.type = LOAD_PAGE_DATA_SUCCESS;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const LOAD_COMPONENT = '[Cms] Load Component';
+/** @type {?} */
+const LOAD_COMPONENT_FAIL = '[Cms] Load Component Fail';
+/** @type {?} */
+const LOAD_COMPONENT_SUCCESS = '[Cms] Load Component Success';
+/** @type {?} */
+const GET_COMPONENET_FROM_PAGE = '[Cms] Get Component from Page';
+class LoadComponent extends EntityLoadAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(COMPONENT_ENTITY, payload);
+        this.payload = payload;
+        this.type = LOAD_COMPONENT;
+    }
+}
+class LoadComponentFail extends EntityFailAction {
+    /**
+     * @param {?} uid
+     * @param {?} payload
+     */
+    constructor(uid, payload) {
+        super(COMPONENT_ENTITY, uid, payload);
+        this.payload = payload;
+        this.type = LOAD_COMPONENT_FAIL;
+    }
+}
+/**
+ * @template T
+ */
+class LoadComponentSuccess extends EntitySuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(COMPONENT_ENTITY, payload.uid);
+        this.payload = payload;
+        this.type = LOAD_COMPONENT_SUCCESS;
+    }
+}
+/**
+ * @template T
+ */
+class GetComponentFromPage extends EntitySuccessAction {
+    /**
+     * @param {?} payload
+     */
+    constructor(payload) {
+        super(COMPONENT_ENTITY, payload.map(cmp => cmp.uid));
+        this.payload = payload;
+        this.type = GET_COMPONENET_FROM_PAGE;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$9 = { entities: {} };
+/**
+ * @param {?=} state
+ * @param {?=} action
+ * @return {?}
+ */
+function reducer$9(state = initialState$9, action) {
+    switch (action.type) {
+        case LOAD_PAGE_DATA_SUCCESS: {
+            /** @type {?} */
+            const page = action.payload;
+            return Object.assign({}, state, { entities: Object.assign({}, state.entities, { [page.pageId]: page }) });
+        }
+    }
+    return state;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$a = undefined;
+/**
+ * @param {?} entityType
+ * @return {?}
+ */
+function reducer$a(entityType) {
+    return (state = initialState$a, action) => {
+        if (action.meta && action.meta.entityType === entityType) {
+            switch (action.type) {
+                case LOAD_PAGE_DATA_SUCCESS: {
+                    return action.payload.pageId;
+                }
+                case LOAD_PAGE_DATA_FAIL: {
+                    return initialState$a;
+                }
+            }
+        }
+        return state;
+    };
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @return {?}
+ */
+function getReducers$5() {
+    return {
+        page: combineReducers({
+            pageData: reducer$9,
+            index: combineReducers({
+                content: entityLoaderReducer(PageType.CONTENT_PAGE, reducer$a(PageType.CONTENT_PAGE)),
+                product: entityLoaderReducer(PageType.PRODUCT_PAGE, reducer$a(PageType.PRODUCT_PAGE)),
+                category: entityLoaderReducer(PageType.CATEGORY_PAGE, reducer$a(PageType.CATEGORY_PAGE)),
+                catalog: entityLoaderReducer(PageType.CATALOG_PAGE, reducer$a(PageType.CATALOG_PAGE)),
+            }),
+        }),
+        component: entityLoaderReducer(COMPONENT_ENTITY),
+        navigation: entityLoaderReducer(NAVIGATION_DETAIL_ENTITY, reducer$8),
+    };
+}
+/** @type {?} */
+const reducerToken$5 = new InjectionToken('CmsReducers');
+/** @type {?} */
+const reducerProvider$5 = {
+    provide: reducerToken$5,
+    useFactory: getReducers$5,
+};
+/**
+ * @param {?} reducer
+ * @return {?}
+ */
+function clearCmsState(reducer) {
+    return function (state, action) {
+        if (action.type === LANGUAGE_CHANGE ||
+            action.type === LOGOUT ||
+            action.type === LOGIN) {
+            state = undefined;
+        }
+        return reducer(state, action);
+    };
+}
+/** @type {?} */
+const metaReducers$3 = [clearCmsState];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class PageContext {
+    /**
+     * @param {?} id
+     * @param {?=} type
+     */
+    constructor(id, type) {
+        this.id = id;
+        this.type = type;
+        if (this.type == null) {
+            this.type = PageType.CONTENT_PAGE;
+        }
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class TranslateUrlPipe {
+    /**
+     * @param {?} urlTranslator
+     */
+    constructor(urlTranslator) {
+        this.urlTranslator = urlTranslator;
+    }
+    /**
+     * @param {?} options
+     * @return {?}
+     */
+    transform(options) {
+        return this.urlTranslator.translate(options);
+    }
+}
+TranslateUrlPipe.decorators = [
+    { type: Pipe, args: [{
+                name: 'cxTranslateUrl',
+            },] }
+];
+/** @nocollapse */
+TranslateUrlPipe.ctorParameters = () => [
+    { type: UrlTranslationService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class UrlTranslationModule {
+}
+UrlTranslationModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [CommonModule],
+                declarations: [TranslateUrlPipe],
+                exports: [TranslateUrlPipe],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * Abstract class that can be used to implement custom loader logic
+ * in order to load CMS structure from third-party CMS system.
+ * @abstract
+ */
+class CmsPageAdapter {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const JSP_INCLUDE_CMS_COMPONENT_TYPE = 'JspIncludeComponent';
+/** @type {?} */
+const CMS_FLEX_COMPONENT_TYPE = 'CMSFlexComponent';
+/**
+ * @abstract
+ */
+class CmsConfig extends OccConfig {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * The `CmsStructureConfig` is used to build pages in Spartacus by configuration
+ * instead of using a backend CMS system. The configuration can be used to build
+ * complete pages or parts of a page. The `CmsStructureConfig` is optimized to
+ * only require the necessary properties. Adapter logic is applied to serialize
+ * the `CmsStructureConfig` into the required UI model.
+ * @abstract
+ */
+class CmsStructureConfig extends CmsConfig {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * Service that provides access to CMS structure from a static
+ * configuration or configuration file. This class uses static
+ * configuration is designed in async fashion so that configuratiosn
+ * can be loaded from a file or stream.
+ *
+ * The intend of the `CmsStructureConfigService` however is to provide
+ * fast loading pages and default cms structure for comodoty commerce.
+ * @abstract
+ */
+class CmsStructureConfigService {
+    /**
+     * @param {?} cmsDataConfig
+     */
+    constructor(cmsDataConfig) {
+        this.cmsDataConfig = cmsDataConfig;
+    }
+    /**
+     * Merge the cms structure to the pageStructure. The page structure
+     * can either hold complete page structures or global structures that
+     * might apply to all pages (such has header coponents).
+     * @param {?} pageId
+     * @param {?} pageStructure
+     * @return {?}
+     */
+    mergePageStructure(pageId, pageStructure) {
+        return this.mergePage(pageId, pageStructure).pipe(switchMap(page => this.mergeSlots(page)));
+    }
+    /**
+     *
+     * Returns boolean observable to indicate whether the page should not be
+     * loaded from the backend. This is useful for pages which are comoditized
+     * and follow best practice.
+     *
+     * By default, configurable pages are driven by static configuration,
+     * in order to allow for fast loading pages (preventing network delays).
+     * @param {?} pageId
+     * @return {?}
+     */
+    shouldIgnoreBackend(pageId) {
+        return this.getPageFromConfig(pageId).pipe(map(page => !!page && !!page.ignoreBackend));
+    }
+    /**
+     * returns an Observable component data from the static configuration.
+     * @param {?} componentId
+     * @return {?}
+     */
+    getComponentFromConfig(componentId) {
+        return of(this.getComponentById(componentId));
+    }
+    /**
+     * returns an Observable components data from the static configuration.
+     * @param {?} ids
+     * @return {?}
+     */
+    getComponentsFromConfig(ids) {
+        return of(ids.map(id => this.getComponentById(id)));
+    }
+    /**
+     * returns an observable with the `PageConfig`.
+     * @private
+     * @param {?} pageId
+     * @return {?}
+     */
+    getPageFromConfig(pageId) {
+        return of(this.cmsDataConfig.cmsStructure && this.cmsDataConfig.cmsStructure.pages
+            ? this.cmsDataConfig.cmsStructure.pages.find(p => p.pageId === pageId)
+            : null);
+    }
+    /**
+     * Merge page data from the configuration into the given structure, if any.
+     * If the given page structure is empty, a page is created and the page slots are
+     * are merged into the page.
+     * @private
+     * @param {?} pageId
+     * @param {?} pageStructure
+     * @return {?}
+     */
+    mergePage(pageId, pageStructure) {
+        return this.getPageFromConfig(pageId).pipe(switchMap(page => {
+            if (page) {
+                // serialize page data
+                if (!pageStructure.page) {
+                    pageStructure.page = Object.assign({}, page);
+                    pageStructure.page.slots = {};
+                }
+                if (!pageStructure.page.slots) {
+                    pageStructure.page.slots = {};
+                }
+                return this.mergeSlots(pageStructure, page.slots);
+            }
+            else {
+                return of(pageStructure);
+            }
+        }));
+    }
+    /**
+     * Adds any pre-configured slots for pages that do not use them.
+     * If pages have a slot for the given position, the configiuration
+     * is ingored. Even if the slot does not have inner structure (such as
+     * components), so that the cms structure is able to override the (static)
+     * configuration.
+     * @private
+     * @param {?} pageStructure
+     * @param {?=} slots
+     * @return {?}
+     */
+    mergeSlots(pageStructure, slots) {
+        // if no slots have been given, we use the global configured slots
+        if (!slots &&
+            this.cmsDataConfig.cmsStructure &&
+            this.cmsDataConfig.cmsStructure.slots) {
+            slots = this.cmsDataConfig.cmsStructure.slots;
+        }
+        if (!slots) {
+            return of(pageStructure);
+        }
+        for (const position of Object.keys(slots)) {
+            if (Object.keys(pageStructure.page.slots).indexOf(position) === -1) {
+                // the global slot isn't yet part of the page structure
+                pageStructure.page.slots[position] = {};
+                for (const component of this.getComponentsByPosition(slots, position)) {
+                    if (!pageStructure.page.slots[position].components) {
+                        pageStructure.page.slots[position].components = [];
+                    }
+                    pageStructure.page.slots[position].components.push({
+                        uid: component.uid,
+                        flexType: component.flexType,
+                        typeCode: component.typeCode,
+                    });
+                    if (!pageStructure.components) {
+                        pageStructure.components = [];
+                    }
+                    pageStructure.components.push(component);
+                }
+            }
+        }
+        return of(pageStructure);
+    }
+    /**
+     * @private
+     * @param {?} slots
+     * @param {?} position
+     * @return {?}
+     */
+    getComponentsByPosition(slots, position) {
+        /** @type {?} */
+        const components = [];
+        if (slots[position] && slots[position].componentIds) {
+            for (const componentId of slots[position].componentIds) {
+                if (this.cmsDataConfig.cmsStructure &&
+                    this.cmsDataConfig.cmsStructure.components) {
+                    /** @type {?} */
+                    const component = this.cmsDataConfig.cmsStructure.components[componentId];
+                    if (component) {
+                        components.push(Object.assign({ uid: componentId }, component));
+                    }
+                }
+            }
+        }
+        return components;
+    }
+    /**
+     * @private
+     * @param {?} componentId
+     * @return {?}
+     */
+    getComponentById(componentId) {
+        return this.cmsDataConfig.cmsStructure &&
+            this.cmsDataConfig.cmsStructure.components
+            ? this.cmsDataConfig.cmsStructure.components[componentId]
+            : undefined;
+    }
+}
+CmsStructureConfigService.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+CmsStructureConfigService.ctorParameters = () => [
+    { type: CmsStructureConfig }
+];
+/** @nocollapse */ CmsStructureConfigService.ngInjectableDef = defineInjectable({ factory: function CmsStructureConfigService_Factory() { return new CmsStructureConfigService(inject(CmsStructureConfig)); }, token: CmsStructureConfigService, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CmsPageConnector {
+    /**
+     * @param {?} cmsPageAdapter
+     * @param {?} cmsStructureConfigService
+     */
+    constructor(cmsPageAdapter, cmsStructureConfigService) {
+        this.cmsPageAdapter = cmsPageAdapter;
+        this.cmsStructureConfigService = cmsStructureConfigService;
+    }
+    /**
+     * Returns an observable with the page structure. The page structure is
+     * typically loaded from a backend, but can also be returned from static
+     * configuration (see `CmsStructureConfigService`).
+     * @param {?} pageContext
+     * @return {?}
+     */
+    get(pageContext) {
+        return this.cmsStructureConfigService
+            .shouldIgnoreBackend(pageContext.id)
+            .pipe(switchMap(loadFromConfig => {
+            if (!loadFromConfig) {
+                return this.cmsPageAdapter.load(pageContext).pipe(catchError(error => {
+                    if (error instanceof HttpErrorResponse &&
+                        error.status === 400) {
+                        return of({});
+                    }
+                    else {
+                        return throwError(error);
+                    }
+                }));
+            }
+            else {
+                return of({});
+            }
+        }), switchMap(page => this.mergeDefaultPageStructure(pageContext, page)));
+    }
+    /**
+     *
+     * Merge default page structure inot the given `CmsStructureModel`.
+     * This is benefitial for a fast setup of the UI without necessary
+     * finegrained CMS setup.
+     * @private
+     * @param {?} pageContext
+     * @param {?} pageStructure
+     * @return {?}
+     */
+    mergeDefaultPageStructure(pageContext, pageStructure) {
+        return this.cmsStructureConfigService.mergePageStructure(pageContext.id, pageStructure);
+    }
+}
+CmsPageConnector.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+CmsPageConnector.ctorParameters = () => [
+    { type: CmsPageAdapter },
+    { type: CmsStructureConfigService }
+];
+/** @nocollapse */ CmsPageConnector.ngInjectableDef = defineInjectable({ factory: function CmsPageConnector_Factory() { return new CmsPageConnector(inject(CmsPageAdapter), inject(CmsStructureConfigService)); }, token: CmsPageConnector, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class PageEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} cmsPageConnector
+     * @param {?} routingService
+     */
+    constructor(actions$, cmsPageConnector, routingService) {
+        this.actions$ = actions$;
+        this.cmsPageConnector = cmsPageConnector;
+        this.routingService = routingService;
+        this.refreshPage$ = this.actions$.pipe(ofType(LANGUAGE_CHANGE, LOGOUT, LOGIN), switchMap(_ => this.routingService.getRouterState().pipe(filter(routerState => routerState && routerState.state && routerState.state.cmsRequired), map(routerState => routerState.state.context), take(1), mergeMap(context => of(new LoadPageData(context))))));
+        this.loadPageData$ = this.actions$.pipe(ofType(LOAD_PAGE_DATA), map((action) => action.payload), switchMap(pageContext => {
+            return this.cmsPageConnector.get(pageContext).pipe(mergeMap((cmsStructure) => {
+                return [
+                    new LoadPageDataSuccess(pageContext, cmsStructure.page),
+                    new GetComponentFromPage(cmsStructure.components),
+                ];
+            }), catchError(error => {
+                return of(new LoadPageDataFail(pageContext, error));
+            }));
+        }));
+    }
+}
+PageEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+PageEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: CmsPageConnector },
+    { type: RoutingService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], PageEffects.prototype, "refreshPage$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], PageEffects.prototype, "loadPageData$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class CmsComponentAdapter {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CmsComponentConnector {
+    /**
+     * @param {?} cmsStructureConfigService
+     * @param {?} adapter
+     */
+    constructor(cmsStructureConfigService, adapter) {
+        this.cmsStructureConfigService = cmsStructureConfigService;
+        this.adapter = adapter;
+    }
+    /**
+     * @template T
+     * @param {?} id
+     * @param {?} pageContext
+     * @return {?}
+     */
+    get(id, pageContext) {
+        return this.cmsStructureConfigService
+            .getComponentFromConfig(id)
+            .pipe(switchMap(configuredComponent => configuredComponent
+            ? of(configuredComponent)
+            : this.adapter.load(id, pageContext)));
+    }
+    /**
+     * @param {?} ids
+     * @param {?} pageContext
+     * @return {?}
+     */
+    getList(ids, pageContext) {
+        return this.cmsStructureConfigService.getComponentsFromConfig(ids).pipe(switchMap(configuredComponents => {
+            // check if we have some components that are not loaded from configuration
+            /** @type {?} */
+            const missingIds = configuredComponents.reduce((acc, component, index) => {
+                if (component === undefined) {
+                    acc.push(ids[index]);
+                }
+                return acc;
+            }, []);
+            if (missingIds.length > 0) {
+                return this.adapter
+                    .loadList(missingIds, pageContext)
+                    .pipe(map(loadedComponents => [
+                    ...configuredComponents.filter(Boolean),
+                    ...loadedComponents,
+                ]));
+            }
+            else {
+                return of(configuredComponents);
+            }
+        }));
+    }
+}
+CmsComponentConnector.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+CmsComponentConnector.ctorParameters = () => [
+    { type: CmsStructureConfigService },
+    { type: CmsComponentAdapter }
+];
+/** @nocollapse */ CmsComponentConnector.ngInjectableDef = defineInjectable({ factory: function CmsComponentConnector_Factory() { return new CmsComponentConnector(inject(CmsStructureConfigService), inject(CmsComponentAdapter)); }, token: CmsComponentConnector, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ComponentEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} cmsComponentLoader
+     * @param {?} routingService
+     */
+    constructor(actions$, cmsComponentLoader, routingService) {
+        this.actions$ = actions$;
+        this.cmsComponentLoader = cmsComponentLoader;
+        this.routingService = routingService;
+        this.loadComponent$ = this.actions$.pipe(ofType(LOAD_COMPONENT), map((action) => action.payload), groupBy(uid => uid), mergeMap(group => group.pipe(switchMap(uid => {
+            return this.routingService.getRouterState().pipe(filter(routerState => routerState !== undefined), map(routerState => routerState.state.context), take(1), mergeMap(pageContext => this.cmsComponentLoader.get(uid, pageContext).pipe(map(data => new LoadComponentSuccess(data)), catchError(error => of(new LoadComponentFail(uid, error))))));
+        }))));
+    }
+}
+ComponentEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ComponentEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: CmsComponentConnector },
+    { type: RoutingService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], ComponentEffects.prototype, "loadComponent$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class NavigationEntryItemEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} cmsComponentConnector
+     * @param {?} routingService
+     */
+    constructor(actions$, cmsComponentConnector, routingService) {
+        this.actions$ = actions$;
+        this.cmsComponentConnector = cmsComponentConnector;
+        this.routingService = routingService;
+        this.loadNavigationItems$ = this.actions$.pipe(ofType(LOAD_NAVIGATION_ITEMS), map((action) => action.payload), map(payload => {
+            return {
+                ids: this.getIdListByItemType(payload.items),
+                nodeId: payload.nodeId,
+            };
+        }), mergeMap(data => {
+            if (data.ids.componentIds.length > 0) {
+                return this.routingService.getRouterState().pipe(filter(routerState => routerState !== undefined), map(routerState => routerState.state.context), take(1), mergeMap(pageContext => {
+                    // download all items in one request
+                    return this.cmsComponentConnector
+                        .getList(data.ids.componentIds, pageContext)
+                        .pipe(map(components => new LoadNavigationItemsSuccess({
+                        nodeId: data.nodeId,
+                        components: components,
+                    })), catchError(error => of(new LoadNavigationItemsFail(data.nodeId, error))));
+                }));
+            }
+            else if (data.ids.pageIds.length > 0) ;
+            else if (data.ids.mediaIds.length > 0) ;
+            else {
+                return of(new LoadNavigationItemsFail(data.nodeId, 'navigation nodes are empty'));
+            }
+        }));
+    }
+    // We only consider 3 item types: cms page, cms component, and media.
+    /**
+     * @param {?} itemList
+     * @return {?}
+     */
+    getIdListByItemType(itemList) {
+        /** @type {?} */
+        const pageIds = [];
+        /** @type {?} */
+        const componentIds = [];
+        /** @type {?} */
+        const mediaIds = [];
+        itemList.forEach(item => {
+            if (item.superType === 'AbstractCMSComponent') {
+                componentIds.push(item.id);
+            }
+            else if (item.superType === 'AbstractPage') {
+                pageIds.push(item.id);
+            }
+            else if (item.superType === 'AbstractMedia') {
+                mediaIds.push(item.id);
+            }
+        });
+        return { pageIds: pageIds, componentIds: componentIds, mediaIds: mediaIds };
+    }
+}
+NavigationEntryItemEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+NavigationEntryItemEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: CmsComponentConnector },
+    { type: RoutingService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], NavigationEntryItemEffects.prototype, "loadNavigationItems$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const effects$4 = [
+    PageEffects,
+    ComponentEffects,
+    NavigationEntryItemEffects,
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getCmsState = createFeatureSelector(CMS_FEATURE);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getPageEntitiesSelector = (state) => state.pageData.entities;
+/** @type {?} */
+const getIndexByType = (index, type) => {
+    switch (type) {
+        case PageType.CONTENT_PAGE: {
+            return index.content;
+        }
+        case PageType.PRODUCT_PAGE: {
+            return index.product;
+        }
+        case PageType.CATEGORY_PAGE: {
+            return index.category;
+        }
+        case PageType.CATALOG_PAGE: {
+            return index.catalog;
+        }
+    }
+    return { entities: {} };
+};
+/** @type {?} */
+const getPageComponentTypesSelector = (page) => {
+    /** @type {?} */
+    const componentTypes = new Set();
+    if (page && page.slots) {
+        for (const slot of Object.keys(page.slots)) {
+            for (const component of page.slots[slot].components || []) {
+                componentTypes.add(component.flexType);
+            }
+        }
+    }
+    return Array.from(componentTypes);
+};
+/** @type {?} */
+const getPageState = createSelector(getCmsState, (state) => state.page);
+/** @type {?} */
+const getPageStateIndex = createSelector(getPageState, (page) => page.index);
+/** @type {?} */
+const getIndex = (pageContext) => createSelector(getPageStateIndex, (index) => getIndexByType(index, pageContext.type));
+/** @type {?} */
+const getIndexEntity = (pageContext) => createSelector(getIndex(pageContext), index => index.entities[pageContext.id] || {});
+/** @type {?} */
+const getPageEntities = createSelector(getPageState, getPageEntitiesSelector);
+/** @type {?} */
+const getPageData = (pageContext) => createSelector(getPageEntities, getIndexEntity(pageContext), (entities, entity) => entities[entity.value]);
+/** @type {?} */
+const getPageComponentTypes = (pageContext) => createSelector(getPageData(pageContext), pageData => getPageComponentTypesSelector(pageData));
+/** @type {?} */
+const currentSlotSelectorFactory = (pageContext, position) => {
+    return createSelector(getPageData(pageContext), entity => {
+        if (entity) {
+            return entity.slots[position];
+        }
+    });
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getComponentEntitiesSelector = (state) => Object.keys(state.entities).reduce((acc, cur) => {
+    acc[cur] = state.entities[cur].value;
+    return acc;
+}, {});
+/** @type {?} */
+const getComponentState = createSelector(getCmsState, (state) => state.component);
+/** @type {?} */
+const getComponentEntities = createSelector(getComponentState, getComponentEntitiesSelector);
+/** @type {?} */
+const componentStateSelectorFactory = (uid) => {
+    return createSelector(getComponentState, entities => entityStateSelector(entities, uid));
+};
+/** @type {?} */
+const componentSelectorFactory = (uid) => {
+    return createSelector(componentStateSelectorFactory(uid), state => loaderValueSelector(state));
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getNavigationEntryItemState = createSelector(getCmsState, (state) => state.navigation);
+/** @type {?} */
+const getSelectedNavigationEntryItemState = (nodeId) => {
+    return createSelector(getNavigationEntryItemState, nodes => entityStateSelector(nodes, nodeId));
+};
+/** @type {?} */
+const itemsSelectorFactory = (nodeId) => {
+    return createSelector(getSelectedNavigationEntryItemState(nodeId), itemState => loaderValueSelector(itemState));
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CmsService {
+    /**
+     * @param {?} store
+     * @param {?} routingService
+     */
+    constructor(store, routingService) {
+        this.store = store;
+        this.routingService = routingService;
+        this._launchInSmartEdit = false;
+        this.components = {};
+    }
+    /**
+     * Set _launchInSmartEdit value
+     * @param {?} value
+     * @return {?}
+     */
+    set launchInSmartEdit(value) {
+        this._launchInSmartEdit = value;
+    }
+    /**
+     * Whether the app launched in smart edit
+     * @return {?}
+     */
+    isLaunchInSmartEdit() {
+        return this._launchInSmartEdit;
+    }
+    /**
+     * Get current CMS page data
+     * @return {?}
+     */
+    getCurrentPage() {
+        return this.routingService
+            .getPageContext()
+            .pipe(switchMap(pageContext => this.store.select(getPageData(pageContext))));
+    }
+    /**
+     * Get CMS component data by uid
+     * @template T
+     * @param {?} uid : CMS componet uid
+     * @return {?}
+     */
+    getComponentData(uid) {
+        if (!this.components[uid]) {
+            this.components[uid] = this.store.pipe(select(componentStateSelectorFactory(uid)), withLatestFrom(this.getCurrentPage()), tap(([componentState, currentPage]) => {
+                /** @type {?} */
+                const attemptedLoad = componentState.loading ||
+                    componentState.success ||
+                    componentState.error;
+                if (!attemptedLoad && currentPage) {
+                    this.store.dispatch(new LoadComponent(uid));
+                }
+            }), map(([productState]) => productState.value), filter(Boolean), 
+            // TODO: Replace next two lines with shareReplay(1, undefined, true) when RxJS 6.4 will be in use
+            multicast(() => new ReplaySubject(1)), refCount());
+        }
+        return (/** @type {?} */ (this.components[uid]));
+    }
+    /**
+     * Given the position, get the content slot data
+     * @param {?} position : content slot position
+     * @return {?}
+     */
+    getContentSlot(position) {
+        return this.routingService.getPageContext().pipe(switchMap(pageContext => this.store.pipe(select(currentSlotSelectorFactory(pageContext, position)), filter(Boolean))));
+    }
+    /**
+     * Given navigation node uid, get items (with id and type) inside the navigation entries
+     * @param {?} navigationNodeUid : uid of the navigation node
+     * @return {?}
+     */
+    getNavigationEntryItems(navigationNodeUid) {
+        return this.store.pipe(select(itemsSelectorFactory(navigationNodeUid)));
+    }
+    /**
+     * Load navigation items data
+     * @param {?} rootUid : the uid of the root navigation node
+     * @param {?} itemList : list of items (with id and type)
+     * @return {?}
+     */
+    loadNavigationItems(rootUid, itemList) {
+        this.store.dispatch(new LoadNavigationItems({
+            nodeId: rootUid,
+            items: itemList,
+        }));
+    }
+    /**
+     * Refresh the content of the latest cms page
+     * @return {?}
+     */
+    refreshLatestPage() {
+        this.routingService
+            .getPageContext()
+            .pipe(take(1))
+            .subscribe(pageContext => this.store.dispatch(new LoadPageData(pageContext)));
+    }
+    /**
+     * Refresh cms component's content
+     * @param {?} uid : component uid
+     * @return {?}
+     */
+    refreshComponent(uid) {
+        this.store.dispatch(new LoadComponent(uid));
+    }
+    /**
+     * Given pageContext, return the CMS page data
+     * @param {?} pageContext
+     * @return {?}
+     */
+    getPageState(pageContext) {
+        return this.store.pipe(select(getPageData(pageContext)));
+    }
+    /**
+     * Given pageContext, return the CMS page data
+     * @param {?} pageContext
+     * @return {?}
+     */
+    getPageComponentTypes(pageContext) {
+        return this.store.pipe(select(getPageComponentTypes(pageContext)));
+    }
+    /**
+     * Given pageContext, return whether the CMS page data exists or not
+     * @param {?} pageContext
+     * @return {?}
+     */
+    hasPage(pageContext) {
+        return this.store.pipe(select(getIndexEntity(pageContext)), tap((entity) => {
+            /** @type {?} */
+            const attemptedLoad = entity.loading || entity.success || entity.error;
+            if (!attemptedLoad) {
+                this.store.dispatch(new LoadPageData(pageContext));
+            }
+        }), filter(entity => entity.success || entity.error), map(entity => entity.success), catchError(() => of(false)));
+    }
+}
+CmsService.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+CmsService.ctorParameters = () => [
+    { type: Store },
+    { type: RoutingService }
+];
+/** @nocollapse */ CmsService.ngInjectableDef = defineInjectable({ factory: function CmsService_Factory() { return new CmsService(inject(Store), inject(RoutingService)); }, token: CmsService, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class PageMetaResolver {
+    /**
+     * @param {?} page
+     * @return {?}
+     */
+    getScore(page) {
+        /** @type {?} */
+        let score = 0;
+        if (this.pageType) {
+            score += page.type === this.pageType ? 1 : -1;
+        }
+        if (this.pageTemplate) {
+            score += page.template === this.pageTemplate ? 1 : -1;
+        }
+        return score;
+    }
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class PageMetaService {
+    /**
+     * @param {?} resolvers
+     * @param {?} cms
+     */
+    constructor(resolvers, cms) {
+        this.resolvers = resolvers;
+        this.cms = cms;
+    }
+    /**
+     * @return {?}
+     */
+    getMeta() {
+        return this.cms.getCurrentPage().pipe(filter(Boolean), switchMap((page) => {
+            /** @type {?} */
+            const metaResolver = this.getMetaResolver(page);
+            if (metaResolver) {
+                return metaResolver.resolve();
+            }
+            else {
+                // we do not have a page resolver
+                return of(null);
+            }
+        }));
+    }
+    /**
+     * return the title resolver with the best match
+     * title resovers can by default match on PageType and page template
+     * but custom match comparisors can be implemented.
+     * @protected
+     * @param {?} page
+     * @return {?}
+     */
+    getMetaResolver(page) {
+        /** @type {?} */
+        const matchingResolvers = this.resolvers.filter(resolver => resolver.getScore(page) > 0);
+        matchingResolvers.sort(function (a, b) {
+            return b.getScore(page) - a.getScore(page);
+        });
+        return matchingResolvers[0];
+    }
+}
+PageMetaService.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+PageMetaService.ctorParameters = () => [
+    { type: Array, decorators: [{ type: Inject, args: [PageMetaResolver,] }] },
+    { type: CmsService }
+];
+/** @nocollapse */ PageMetaService.ngInjectableDef = defineInjectable({ factory: function PageMetaService_Factory() { return new PageMetaService(inject(PageMetaResolver), inject(CmsService)); }, token: PageMetaService, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @return {?}
+ */
+function cmsStoreConfigFactory() {
+    // if we want to reuse CMS_FEATURE const in config, we have to use factory instead of plain object
+    /** @type {?} */
+    const config = {
+        state: { ssrTransfer: { keys: { [CMS_FEATURE]: true } } },
+    };
+    return config;
+}
+class CmsStoreModule {
+}
+CmsStoreModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [
+                    CommonModule,
+                    HttpClientModule,
+                    StateModule,
+                    StoreModule.forFeature(CMS_FEATURE, reducerToken$5, { metaReducers: metaReducers$3 }),
+                    EffectsModule.forFeature(effects$4),
+                    ConfigModule.withConfigFactory(cmsStoreConfigFactory),
+                ],
+                providers: [reducerProvider$5],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ComponentMapperService {
+    /**
+     * @param {?} componentFactoryResolver
+     * @param {?} config
+     * @param {?} document
+     * @param {?} platform
+     */
+    constructor(componentFactoryResolver, config, document, platform) {
+        this.componentFactoryResolver = componentFactoryResolver;
+        this.config = config;
+        this.document = document;
+        this.platform = platform;
+        this.missingComponents = [];
+        this.loadedWebComponents = {};
+    }
+    /**
+     * @desc
+     * returns a web component for the CMS typecode.
+     *
+     * The mapping of CMS components to web componetns requires a mapping.
+     * This is configurable when the module is loaded.
+     *
+     * For example:
+     *
+     *  {
+     *      'CMSLinkComponent': 'LinkComponent',
+     *      'SimpleResponsiveBannerComponent': 'SimpleResponsiveBannerComponent',
+     *      [etc.]
+     *  }
+     *
+     * The type codes are dynamic since they depend on the implementation.
+     * Customer will add, extend or ingore standard components.
+     *
+     * @protected
+     * @param {?} typeCode the component type
+     * @return {?}
+     */
+    getType(typeCode) {
+        /** @type {?} */
+        const componentConfig = this.config.cmsComponents[typeCode];
+        if (!componentConfig) {
+            if (this.missingComponents.indexOf(typeCode) === -1) {
+                this.missingComponents.push(typeCode);
+                console.warn(`No component implementation found for the CMS component type '${typeCode}'.\n`, `Make sure you implement a component and register it in the mapper.`);
+            }
+        }
+        return componentConfig ? componentConfig.selector : null;
+    }
+    /**
+     * @param {?} typeCode
+     * @return {?}
+     */
+    getFactoryEntryByCode(typeCode) {
+        /** @type {?} */
+        const alias = this.getType(typeCode);
+        if (!alias) {
+            return;
+        }
+        /** @type {?} */
+        const factoryEntries = Array.from(this.componentFactoryResolver['_factories'].entries());
+        /** @type {?} */
+        const factory = factoryEntries.find(([, value]) => value.selector === alias);
+        if (!factory) {
+            console.warn(`No component factory found for the CMS component type '${typeCode}'.\n`, `Make sure you add a component to the 'entryComponents' array in the NgModule.`);
+        }
+        return factory;
+    }
+    /**
+     * @param {?} typeCode
+     * @return {?}
+     */
+    getComponentTypeByCode(typeCode) {
+        /** @type {?} */
+        const factoryEntry = this.getFactoryEntryByCode(typeCode);
+        return factoryEntry ? factoryEntry[0] : null;
+    }
+    /**
+     * @param {?} typeCode
+     * @return {?}
+     */
+    getComponentFactoryByCode(typeCode) {
+        /** @type {?} */
+        const factoryEntry = this.getFactoryEntryByCode(typeCode);
+        return factoryEntry ? factoryEntry[1] : null;
+    }
+    /**
+     * @param {?} typeCode
+     * @return {?}
+     */
+    isWebComponent(typeCode) {
+        return (this.getType(typeCode) || '').includes('#');
+    }
+    /**
+     * @param {?} componentType
+     * @param {?} renderer
+     * @return {?}
+     */
+    initWebComponent(componentType, renderer) {
+        return new Promise(resolve => {
+            const [path, selector] = this.getType(componentType).split('#');
+            /** @type {?} */
+            let script = this.loadedWebComponents[path];
+            if (!script) {
+                script = renderer.createElement('script');
+                this.loadedWebComponents[path] = script;
+                script.setAttribute('src', path);
+                renderer.appendChild(this.document.body, script);
+                if (isPlatformBrowser(this.platform)) {
+                    script.onload = () => {
+                        script.onload = null;
+                    };
+                }
+            }
+            if (script.onload) {
+                // If script is still loading (has onload callback defined)
+                // add new callback and chain it with the existing one.
+                // Needed to support loading multiple components from one script
+                /** @type {?} */
+                const chainedOnload = script.onload;
+                script.onload = () => {
+                    chainedOnload();
+                    resolve(selector);
+                };
+            }
+            else {
+                resolve(selector);
+            }
+        });
+    }
+}
+ComponentMapperService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+ComponentMapperService.ctorParameters = () => [
+    { type: ComponentFactoryResolver },
+    { type: CmsConfig },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] }] },
+    { type: undefined, decorators: [{ type: Inject, args: [PLATFORM_ID,] }] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const CMS_COMPONENT_NORMALIZER = new InjectionToken('CmsComponentNormalizer');
+/** @type {?} */
+const CMS_COMPONENT_LIST_NORMALIZER = new InjectionToken('CmsComponentListNormalizer');
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class OccCmsComponentAdapter {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     * @param {?} converter
+     */
+    constructor(http, occEndpoints, converter) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+        this.converter = converter;
+        this.headers = new HttpHeaders().set('Content-Type', 'application/json');
+    }
+    /**
+     * @protected
+     * @return {?}
+     */
+    getBaseEndPoint() {
+        return this.occEndpoints.getEndpoint('cms');
+    }
+    /**
+     * @template T
+     * @param {?} id
+     * @param {?} pageContext
+     * @return {?}
+     */
+    load(id, pageContext) {
+        return this.http
+            .get(this.getBaseEndPoint() + `/components/${id}`, {
+            headers: this.headers,
+            params: new HttpParams({
+                fromString: this.getRequestParams(pageContext),
+            }),
+        })
+            .pipe(this.converter.pipeable(CMS_COMPONENT_NORMALIZER));
+    }
+    /**
+     * @param {?} ids
+     * @param {?} pageContext
+     * @param {?=} fields
+     * @param {?=} currentPage
+     * @param {?=} pageSize
+     * @param {?=} sort
+     * @return {?}
+     */
+    loadList(ids, pageContext, fields = 'DEFAULT', currentPage = 0, pageSize = ids.length, sort) {
+        /** @type {?} */
+        let requestParams = this.getRequestParams(pageContext, fields);
+        if (currentPage !== undefined) {
+            requestParams === ''
+                ? (requestParams = requestParams + 'currentPage=' + currentPage)
+                : (requestParams = requestParams + '&currentPage=' + currentPage);
+        }
+        if (pageSize !== undefined) {
+            requestParams = requestParams + '&pageSize=' + pageSize;
+        }
+        if (sort !== undefined) {
+            requestParams = requestParams + '&sort=' + sort;
+        }
+        /** @type {?} */
+        const idList = { idList: ids };
+        return this.http
+            .post(this.getBaseEndPoint() + `/components`, idList, {
+            headers: this.headers,
+            params: new HttpParams({
+                fromString: requestParams,
+            }),
+        })
+            .pipe(pluck('component'), this.converter.pipeable(CMS_COMPONENT_LIST_NORMALIZER));
+    }
+    /**
+     * @private
+     * @param {?} pageContext
+     * @param {?=} fields
+     * @return {?}
+     */
+    getRequestParams(pageContext, fields) {
+        /** @type {?} */
+        let requestParams = '';
+        switch (pageContext.type) {
+            case PageType.PRODUCT_PAGE: {
+                requestParams = 'productCode=' + pageContext.id;
+                break;
+            }
+            case PageType.CATEGORY_PAGE: {
+                requestParams = 'categoryCode=' + pageContext.id;
+                break;
+            }
+            case PageType.CATALOG_PAGE: {
+                requestParams = 'catalogCode=' + pageContext.id;
+                break;
+            }
+        }
+        if (fields !== undefined) {
+            requestParams === ''
+                ? (requestParams = requestParams + 'fields=' + fields)
+                : (requestParams = requestParams + '&fields=' + fields);
+        }
+        return requestParams;
+    }
+}
+OccCmsComponentAdapter.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccCmsComponentAdapter.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService },
+    { type: ConverterService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class OccCmsPageNormalizer {
+    /**
+     * @param {?} source
+     * @param {?=} target
+     * @return {?}
+     */
+    convert(source, target = {}) {
+        this.normalizePageData(source, target);
+        this.normalizePageSlotData(source, target);
+        this.normalizePageComponentData(source, target);
+        this.normalizeComponentData(source, target);
+        return target;
+    }
+    /**
+     * @private
+     * @param {?} source
+     * @param {?} target
+     * @return {?}
+     */
+    normalizePageData(source, target) {
+        target.page = {
+            loadTime: Date.now(),
+            name: source.name,
+            type: source.typeCode,
+            title: source.title,
+            pageId: source.uid,
+            template: source.template,
+            slots: {},
+            properties: source.properties,
+        };
+    }
+    /**
+     * @private
+     * @param {?} source
+     * @param {?} target
+     * @return {?}
+     */
+    normalizePageSlotData(source, target) {
+        for (const slot of source.contentSlots.contentSlot) {
+            target.page.slots[slot.position] = (/** @type {?} */ ({
+                components: [],
+                properties: slot.properties,
+            }));
+        }
+    }
+    /**
+     * @private
+     * @param {?} source
+     * @param {?} target
+     * @return {?}
+     */
+    normalizePageComponentData(source, target) {
+        for (const slot of source.contentSlots.contentSlot) {
+            if (slot.components.component &&
+                Array.isArray(slot.components.component)) {
+                for (const component of slot.components.component) {
+                    /** @type {?} */
+                    const comp = {
+                        uid: component.uid,
+                        typeCode: component.typeCode,
+                        properties: component.properties,
+                    };
+                    if (component.typeCode === CMS_FLEX_COMPONENT_TYPE) {
+                        comp.flexType = component.flexType;
+                    }
+                    else if (component.typeCode === JSP_INCLUDE_CMS_COMPONENT_TYPE) {
+                        comp.flexType = component.uid;
+                    }
+                    else {
+                        comp.flexType = component.typeCode;
+                    }
+                    target.page.slots[slot.position].components.push(comp);
+                }
+            }
+        }
+    }
+    /**
+     * @private
+     * @param {?} source
+     * @param {?} target
+     * @return {?}
+     */
+    normalizeComponentData(source, target) {
+        target.components = [];
+        for (const slot of source.contentSlots.contentSlot) {
+            if (slot.components.component &&
+                Array.isArray(slot.components.component)) {
+                for (const component of (/** @type {?} */ (slot.components.component))) {
+                    // we dont put properties into component state
+                    if (component.properties) {
+                        component.properties = undefined;
+                    }
+                    target.components.push(component);
+                }
+            }
+        }
+    }
+}
+OccCmsPageNormalizer.decorators = [
+    { type: Injectable }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const CMS_PAGE_NORMALIZE = new InjectionToken('CmsPageNormalize');
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class OccCmsPageAdapter {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     * @param {?} converter
+     */
+    constructor(http, occEndpoints, converter) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+        this.converter = converter;
+        this.headers = new HttpHeaders().set('Content-Type', 'application/json');
+    }
+    /**
+     * @protected
+     * @return {?}
+     */
+    getBaseEndPoint() {
+        return this.occEndpoints.getEndpoint('cms');
+    }
+    /**
+     * @param {?} pageContext
+     * @param {?=} fields
+     * @return {?}
+     */
+    load(pageContext, fields) {
+        /** @type {?} */
+        let httpStringParams = '';
+        if (pageContext.id !== 'smartedit-preview') {
+            httpStringParams = 'pageType=' + pageContext.type;
+            if (pageContext.type === PageType.CONTENT_PAGE) {
+                httpStringParams =
+                    httpStringParams + '&pageLabelOrId=' + pageContext.id;
+            }
+            else {
+                httpStringParams = httpStringParams + '&code=' + pageContext.id;
+            }
+        }
+        if (fields !== undefined) {
+            httpStringParams = httpStringParams + '&fields=' + fields;
+        }
+        return this.http
+            .get(this.getBaseEndPoint() + `/pages`, {
+            headers: this.headers,
+            params: new HttpParams({
+                fromString: httpStringParams,
+            }),
+        })
+            .pipe(this.converter.pipeable(CMS_PAGE_NORMALIZE));
+    }
+}
+OccCmsPageAdapter.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccCmsPageAdapter.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService },
+    { type: ConverterService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CmsOccModule {
+}
+CmsOccModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [CommonModule, HttpClientModule],
+                providers: [
+                    ComponentMapperService,
+                    {
+                        provide: CmsPageAdapter,
+                        useClass: OccCmsPageAdapter,
+                    },
+                    {
+                        provide: CMS_PAGE_NORMALIZE,
+                        useClass: OccCmsPageNormalizer,
+                        multi: true,
+                    },
+                    {
+                        provide: CmsComponentAdapter,
+                        useClass: OccCmsComponentAdapter,
+                    },
+                ],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ContentPageMetaResolver extends PageMetaResolver {
+    /**
+     * @param {?} cms
+     */
+    constructor(cms) {
+        super();
+        this.cms = cms;
+        this.pageType = PageType.CONTENT_PAGE;
+    }
+    /**
+     * @return {?}
+     */
+    resolve() {
+        return this.cms.getCurrentPage().pipe(filter(Boolean), map(page => {
+            return {
+                title: this.resolveTitle(page),
+            };
+        }));
+    }
+    /**
+     * @param {?} page
+     * @return {?}
+     */
+    resolveTitle(page) {
+        return page.title;
+    }
+}
+ContentPageMetaResolver.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+ContentPageMetaResolver.ctorParameters = () => [
+    { type: CmsService }
+];
+/** @nocollapse */ ContentPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function ContentPageMetaResolver_Factory() { return new ContentPageMetaResolver(inject(CmsService)); }, token: ContentPageMetaResolver, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CmsPageTitleModule {
+}
+CmsPageTitleModule.decorators = [
+    { type: NgModule, args: [{
+                providers: [
+                    {
+                        provide: PageMetaResolver,
+                        useExisting: ContentPageMetaResolver,
+                        multi: true,
+                    },
+                ],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CmsModule {
+}
+CmsModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [CmsOccModule, CmsStoreModule, CmsPageTitleModule],
+                providers: [CmsService, { provide: CmsStructureConfig, useExisting: Config }],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class ProductPageMetaResolver extends PageMetaResolver {
+    /**
+     * @param {?} routingService
+     * @param {?} productService
+     */
+    constructor(routingService, productService) {
+        super();
+        this.routingService = routingService;
+        this.productService = productService;
+        this.pageType = PageType.PRODUCT_PAGE;
+    }
+    /**
+     * @return {?}
+     */
+    resolve() {
+        return this.routingService.getRouterState().pipe(map(state => state.state.params['productCode']), filter(Boolean), switchMap(code => this.productService.get(code).pipe(filter(Boolean), map((p) => {
+            return (/** @type {?} */ ({
+                heading: this.resolveHeading(p),
+                title: this.resolveTitle(p),
+                description: this.resolveDescription(p),
+                image: this.resolveImage(p),
+            }));
+        }))));
+    }
+    /**
+     * @param {?} product
+     * @return {?}
+     */
+    resolveHeading(product) {
+        return product.name;
+    }
+    /**
+     * @param {?} product
+     * @return {?}
+     */
+    resolveTitle(product) {
+        /** @type {?} */
+        let title = product.name;
+        title += this.resolveFirstCategory(product);
+        title += this.resolveManufactorer(product);
+        return title;
+    }
+    /**
+     * @param {?} product
+     * @return {?}
+     */
+    resolveDescription(product) {
+        return product.summary;
+    }
+    /**
+     * @param {?} product
+     * @return {?}
+     */
+    resolveImage(product) {
+        if (product.images &&
+            product.images.PRIMARY &&
+            product.images.PRIMARY.zoom &&
+            product.images.PRIMARY.zoom.url) {
+            return product.images.PRIMARY.zoom.url;
+        }
+    }
+    /**
+     * @private
+     * @param {?} product
+     * @return {?}
+     */
+    resolveFirstCategory(product) {
+        /** @type {?} */
+        let firstCategory;
+        if (product.categories && product.categories.length > 0) {
+            firstCategory = product.categories[0];
+        }
+        return firstCategory
+            ? ` | ${firstCategory.name || firstCategory.code}`
+            : '';
+    }
+    /**
+     * @private
+     * @param {?} product
+     * @return {?}
+     */
+    resolveManufactorer(product) {
+        return product.manufacturer ? ` | ${product.manufacturer}` : '';
+    }
+}
+ProductPageMetaResolver.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+ProductPageMetaResolver.ctorParameters = () => [
+    { type: RoutingService },
+    { type: ProductService }
+];
+/** @nocollapse */ ProductPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function ProductPageMetaResolver_Factory() { return new ProductPageMetaResolver(inject(RoutingService), inject(ProductService)); }, token: ProductPageMetaResolver, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class SearchPageMetaResolver extends PageMetaResolver {
+    /**
+     * @param {?} routingService
+     * @param {?} productSearchService
+     */
+    constructor(routingService, productSearchService) {
+        super();
+        this.routingService = routingService;
+        this.productSearchService = productSearchService;
+        this.pageType = PageType.CONTENT_PAGE;
+        this.pageTemplate = 'SearchResultsListPageTemplate';
+    }
+    /**
+     * @return {?}
+     */
+    resolve() {
+        return combineLatest(this.productSearchService.getSearchResults().pipe(filter(data => !!(data && data.pagination)), map(results => results.pagination.totalResults)), this.routingService.getRouterState().pipe(map(state => state.state.params['query']), filter(Boolean))).pipe(map(([t, q]) => {
+            return {
+                title: this.resolveTitle(t, q),
+            };
+        }));
+    }
+    /**
+     * @param {?} total
+     * @param {?} part
+     * @return {?}
+     */
+    resolveTitle(total, part) {
+        return `${total} results for "${part}"`;
+    }
+}
+SearchPageMetaResolver.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+SearchPageMetaResolver.ctorParameters = () => [
+    { type: RoutingService },
+    { type: ProductSearchService }
+];
+/** @nocollapse */ SearchPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function SearchPageMetaResolver_Factory() { return new SearchPageMetaResolver(inject(RoutingService), inject(ProductSearchService)); }, token: SearchPageMetaResolver, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CategoryPageMetaResolver extends PageMetaResolver {
+    /**
+     * @param {?} routingService
+     * @param {?} productSearchService
+     * @param {?} cms
+     */
+    constructor(routingService, productSearchService, cms) {
+        super();
+        this.routingService = routingService;
+        this.productSearchService = productSearchService;
+        this.cms = cms;
+        this.pageType = PageType.CATEGORY_PAGE;
+    }
+    /**
+     * @return {?}
+     */
+    resolve() {
+        return this.cms.getCurrentPage().pipe(filter(Boolean), switchMap(page => {
+            // only the existence of a plp component tells us if products
+            // are rendered or if this is an ordinary content page
+            if (this.hasProductListComponent(page)) {
+                return this.productSearchService.getSearchResults().pipe(map(data => {
+                    if (data.breadcrumbs && data.breadcrumbs.length > 0) {
+                        return {
+                            title: this.resolveTitle(data),
+                        };
+                    }
+                }));
+            }
+            else {
+                return of({
+                    title: page.title || page.name,
+                });
+            }
+        }));
+    }
+    /**
+     * @param {?} data
+     * @return {?}
+     */
+    resolveTitle(data) {
+        return `${data.pagination.totalResults} results for ${data.breadcrumbs[0].facetValueName}`;
+    }
+    /**
+     * @protected
+     * @param {?} page
+     * @return {?}
+     */
+    hasProductListComponent(page) {
+        // ProductListComponent
+        return !!Object.keys(page.slots).find(key => !!page.slots[key].components.find(comp => comp.typeCode === 'CMSProductListComponent'));
+    }
+}
+CategoryPageMetaResolver.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+CategoryPageMetaResolver.ctorParameters = () => [
+    { type: RoutingService },
+    { type: ProductSearchService },
+    { type: CmsService }
+];
+/** @nocollapse */ CategoryPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function CategoryPageMetaResolver_Factory() { return new CategoryPageMetaResolver(inject(RoutingService), inject(ProductSearchService), inject(CmsService)); }, token: CategoryPageMetaResolver, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const pageTitleResolvers = [
+    {
+        provide: PageMetaResolver,
+        useExisting: ProductPageMetaResolver,
+        multi: true,
+    },
+    {
+        provide: PageMetaResolver,
+        useExisting: CategoryPageMetaResolver,
+        multi: true,
+    },
+    {
+        provide: PageMetaResolver,
+        useExisting: SearchPageMetaResolver,
+        multi: true,
+    },
+];
+class ProductModule {
+}
+ProductModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [ProductOccModule, ProductStoreModule, CmsModule],
+                providers: [
+                    ProductService,
+                    ProductSearchService,
+                    ProductReviewService,
+                    ...pageTitleResolvers,
+                ],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
 
 /**
  * @fileoverview added by tsickle
@@ -7064,12 +10334,14 @@ SiteContextModule.decorators = [
 class CartEffects {
     /**
      * @param {?} actions$
-     * @param {?} cartConnector
+     * @param {?} productImageConverter
+     * @param {?} occCartService
      * @param {?} cartData
      */
-    constructor(actions$, cartConnector, cartData) {
+    constructor(actions$, productImageConverter, occCartService, cartData) {
         this.actions$ = actions$;
-        this.cartConnector = cartConnector;
+        this.productImageConverter = productImageConverter;
+        this.occCartService = occCartService;
         this.cartData = cartData;
         this.loadCart$ = this.actions$.pipe(ofType(LOAD_CART, LANGUAGE_CHANGE, CURRENCY_CHANGE), map((action) => action.payload), mergeMap(payload => {
             /** @type {?} */
@@ -7083,30 +10355,37 @@ class CartEffects {
             if (this.isMissingData(loadCartParams)) {
                 return of(new LoadCartFail({}));
             }
-            return this.cartConnector
-                .load(loadCartParams.userId, loadCartParams.cartId, loadCartParams.details)
+            return this.occCartService
+                .loadCart(loadCartParams.userId, loadCartParams.cartId, loadCartParams.details)
                 .pipe(map((cart) => {
+                if (cart && cart.entries) {
+                    for (const entry of cart.entries) {
+                        this.productImageConverter.convertProduct(entry.product);
+                    }
+                }
                 return new LoadCartSuccess(cart);
             }), catchError(error => of(new LoadCartFail(error))));
         }));
         this.createCart$ = this.actions$.pipe(ofType(CREATE_CART), map((action) => action.payload), mergeMap(payload => {
-            return this.cartConnector
-                .create(payload.userId, payload.oldCartId, payload.toMergeCartGuid)
+            return this.occCartService
+                .createCart(payload.userId, payload.oldCartId, payload.toMergeCartGuid)
                 .pipe(switchMap((cart) => {
+                if (cart.entries) {
+                    for (const entry of cart.entries) {
+                        this.productImageConverter.convertProduct(entry.product);
+                    }
+                }
                 if (payload.oldCartId) {
                     return [
                         new CreateCartSuccess(cart),
-                        new MergeCartSuccess({
-                            userId: payload.userId,
-                            cartId: cart.code,
-                        }),
+                        new MergeCartSuccess(),
                     ];
                 }
                 return [new CreateCartSuccess(cart)];
             }), catchError(error => of(new CreateCartFail(error))));
         }));
         this.mergeCart$ = this.actions$.pipe(ofType(MERGE_CART), map((action) => action.payload), mergeMap(payload => {
-            return this.cartConnector.load(payload.userId, 'current').pipe(map(currentCart => {
+            return this.occCartService.loadCart(payload.userId, 'current').pipe(map(currentCart => {
                 return new CreateCart({
                     userId: payload.userId,
                     oldCartId: payload.cartId,
@@ -7130,7 +10409,8 @@ CartEffects.decorators = [
 /** @nocollapse */
 CartEffects.ctorParameters = () => [
     { type: Actions },
-    { type: CartConnector },
+    { type: ProductImageNormalizer },
+    { type: OccCartService },
     { type: CartDataService }
 ];
 __decorate([
@@ -7153,21 +10433,21 @@ __decorate([
 class CartEntryEffects {
     /**
      * @param {?} actions$
-     * @param {?} cartEntryConnector
+     * @param {?} cartService
      */
-    constructor(actions$, cartEntryConnector) {
+    constructor(actions$, cartService) {
         this.actions$ = actions$;
-        this.cartEntryConnector = cartEntryConnector;
-        this.addEntry$ = this.actions$.pipe(ofType(ADD_ENTRY), map((action) => action.payload), mergeMap(payload => this.cartEntryConnector
-            .add(payload.userId, payload.cartId, payload.productCode, payload.quantity)
+        this.cartService = cartService;
+        this.addEntry$ = this.actions$.pipe(ofType(ADD_ENTRY), map((action) => action.payload), mergeMap(payload => this.cartService
+            .addEntry(payload.userId, payload.cartId, payload.productCode, payload.quantity)
             .pipe(map((entry) => new AddEntrySuccess(entry)), catchError(error => of(new AddEntryFail(error))))));
-        this.removeEntry$ = this.actions$.pipe(ofType(REMOVE_ENTRY), map((action) => action.payload), mergeMap(payload => this.cartEntryConnector
-            .remove(payload.userId, payload.cartId, payload.entry)
+        this.removeEntry$ = this.actions$.pipe(ofType(REMOVE_ENTRY), map((action) => action.payload), mergeMap(payload => this.cartService
+            .removeEntry(payload.userId, payload.cartId, payload.entry)
             .pipe(map(() => {
             return new RemoveEntrySuccess();
         }), catchError(error => of(new RemoveEntryFail(error))))));
-        this.updateEntry$ = this.actions$.pipe(ofType(UPDATE_ENTRY), map((action) => action.payload), mergeMap(payload => this.cartEntryConnector
-            .update(payload.userId, payload.cartId, payload.entry, payload.qty)
+        this.updateEntry$ = this.actions$.pipe(ofType(UPDATE_ENTRY), map((action) => action.payload), mergeMap(payload => this.cartService
+            .updateEntry(payload.userId, payload.cartId, payload.entry, payload.qty)
             .pipe(map(() => {
             return new UpdateEntrySuccess();
         }), catchError(error => of(new UpdateEntryFail(error))))));
@@ -7179,7 +10459,7 @@ CartEntryEffects.decorators = [
 /** @nocollapse */
 CartEntryEffects.ctorParameters = () => [
     { type: Actions },
-    { type: CartEntryConnector }
+    { type: OccCartService }
 ];
 __decorate([
     Effect(),
@@ -7199,7 +10479,7 @@ __decorate([
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const effects$3 = [CartEffects, CartEntryEffects];
+const effects$5 = [CartEffects, CartEntryEffects];
 
 /**
  * @fileoverview added by tsickle
@@ -7214,7 +10494,7 @@ CartStoreModule.decorators = [
                     HttpClientModule,
                     CartOccModule,
                     StoreModule.forFeature(CART_FEATURE, reducerToken$2, { metaReducers: metaReducers$1 }),
-                    EffectsModule.forFeature(effects$3),
+                    EffectsModule.forFeature(effects$5),
                 ],
                 providers: [reducerProvider$2],
             },] }
@@ -7237,6 +10517,13 @@ CartModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const CHECKOUT_FEATURE = 'checkout';
 
 /**
  * @fileoverview added by tsickle
@@ -7334,99 +10621,103 @@ class CheckoutClearMiscsData {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getDeliveryAddressSelector = (state) => state.address;
-/** @type {?} */
-const getDeliveryModeSelector = (state) => state.deliveryMode;
-/** @type {?} */
-const getPaymentDetailsSelector = (state) => state.paymentDetails;
-/** @type {?} */
-const getOrderDetailsSelector = (state) => state.orderDetails;
-/** @type {?} */
-const getCheckoutState = createFeatureSelector(CHECKOUT_FEATURE);
-/** @type {?} */
-const getCheckoutStepsState = createSelector(getCheckoutState, (checkoutState) => checkoutState.steps);
-/** @type {?} */
-const getCheckoutSteps = createSelector(getCheckoutStepsState, state => loaderValueSelector(state));
-/** @type {?} */
-const getDeliveryAddress = createSelector(getCheckoutSteps, getDeliveryAddressSelector);
-/** @type {?} */
-const getDeliveryMode = createSelector(getCheckoutSteps, getDeliveryModeSelector);
-/** @type {?} */
-const getSupportedDeliveryModes = createSelector(getDeliveryMode, deliveryMode => {
-    return Object.keys(deliveryMode.supported).map(code => deliveryMode.supported[code]);
-});
-/** @type {?} */
-const getSelectedCode = createSelector(getDeliveryMode, deliveryMode => {
-    return deliveryMode.selected;
-});
-/** @type {?} */
-const getSelectedDeliveryMode = createSelector(getDeliveryMode, deliveryMode => {
-    if (deliveryMode.selected !== '') {
-        if (Object.keys(deliveryMode.supported).length === 0) {
-            return null;
-        }
-        return deliveryMode.supported[deliveryMode.selected];
-    }
-});
-/** @type {?} */
-const getPaymentDetails = createSelector(getCheckoutSteps, getPaymentDetailsSelector);
-/** @type {?} */
-const getCheckoutOrderDetails = createSelector(getCheckoutSteps, getOrderDetailsSelector);
-/** @type {?} */
-const getCheckoutDetailsLoaded = createSelector(getCheckoutStepsState, state => loaderSuccessSelector(state) && !loaderLoadingSelector(state));
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$6 = {
-    entities: {},
+const initialState$b = {
+    address: {},
+    deliveryMode: {
+        supported: {},
+        selected: '',
+    },
+    paymentDetails: {},
+    orderDetails: {},
 };
 /**
  * @param {?=} state
  * @param {?=} action
  * @return {?}
  */
-function reducer$6(state = initialState$6, action) {
+function reducer$b(state = initialState$b, action) {
     switch (action.type) {
-        case LOAD_CARD_TYPES_SUCCESS: {
+        case ADD_DELIVERY_ADDRESS_SUCCESS:
+        case SET_DELIVERY_ADDRESS_SUCCESS: {
             /** @type {?} */
-            const cardTypes = action.payload;
-            /** @type {?} */
-            const entities = cardTypes.reduce((cardTypesEntities, name) => {
-                return Object.assign({}, cardTypesEntities, { [name.code]: name });
-            }, Object.assign({}, state.entities));
-            return Object.assign({}, state, { entities });
+            const address = action.payload;
+            return Object.assign({}, state, { address });
         }
+        case LOAD_SUPPORTED_DELIVERY_MODES_SUCCESS: {
+            /** @type {?} */
+            const supportedModes = action.payload.deliveryModes;
+            if (!supportedModes) {
+                return state;
+            }
+            /** @type {?} */
+            const supported = supportedModes.reduce((modes, mode) => {
+                return Object.assign({}, modes, { [mode.code]: mode });
+            }, Object.assign({}, state.deliveryMode.supported));
+            return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { supported }) });
+        }
+        case SET_DELIVERY_MODE_SUCCESS: {
+            /** @type {?} */
+            const selected = action.payload;
+            return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { selected }) });
+        }
+        case CREATE_PAYMENT_DETAILS_SUCCESS:
+        case SET_PAYMENT_DETAILS_SUCCESS: {
+            return Object.assign({}, state, { paymentDetails: action.payload });
+        }
+        case CREATE_PAYMENT_DETAILS_FAIL: {
+            /** @type {?} */
+            const paymentDetails = action.payload;
+            if (paymentDetails['hasError']) {
+                return Object.assign({}, state, { paymentDetails });
+            }
+            return state;
+        }
+        case PLACE_ORDER_SUCCESS: {
+            /** @type {?} */
+            const orderDetails = action.payload;
+            return Object.assign({}, state, { orderDetails });
+        }
+        case CLEAR_CHECKOUT_DATA: {
+            return initialState$b;
+        }
+        case CLEAR_CHECKOUT_STEP: {
+            /** @type {?} */
+            const stepNumber = action.payload;
+            switch (stepNumber) {
+                case 1: {
+                    return Object.assign({}, state, { address: {} });
+                }
+                case 2: {
+                    return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { supported: {}, selected: '' }) });
+                }
+                case 3: {
+                    return Object.assign({}, state, { paymentDetails: {} });
+                }
+            }
+            return state;
+        }
+        case CLEAR_SUPPORTED_DELIVERY_MODES:
         case CHECKOUT_CLEAR_MISCS_DATA: {
-            return initialState$6;
+            return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { supported: {} }) });
         }
     }
     return state;
 }
 /** @type {?} */
-const getCardTypesEntites = (state) => state.entities;
+const getDeliveryAddress = (state) => state.address;
+/** @type {?} */
+const getDeliveryMode = (state) => state.deliveryMode;
+/** @type {?} */
+const getPaymentDetails = (state) => state.paymentDetails;
+/** @type {?} */
+const getOrderDetails = (state) => state.orderDetails;
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getCardTypesState = createSelector(getCheckoutState, (state) => state.cardTypes);
-/** @type {?} */
-const getCardTypesEntites$1 = createSelector(getCardTypesState, getCardTypesEntites);
-/** @type {?} */
-const getAllCardTypes = createSelector(getCardTypesEntites$1, entites => {
-    return Object.keys(entites).map(code => entites[code]);
-});
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$7 = {
+const initialState$c = {
     results: {},
 };
 /**
@@ -7434,7 +10725,7 @@ const initialState$7 = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$7(state = initialState$7, action) {
+function reducer$c(state = initialState$c, action) {
     switch (action.type) {
         case VERIFY_ADDRESS_SUCCESS: {
             /** @type {?} */
@@ -7452,6 +10743,133 @@ function reducer$7(state = initialState$7, action) {
 }
 /** @type {?} */
 const getAddressVerificationResults = (state) => state.results;
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$d = {
+    entities: {},
+};
+/**
+ * @param {?=} state
+ * @param {?=} action
+ * @return {?}
+ */
+function reducer$d(state = initialState$d, action) {
+    switch (action.type) {
+        case LOAD_CARD_TYPES_SUCCESS: {
+            /** @type {?} */
+            const cardTypes = action.payload;
+            /** @type {?} */
+            const entities = cardTypes.reduce((cardTypesEntities, name) => {
+                return Object.assign({}, cardTypesEntities, { [name.code]: name });
+            }, Object.assign({}, state.entities));
+            return Object.assign({}, state, { entities });
+        }
+        case CHECKOUT_CLEAR_MISCS_DATA: {
+            return initialState$d;
+        }
+    }
+    return state;
+}
+/** @type {?} */
+const getCardTypesEntites = (state) => state.entities;
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @return {?}
+ */
+function getReducers$6() {
+    return {
+        steps: reducer$b,
+        cardTypes: reducer$d,
+        addressVerification: reducer$c,
+    };
+}
+/** @type {?} */
+const reducerToken$6 = new InjectionToken('CheckoutReducers');
+/** @type {?} */
+const reducerProvider$6 = {
+    provide: reducerToken$6,
+    useFactory: getReducers$6,
+};
+/** @type {?} */
+const getCheckoutState = createFeatureSelector(CHECKOUT_FEATURE);
+/**
+ * @param {?} reducer
+ * @return {?}
+ */
+function clearCheckoutState(reducer) {
+    return function (state, action) {
+        switch (action.type) {
+            case LANGUAGE_CHANGE: {
+                action = new CheckoutClearMiscsData();
+                break;
+            }
+            case CURRENCY_CHANGE: {
+                action = new ClearSupportedDeliveryModes();
+                break;
+            }
+            case LOGOUT: {
+                action = new ClearCheckoutData();
+                break;
+            }
+        }
+        return reducer(state, action);
+    };
+}
+/** @type {?} */
+const metaReducers$4 = [clearCheckoutState];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getCheckoutStepsState = createSelector(getCheckoutState, (state) => state.steps);
+/** @type {?} */
+const getDeliveryAddress$1 = createSelector(getCheckoutStepsState, getDeliveryAddress);
+/** @type {?} */
+const getDeliveryMode$1 = createSelector(getCheckoutStepsState, getDeliveryMode);
+/** @type {?} */
+const getSupportedDeliveryModes = createSelector(getDeliveryMode$1, deliveryMode => {
+    return Object.keys(deliveryMode.supported).map(code => deliveryMode.supported[code]);
+});
+/** @type {?} */
+const getSelectedCode = createSelector(getDeliveryMode$1, deliveryMode => {
+    return deliveryMode.selected;
+});
+/** @type {?} */
+const getSelectedDeliveryMode = createSelector(getDeliveryMode$1, deliveryMode => {
+    if (deliveryMode.selected !== '') {
+        if (Object.keys(deliveryMode.supported).length === 0) {
+            return null;
+        }
+        return deliveryMode.supported[deliveryMode.selected];
+    }
+});
+/** @type {?} */
+const getPaymentDetails$1 = createSelector(getCheckoutStepsState, getPaymentDetails);
+/** @type {?} */
+const getCheckoutOrderDetails = createSelector(getCheckoutStepsState, getOrderDetails);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getCardTypesState = createSelector(getCheckoutState, (state) => state.cardTypes);
+/** @type {?} */
+const getCardTypesEntites$1 = createSelector(getCardTypesState, getCardTypesEntites);
+/** @type {?} */
+const getAllCardTypes = createSelector(getCardTypesEntites$1, entites => {
+    return Object.keys(entites).map(code => entites[code]);
+});
 
 /**
  * @fileoverview added by tsickle
@@ -7541,7 +10959,7 @@ const getGlobalMessageEntities = createSelector(getGlobalMessageState, (state) =
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$8 = {
+const initialState$e = {
     entities: {},
 };
 /**
@@ -7549,7 +10967,7 @@ const initialState$8 = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$8(state = initialState$8, action) {
+function reducer$e(state = initialState$e, action) {
     switch (action.type) {
         case ADD_MESSAGE: {
             /** @type {?} */
@@ -7560,7 +10978,7 @@ function reducer$8(state = initialState$8, action) {
             else {
                 /** @type {?} */
                 const msgs = state.entities[message.type];
-                if (!msgs.includes(message.text)) {
+                if (msgs.indexOf(message.text) === -1) {
                     return Object.assign({}, state, { entities: Object.assign({}, state.entities, { [message.type]: [...msgs, message.text] }) });
                 }
             }
@@ -7596,15 +11014,15 @@ function reducer$8(state = initialState$8, action) {
 /**
  * @return {?}
  */
-function getReducers$4() {
-    return reducer$8;
+function getReducers$7() {
+    return reducer$e;
 }
 /** @type {?} */
-const reducerToken$4 = new InjectionToken('GlobalMessageReducers');
+const reducerToken$7 = new InjectionToken('GlobalMessageReducers');
 /** @type {?} */
-const reducerProvider$4 = {
-    provide: reducerToken$4,
-    useFactory: getReducers$4,
+const reducerProvider$7 = {
+    provide: reducerToken$7,
+    useFactory: getReducers$7,
 };
 
 /**
@@ -7617,9 +11035,9 @@ GlobalMessageStoreModule.decorators = [
     { type: NgModule, args: [{
                 imports: [
                     StateModule,
-                    StoreModule.forFeature(GLOBAL_MESSAGE_FEATURE, reducerToken$4),
+                    StoreModule.forFeature(GLOBAL_MESSAGE_FEATURE, reducerToken$7),
                 ],
-                providers: [reducerProvider$4],
+                providers: [reducerProvider$7],
             },] }
 ];
 
@@ -7648,15 +11066,11 @@ class GlobalMessageService {
     }
     /**
      * Add one message into store
-     * @param {?} text
-     * @param {?} type
+     * @param {?} message
      * @return {?}
      */
-    add(text, type) {
-        this.store.dispatch(new AddMessage({
-            text: typeof text === 'string' ? { raw: text } : text,
-            type,
-        }));
+    add(message) {
+        this.store.dispatch(new AddMessage(message));
     }
     /**
      * Remove message(s) from store
@@ -7665,12 +11079,15 @@ class GlobalMessageService {
      * @return {?}
      */
     remove(type, index) {
-        this.store.dispatch(index !== undefined
-            ? new RemoveMessage({
+        if (index !== undefined) {
+            this.store.dispatch(new RemoveMessage({
                 type: type,
                 index: index,
-            })
-            : new RemoveMessagesByType(type));
+            }));
+        }
+        else {
+            this.store.dispatch(new RemoveMessagesByType(type));
+        }
     }
 }
 GlobalMessageService.decorators = [
@@ -7701,28 +11118,6 @@ const GlobalMessageType = {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @enum {number} */
-const HttpResponseStatus = {
-    UNKNOWN: -1,
-    BAD_REQUEST: 400,
-    FORBIDDEN: 403,
-    NOT_FOUND: 404,
-    CONFLICT: 409,
-    BAD_GATEWAY: 502,
-    GATEWAY_TIMEOUT: 504,
-};
-HttpResponseStatus[HttpResponseStatus.UNKNOWN] = 'UNKNOWN';
-HttpResponseStatus[HttpResponseStatus.BAD_REQUEST] = 'BAD_REQUEST';
-HttpResponseStatus[HttpResponseStatus.FORBIDDEN] = 'FORBIDDEN';
-HttpResponseStatus[HttpResponseStatus.NOT_FOUND] = 'NOT_FOUND';
-HttpResponseStatus[HttpResponseStatus.CONFLICT] = 'CONFLICT';
-HttpResponseStatus[HttpResponseStatus.BAD_GATEWAY] = 'BAD_GATEWAY';
-HttpResponseStatus[HttpResponseStatus.GATEWAY_TIMEOUT] = 'GATEWAY_TIMEOUT';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 /**
  * @abstract
  */
@@ -7744,6 +11139,28 @@ HttpErrorHandler.ctorParameters = () => [
     { type: GlobalMessageService }
 ];
 /** @nocollapse */ HttpErrorHandler.ngInjectableDef = defineInjectable({ factory: function HttpErrorHandler_Factory() { return new HttpErrorHandler(inject(GlobalMessageService)); }, token: HttpErrorHandler, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @enum {number} */
+const HttpResponseStatus = {
+    UNKNOWN: -1,
+    BAD_REQUEST: 400,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    CONFLICT: 409,
+    BAD_GATEWAY: 502,
+    GATEWAY_TIMEOUT: 504,
+};
+HttpResponseStatus[HttpResponseStatus.UNKNOWN] = 'UNKNOWN';
+HttpResponseStatus[HttpResponseStatus.BAD_REQUEST] = 'BAD_REQUEST';
+HttpResponseStatus[HttpResponseStatus.FORBIDDEN] = 'FORBIDDEN';
+HttpResponseStatus[HttpResponseStatus.NOT_FOUND] = 'NOT_FOUND';
+HttpResponseStatus[HttpResponseStatus.CONFLICT] = 'CONFLICT';
+HttpResponseStatus[HttpResponseStatus.BAD_GATEWAY] = 'BAD_GATEWAY';
+HttpResponseStatus[HttpResponseStatus.GATEWAY_TIMEOUT] = 'GATEWAY_TIMEOUT';
 
 /**
  * @fileoverview added by tsickle
@@ -7824,7 +11241,10 @@ class UnknownErrorHandler extends HttpErrorHandler {
      * @return {?}
      */
     handleError() {
-        this.globalMessageService.add({ key: 'httpHandlers.unknownError' }, GlobalMessageType.MSG_TYPE_ERROR);
+        this.globalMessageService.add({
+            type: GlobalMessageType.MSG_TYPE_ERROR,
+            text: 'An unknown error occured',
+        });
     }
 }
 UnknownErrorHandler.decorators = [
@@ -7847,7 +11267,10 @@ class BadGatewayHandler extends HttpErrorHandler {
      * @return {?}
      */
     handleError() {
-        this.globalMessageService.add({ key: 'httpHandlers.badGateway' }, GlobalMessageType.MSG_TYPE_ERROR);
+        this.globalMessageService.add({
+            type: GlobalMessageType.MSG_TYPE_ERROR,
+            text: 'A server error occurred. Please try again later.',
+        });
     }
 }
 BadGatewayHandler.decorators = [
@@ -7874,34 +11297,23 @@ class BadRequestHandler extends HttpErrorHandler {
      * @return {?}
      */
     handleError(request, response) {
-        if (response.url.includes(OAUTH_ENDPOINT$3) &&
+        if (response.url.indexOf(OAUTH_ENDPOINT$3) !== -1 &&
             response.error.error === 'invalid_grant') {
             if (request.body.get('grant_type') === 'password') {
                 this.globalMessageService.add({
-                    key: 'httpHandlers.badRequestPleaseLoginAgain',
-                    params: { errorMessage: this.getErrorMessage(response) },
-                }, GlobalMessageType.MSG_TYPE_ERROR);
+                    type: GlobalMessageType.MSG_TYPE_ERROR,
+                    text: this.getErrorMessage(response) + '. Please login again.',
+                });
                 this.globalMessageService.remove(GlobalMessageType.MSG_TYPE_CONFIRMATION);
             }
         }
-        else if (response.error.errors[0].type === 'PasswordMismatchError') {
-            // uses en translation error message instead of backend exception error
-            // @todo: this condition could be removed if backend gives better message
-            this.globalMessageService.add({ key: 'httpHandlers.badRequestOldPasswordIncorrect' }, GlobalMessageType.MSG_TYPE_ERROR);
-            // text: customError.customError.passwordMismatch,
-        }
         else {
-            if (!request.url.includes('/cms/components')) {
-                // this is currently showing up in case we have a page not found. It should be a 404.
-                // see https://jira.hybris.com/browse/CMSX-8516
-                /** @type {?} */
-                const errorMessage = this.getErrorMessage(response);
-                /** @type {?} */
-                const textObj = errorMessage
-                    ? { raw: errorMessage }
-                    : { key: 'httpHandlers.unknownError' };
-                this.globalMessageService.add(textObj, GlobalMessageType.MSG_TYPE_ERROR);
-            }
+            // this is currently showing up in case we have a page not found. It should be a 404.
+            // see https://jira.hybris.com/browse/CMSX-8516
+            this.globalMessageService.add({
+                type: GlobalMessageType.MSG_TYPE_ERROR,
+                text: this.getErrorMessage(response),
+            });
         }
     }
     /**
@@ -7920,7 +11332,7 @@ class BadRequestHandler extends HttpErrorHandler {
                 errMsg = resp.error.error_description;
             }
         }
-        return errMsg || '';
+        return errMsg || 'An unknown error occured';
     }
 }
 BadRequestHandler.decorators = [
@@ -7943,7 +11355,10 @@ class ConflictHandler extends HttpErrorHandler {
      * @return {?}
      */
     handleError() {
-        this.globalMessageService.add({ key: 'httpHandlers.conflict' }, GlobalMessageType.MSG_TYPE_ERROR);
+        this.globalMessageService.add({
+            type: GlobalMessageType.MSG_TYPE_ERROR,
+            text: 'Already exists',
+        });
     }
 }
 ConflictHandler.decorators = [
@@ -7966,7 +11381,10 @@ class ForbiddenHandler extends HttpErrorHandler {
      * @return {?}
      */
     handleError() {
-        this.globalMessageService.add({ key: 'httpHandlers.forbidden' }, GlobalMessageType.MSG_TYPE_ERROR);
+        this.globalMessageService.add({
+            type: GlobalMessageType.MSG_TYPE_ERROR,
+            text: 'You are not authorized to perform this action.',
+        });
     }
 }
 ForbiddenHandler.decorators = [
@@ -7989,7 +11407,10 @@ class GatewayTimeoutHandler extends HttpErrorHandler {
      * @return {?}
      */
     handleError() {
-        this.globalMessageService.add({ key: 'httpHandlers.gatewayTimeout' }, GlobalMessageType.MSG_TYPE_ERROR);
+        this.globalMessageService.add({
+            type: GlobalMessageType.MSG_TYPE_ERROR,
+            text: 'The server did not responded, please try again later.',
+        });
     }
 }
 GatewayTimeoutHandler.decorators = [
@@ -8008,11 +11429,15 @@ class NotFoundHandler extends HttpErrorHandler {
         super(...arguments);
         this.responseStatus = HttpResponseStatus.NOT_FOUND;
     }
-    // empty error handler to avoid we fallabck to the unknown error handler
     /**
      * @return {?}
      */
-    handleError() { }
+    handleError() {
+        this.globalMessageService.add({
+            type: GlobalMessageType.MSG_TYPE_ERROR,
+            text: 'The requested resource could not be found',
+        });
+    }
 }
 NotFoundHandler.decorators = [
     { type: Injectable, args: [{
@@ -8103,6 +11528,394 @@ GlobalMessageModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const USER_ENDPOINT = 'users/';
+/** @type {?} */
+const ADDRESSES_VERIFICATION_ENDPOINT = '/addresses/verification';
+/** @type {?} */
+const ADDRESSES_ENDPOINT = '/addresses';
+/** @type {?} */
+const PAYMENT_DETAILS_ENDPOINT = '/paymentdetails';
+/** @type {?} */
+const FORGOT_PASSWORD_ENDPOINT = '/forgottenpasswordtokens';
+/** @type {?} */
+const RESET_PASSWORD_ENDPOINT = '/resetpassword';
+/** @type {?} */
+const UPDATE_PASSWORD_ENDPOINT = '/password';
+class OccUserService {
+    // some extending from baseservice is not working here...
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     */
+    constructor(http, occEndpoints) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+    }
+    /**
+     * @param {?} userId
+     * @return {?}
+     */
+    loadUser(userId) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId;
+        return this.http
+            .get(url)
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} username
+     * @param {?} user
+     * @return {?}
+     */
+    updateUserDetails(username, user) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + username;
+        return this.http
+            .patch(url, user)
+            .pipe(catchError(error => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} address
+     * @return {?}
+     */
+    verifyAddress(userId, address) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId + ADDRESSES_VERIFICATION_ENDPOINT;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .post(url, address, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @return {?}
+     */
+    loadUserAddresses(userId) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId + ADDRESSES_ENDPOINT;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .get(url, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} address
+     * @return {?}
+     */
+    addUserAddress(userId, address) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId + ADDRESSES_ENDPOINT;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .post(url, address, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} addressId
+     * @param {?} address
+     * @return {?}
+     */
+    updateUserAddress(userId, addressId, address) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId + ADDRESSES_ENDPOINT + '/' + addressId;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .patch(url, address, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} addressId
+     * @return {?}
+     */
+    deleteUserAddress(userId, addressId) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId + ADDRESSES_ENDPOINT + '/' + addressId;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .delete(url, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @return {?}
+     */
+    loadUserPaymentMethods(userId) {
+        /** @type {?} */
+        const url = `${this.getUserEndpoint()}${userId}${PAYMENT_DETAILS_ENDPOINT}?saved=true`;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .get(url, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} paymentMethodID
+     * @return {?}
+     */
+    deleteUserPaymentMethod(userId, paymentMethodID) {
+        /** @type {?} */
+        const url = `${this.getUserEndpoint()}${userId}${PAYMENT_DETAILS_ENDPOINT}/${paymentMethodID}`;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .delete(url, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} paymentMethodID
+     * @return {?}
+     */
+    setDefaultUserPaymentMethod(userId, paymentMethodID) {
+        /** @type {?} */
+        const url = `${this.getUserEndpoint()}${userId}${PAYMENT_DETAILS_ENDPOINT}/${paymentMethodID}`;
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        return this.http
+            .patch(url, 
+        // TODO: Remove billingAddress property
+        { billingAddress: { titleCode: 'mr' }, defaultPayment: true }, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} user
+     * @return {?}
+     */
+    registerUser(user) {
+        /** @type {?} */
+        const url = this.getUserEndpoint();
+        /** @type {?} */
+        let headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        headers = InterceptorUtil.createHeader(USE_CLIENT_TOKEN, true, headers);
+        return this.http
+            .post(url, user, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} userEmailAddress
+     * @return {?}
+     */
+    requestForgotPasswordEmail(userEmailAddress) {
+        /** @type {?} */
+        const url = this.occEndpoints.getEndpoint(FORGOT_PASSWORD_ENDPOINT);
+        /** @type {?} */
+        const httpParams = new HttpParams().set('userId', userEmailAddress);
+        /** @type {?} */
+        let headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        headers = InterceptorUtil.createHeader(USE_CLIENT_TOKEN, true, headers);
+        return this.http
+            .post(url, httpParams, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @param {?} token
+     * @param {?} newPassword
+     * @return {?}
+     */
+    resetPassword(token, newPassword) {
+        /** @type {?} */
+        const url = this.occEndpoints.getEndpoint(RESET_PASSWORD_ENDPOINT);
+        /** @type {?} */
+        let headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+        headers = InterceptorUtil.createHeader(USE_CLIENT_TOKEN, true, headers);
+        return this.http
+            .post(url, { token, newPassword }, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+    /**
+     * @protected
+     * @return {?}
+     */
+    getUserEndpoint() {
+        return this.occEndpoints.getEndpoint(USER_ENDPOINT);
+    }
+    /**
+     * @param {?} userId
+     * @param {?} oldPassword
+     * @param {?} newPassword
+     * @return {?}
+     */
+    updatePassword(userId, oldPassword, newPassword) {
+        /** @type {?} */
+        const url = this.getUserEndpoint() + userId + UPDATE_PASSWORD_ENDPOINT;
+        /** @type {?} */
+        const httpParams = new HttpParams()
+            .set('old', oldPassword)
+            .set('new', newPassword);
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        return this.http
+            .put(url, httpParams, { headers })
+            .pipe(catchError((error) => throwError(error)));
+    }
+}
+OccUserService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccUserService.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+// To be changed to a more optimised params after ticket: C3PO-1076
+/** @type {?} */
+const FULL_PARAMS = 'fields=FULL';
+class OccOrderService {
+    /**
+     * @param {?} http
+     * @param {?} occEndpoints
+     */
+    constructor(http, occEndpoints) {
+        this.http = http;
+        this.occEndpoints = occEndpoints;
+    }
+    /**
+     * @protected
+     * @param {?} userId
+     * @return {?}
+     */
+    getOrderEndpoint(userId) {
+        /** @type {?} */
+        const orderEndpoint = 'users/' + userId + '/orders';
+        return this.occEndpoints.getEndpoint(orderEndpoint);
+    }
+    /**
+     * @param {?} userId
+     * @param {?} cartId
+     * @return {?}
+     */
+    placeOrder(userId, cartId) {
+        /** @type {?} */
+        const url = this.getOrderEndpoint(userId);
+        /** @type {?} */
+        const params = new HttpParams({
+            fromString: 'cartId=' + cartId + '&' + FULL_PARAMS,
+        });
+        /** @type {?} */
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/x-www-form-urlencoded',
+        });
+        return this.http
+            .post(url, {}, { headers, params })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?=} pageSize
+     * @param {?=} currentPage
+     * @param {?=} sort
+     * @return {?}
+     */
+    getOrders(userId, pageSize, currentPage, sort) {
+        /** @type {?} */
+        const url = this.getOrderEndpoint(userId);
+        /** @type {?} */
+        let params = new HttpParams();
+        if (pageSize) {
+            params = params.set('pageSize', pageSize.toString());
+        }
+        if (currentPage) {
+            params = params.set('currentPage', currentPage.toString());
+        }
+        if (sort) {
+            params = params.set('sort', sort);
+        }
+        return this.http
+            .get(url, { params: params })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+    /**
+     * @param {?} userId
+     * @param {?} orderCode
+     * @return {?}
+     */
+    getOrder(userId, orderCode) {
+        /** @type {?} */
+        const url = this.getOrderEndpoint(userId);
+        /** @type {?} */
+        const orderUrl = url + '/' + orderCode;
+        /** @type {?} */
+        const params = new HttpParams({
+            fromString: FULL_PARAMS,
+        });
+        return this.http
+            .get(orderUrl, {
+            params: params,
+        })
+            .pipe(catchError((error) => throwError(error.json())));
+    }
+}
+OccOrderService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+OccOrderService.ctorParameters = () => [
+    { type: HttpClient },
+    { type: OccEndpointsService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class UserOccModule {
+}
+UserOccModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [CommonModule, HttpClientModule, OccModule],
+                providers: [OccUserService, OccOrderService],
+            },] }
+];
 
 /**
  * @fileoverview added by tsickle
@@ -8258,19 +12071,9 @@ class ClearOrderDetails {
 /** @type {?} */
 const USER_FEATURE = 'user';
 /** @type {?} */
-const UPDATE_EMAIL_PROCESS_ID = 'updateEmail';
-/** @type {?} */
 const UPDATE_PASSWORD_PROCESS_ID = 'updatePassword';
 /** @type {?} */
 const UPDATE_USER_DETAILS_PROCESS_ID = 'updateUserDetails';
-/** @type {?} */
-const REMOVE_USER_PROCESS_ID = 'removeUser';
-/** @type {?} */
-const GIVE_CONSENT_PROCESS_ID = 'giveConsent';
-/** @type {?} */
-const WITHDRAW_CONSENT_PROCESS_ID = 'withdrawConsent';
-/** @type {?} */
-const USER_CONSENTS = '[User] User Consents';
 /** @type {?} */
 const USER_PAYMENT_METHODS = '[User] User Payment Methods';
 /** @type {?} */
@@ -8509,55 +12312,6 @@ const PROCESS_FEATURE = 'process';
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const UPDATE_EMAIL = '[User] Update Email';
-/** @type {?} */
-const UPDATE_EMAIL_ERROR = '[User] Update Email Error';
-/** @type {?} */
-const UPDATE_EMAIL_SUCCESS = '[User] Update Email Success';
-/** @type {?} */
-const RESET_EMAIL = '[User] Reset Email';
-class UpdateEmailAction extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, UPDATE_EMAIL_PROCESS_ID);
-        this.payload = payload;
-        this.type = UPDATE_EMAIL;
-    }
-}
-class UpdateEmailSuccessAction extends EntitySuccessAction {
-    /**
-     * @param {?} newUid
-     */
-    constructor(newUid) {
-        super(PROCESS_FEATURE, UPDATE_EMAIL_PROCESS_ID);
-        this.newUid = newUid;
-        this.type = UPDATE_EMAIL_SUCCESS;
-    }
-}
-class UpdateEmailErrorAction extends EntityFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, UPDATE_EMAIL_PROCESS_ID, payload);
-        this.payload = payload;
-        this.type = UPDATE_EMAIL_ERROR;
-    }
-}
-class ResetUpdateEmailAction extends EntityResetAction {
-    constructor() {
-        super(PROCESS_FEATURE, UPDATE_EMAIL_PROCESS_ID);
-        this.type = RESET_EMAIL;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
 const UPDATE_PASSWORD = '[User] Update Password';
 /** @type {?} */
 const UPDATE_PASSWORD_FAIL = '[User] Update Password Fail';
@@ -8755,137 +12509,6 @@ class DeleteUserAddressSuccess extends LoaderSuccessAction {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const LOAD_USER_CONSENTS = '[User] Load User Consents';
-/** @type {?} */
-const LOAD_USER_CONSENTS_SUCCESS = '[User] Load User Consents Success';
-/** @type {?} */
-const LOAD_USER_CONSENTS_FAIL = '[User] Load User Consents Fail';
-/** @type {?} */
-const RESET_LOAD_USER_CONSENTS = '[User] Reset Load User Consents';
-/** @type {?} */
-const GIVE_USER_CONSENT = '[User] Give User Consent';
-/** @type {?} */
-const GIVE_USER_CONSENT_FAIL = '[User] Give User Consent Fail';
-/** @type {?} */
-const GIVE_USER_CONSENT_SUCCESS = '[User] Give User Consent Success';
-/** @type {?} */
-const RESET_GIVE_USER_CONSENT_PROCESS = '[User] Reset Give User Consent Process';
-/** @type {?} */
-const WITHDRAW_USER_CONSENT = '[User] Withdraw User Consent';
-/** @type {?} */
-const WITHDRAW_USER_CONSENT_FAIL = '[User] Withdraw User Consent Fail';
-/** @type {?} */
-const WITHDRAW_USER_CONSENT_SUCCESS = '[User] Withdraw User Consent Success';
-/** @type {?} */
-const RESET_WITHDRAW_USER_CONSENT_PROCESS = '[User] Reset Withdraw User Consent Process';
-class LoadUserConsents extends LoaderLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(USER_CONSENTS);
-        this.payload = payload;
-        this.type = LOAD_USER_CONSENTS;
-    }
-}
-class LoadUserConsentsFail extends LoaderFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(USER_CONSENTS, payload);
-        this.payload = payload;
-        this.type = LOAD_USER_CONSENTS_FAIL;
-    }
-}
-class LoadUserConsentsSuccess extends LoaderSuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(USER_CONSENTS);
-        this.payload = payload;
-        this.type = LOAD_USER_CONSENTS_SUCCESS;
-    }
-}
-class ResetLoadUserConsents extends LoaderResetAction {
-    constructor() {
-        super(USER_CONSENTS);
-        this.type = RESET_LOAD_USER_CONSENTS;
-    }
-}
-class GiveUserConsent extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, GIVE_CONSENT_PROCESS_ID);
-        this.payload = payload;
-        this.type = GIVE_USER_CONSENT;
-    }
-}
-class GiveUserConsentFail extends EntityFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, GIVE_CONSENT_PROCESS_ID, payload);
-        this.type = GIVE_USER_CONSENT_FAIL;
-    }
-}
-class GiveUserConsentSuccess extends EntitySuccessAction {
-    /**
-     * @param {?} consentTemplate
-     */
-    constructor(consentTemplate) {
-        super(PROCESS_FEATURE, GIVE_CONSENT_PROCESS_ID);
-        this.consentTemplate = consentTemplate;
-        this.type = GIVE_USER_CONSENT_SUCCESS;
-    }
-}
-class ResetGiveUserConsentProcess extends EntityResetAction {
-    constructor() {
-        super(PROCESS_FEATURE, GIVE_CONSENT_PROCESS_ID);
-        this.type = RESET_GIVE_USER_CONSENT_PROCESS;
-    }
-}
-class WithdrawUserConsent extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, WITHDRAW_CONSENT_PROCESS_ID);
-        this.payload = payload;
-        this.type = WITHDRAW_USER_CONSENT;
-    }
-}
-class WithdrawUserConsentFail extends EntityFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, WITHDRAW_CONSENT_PROCESS_ID, payload);
-        this.type = WITHDRAW_USER_CONSENT_FAIL;
-    }
-}
-class WithdrawUserConsentSuccess extends EntitySuccessAction {
-    constructor() {
-        super(PROCESS_FEATURE, WITHDRAW_CONSENT_PROCESS_ID);
-        this.type = WITHDRAW_USER_CONSENT_SUCCESS;
-    }
-}
-class ResetWithdrawUserConsentProcess extends EntityResetAction {
-    constructor() {
-        super(PROCESS_FEATURE, WITHDRAW_CONSENT_PROCESS_ID);
-        this.type = RESET_WITHDRAW_USER_CONSENT_PROCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
 const LOAD_USER_DETAILS = '[User] Load User Details';
 /** @type {?} */
 const LOAD_USER_DETAILS_FAIL = '[User] Load User Details Fail';
@@ -9021,14 +12644,6 @@ const REGISTER_USER = '[User] Register User';
 const REGISTER_USER_FAIL = '[User] Register User Fail';
 /** @type {?} */
 const REGISTER_USER_SUCCESS = '[User] Register User Success';
-/** @type {?} */
-const REMOVE_USER = '[User] Remove User';
-/** @type {?} */
-const REMOVE_USER_FAIL = '[User] Remove User Fail';
-/** @type {?} */
-const REMOVE_USER_SUCCESS = '[User] Remove User Success';
-/** @type {?} */
-const REMOVE_USER_RESET = '[User] Reset Remove User Process State';
 class RegisterUser {
     /**
      * @param {?} payload
@@ -9052,38 +12667,6 @@ class RegisterUserSuccess {
         this.type = REGISTER_USER_SUCCESS;
     }
 }
-class RemoveUser extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, REMOVE_USER_PROCESS_ID);
-        this.payload = payload;
-        this.type = REMOVE_USER;
-    }
-}
-class RemoveUserFail extends EntityFailAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PROCESS_FEATURE, REMOVE_USER_PROCESS_ID, payload);
-        this.payload = payload;
-        this.type = REMOVE_USER_FAIL;
-    }
-}
-class RemoveUserSuccess extends EntitySuccessAction {
-    constructor() {
-        super(PROCESS_FEATURE, REMOVE_USER_PROCESS_ID);
-        this.type = REMOVE_USER_SUCCESS;
-    }
-}
-class RemoveUserReset extends EntityResetAction {
-    constructor() {
-        super(PROCESS_FEATURE, REMOVE_USER_PROCESS_ID);
-        this.type = REMOVE_USER_RESET;
-    }
-}
 
 /**
  * @fileoverview added by tsickle
@@ -9101,3936 +12684,9 @@ class ClearMiscsData {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class OrderAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OrderConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    place(userId, cartId) {
-        return this.adapter.place(userId, cartId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} orderCode
-     * @return {?}
-     */
-    get(userId, orderCode) {
-        return this.adapter.load(userId, orderCode);
-    }
-    /**
-     * @param {?} userId
-     * @param {?=} pageSize
-     * @param {?=} currentPage
-     * @param {?=} sort
-     * @return {?}
-     */
-    getHistory(userId, pageSize, currentPage, sort) {
-        return this.adapter.loadHistory(userId, pageSize, currentPage, sort);
-    }
-}
-OrderConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-OrderConnector.ctorParameters = () => [
-    { type: OrderAdapter }
-];
-/** @nocollapse */ OrderConnector.ngInjectableDef = defineInjectable({ factory: function OrderConnector_Factory() { return new OrderConnector(inject(OrderAdapter)); }, token: OrderConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CheckoutEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} cartDeliveryConnector
-     * @param {?} cartConnector
-     * @param {?} cartPaymentConnector
-     * @param {?} orderConnector
-     */
-    constructor(actions$, cartDeliveryConnector, cartConnector, cartPaymentConnector, orderConnector) {
-        this.actions$ = actions$;
-        this.cartDeliveryConnector = cartDeliveryConnector;
-        this.cartConnector = cartConnector;
-        this.cartPaymentConnector = cartPaymentConnector;
-        this.orderConnector = orderConnector;
-        this.addDeliveryAddress$ = this.actions$.pipe(ofType(ADD_DELIVERY_ADDRESS), map((action) => action.payload), mergeMap(payload => this.cartDeliveryConnector
-            .createAddress(payload.userId, payload.cartId, payload.address)
-            .pipe(mergeMap(address => {
-            address['titleCode'] = payload.address.titleCode;
-            return [
-                new LoadUserAddresses(payload.userId),
-                new SetDeliveryAddress({
-                    userId: payload.userId,
-                    cartId: payload.cartId,
-                    address: address,
-                }),
-            ];
-        }), catchError(error => of(new AddDeliveryAddressFail(error))))));
-        this.setDeliveryAddress$ = this.actions$.pipe(ofType(SET_DELIVERY_ADDRESS), map((action) => action.payload), mergeMap(payload => {
-            return this.cartDeliveryConnector
-                .setAddress(payload.userId, payload.cartId, payload.address.id)
-                .pipe(mergeMap(() => [
-                new SetDeliveryAddressSuccess(payload.address),
-                new LoadSupportedDeliveryModes({
-                    userId: payload.userId,
-                    cartId: payload.cartId,
-                }),
-            ]), catchError(error => of(new SetDeliveryAddressFail(error))));
-        }));
-        this.loadSupportedDeliveryModes$ = this.actions$.pipe(ofType(LOAD_SUPPORTED_DELIVERY_MODES), map((action) => action.payload), mergeMap(payload => {
-            return this.cartDeliveryConnector
-                .getSupportedModes(payload.userId, payload.cartId)
-                .pipe(map(data => {
-                return new LoadSupportedDeliveryModesSuccess(data);
-            }), catchError(error => of(new LoadSupportedDeliveryModesFail(error))));
-        }));
-        this.setDeliveryMode$ = this.actions$.pipe(ofType(SET_DELIVERY_MODE), map((action) => action.payload), mergeMap(payload => {
-            return this.cartDeliveryConnector
-                .setMode(payload.userId, payload.cartId, payload.selectedModeId)
-                .pipe(mergeMap(() => {
-                return [
-                    new SetDeliveryModeSuccess(payload.selectedModeId),
-                    new LoadCart({
-                        userId: payload.userId,
-                        cartId: payload.cartId,
-                        details: true,
-                    }),
-                ];
-            }), catchError(error => of(new SetDeliveryModeFail(error))));
-        }));
-        this.createPaymentDetails$ = this.actions$.pipe(ofType(CREATE_PAYMENT_DETAILS), map((action) => action.payload), mergeMap(payload => {
-            // get information for creating a subscription directly with payment provider
-            return this.cartPaymentConnector
-                .create(payload.userId, payload.cartId, payload.paymentDetails)
-                .pipe(mergeMap(details => {
-                return [
-                    new LoadUserPaymentMethods(payload.userId),
-                    new CreatePaymentDetailsSuccess(details),
-                ];
-            }), catchError(error => of(new CreatePaymentDetailsFail(error))));
-        }));
-        this.setPaymentDetails$ = this.actions$.pipe(ofType(SET_PAYMENT_DETAILS), map((action) => action.payload), mergeMap(payload => {
-            return this.cartPaymentConnector
-                .set(payload.userId, payload.cartId, payload.paymentDetails.id)
-                .pipe(map(() => new SetPaymentDetailsSuccess(payload.paymentDetails)), catchError(error => of(new SetPaymentDetailsFail(error))));
-        }));
-        this.placeOrder$ = this.actions$.pipe(ofType(PLACE_ORDER), map((action) => action.payload), mergeMap(payload => {
-            return this.orderConnector.place(payload.userId, payload.cartId).pipe(switchMap(data => [
-                new PlaceOrderSuccess(data),
-                new AddMessage({
-                    text: {
-                        key: 'checkoutOrderConfirmation.orderPlacedSuccessfully',
-                    },
-                    type: GlobalMessageType.MSG_TYPE_CONFIRMATION,
-                }),
-            ]), catchError(error => of(new PlaceOrderFail(error))));
-        }));
-        this.loadCheckoutDetails$ = this.actions$.pipe(ofType(LOAD_CHECKOUT_DETAILS), map((action) => action.payload), mergeMap(payload => {
-            return this.cartConnector
-                .loadCheckoutDetails(payload.userId, payload.cartId)
-                .pipe(map((data) => new LoadCheckoutDetailsSuccess(data)), catchError(error => of(new LoadCheckoutDetailsFail(error))));
-        }));
-        this.reloadDetailsOnMergeCart$ = this.actions$.pipe(ofType(MERGE_CART_SUCCESS), map((action) => action.payload), map(payload => {
-            return new LoadCheckoutDetails({
-                userId: payload.userId,
-                cartId: payload.cartId ? payload.cartId : 'current',
-            });
-        }));
-    }
-}
-CheckoutEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-CheckoutEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: CartDeliveryConnector },
-    { type: CartConnector },
-    { type: CartPaymentConnector },
-    { type: OrderConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "addDeliveryAddress$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "setDeliveryAddress$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "loadSupportedDeliveryModes$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "setDeliveryMode$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "createPaymentDetails$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "setPaymentDetails$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "placeOrder$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "loadCheckoutDetails$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CheckoutEffects.prototype, "reloadDetailsOnMergeCart$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const ENDPOINT_COUNTRIES = 'countries';
-/** @type {?} */
-const ENDPOINT_TITLES = 'titles';
-/** @type {?} */
-const ENDPOINT_CARD_TYPES = 'cardtypes';
-/** @type {?} */
-const ENDPOINT_REGIONS = 'regions';
-/** @type {?} */
-const COUNTRIES_TYPE_SHIPPING = 'SHIPPING';
-/** @type {?} */
-const COUNTRIES_TYPE_BILLING = 'BILLING';
-class OccMiscsService {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     */
-    constructor(http, occEndpoints) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-    }
-    /**
-     * @return {?}
-     */
-    loadDeliveryCountries() {
-        return this.http
-            .get(this.occEndpoints.getEndpoint(ENDPOINT_COUNTRIES), {
-            params: new HttpParams().set('type', COUNTRIES_TYPE_SHIPPING),
-        })
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @return {?}
-     */
-    loadBillingCountries() {
-        return this.http
-            .get(this.occEndpoints.getEndpoint(ENDPOINT_COUNTRIES), {
-            params: new HttpParams().set('type', COUNTRIES_TYPE_BILLING),
-        })
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @return {?}
-     */
-    loadTitles() {
-        return this.http
-            .get(this.occEndpoints.getEndpoint(ENDPOINT_TITLES))
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @return {?}
-     */
-    loadCardTypes() {
-        return this.http
-            .get(this.occEndpoints.getEndpoint(ENDPOINT_CARD_TYPES))
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @param {?} countryIsoCode
-     * @return {?}
-     */
-    loadRegions(countryIsoCode) {
-        return this.http
-            .get(this.occEndpoints.getEndpoint(this.buildRegionsUrl(countryIsoCode)))
-            .pipe(catchError((error) => throwError(error.json())));
-    }
-    /**
-     * @private
-     * @param {?} countryIsoCode
-     * @return {?}
-     */
-    buildRegionsUrl(countryIsoCode) {
-        return `${ENDPOINT_COUNTRIES}/${countryIsoCode}/${ENDPOINT_REGIONS}`;
-    }
-}
-OccMiscsService.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-OccMiscsService.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService }
-];
-/** @nocollapse */ OccMiscsService.ngInjectableDef = defineInjectable({ factory: function OccMiscsService_Factory() { return new OccMiscsService(inject(HttpClient), inject(OccEndpointsService)); }, token: OccMiscsService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CardTypesEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} occMiscsService
-     */
-    constructor(actions$, occMiscsService) {
-        this.actions$ = actions$;
-        this.occMiscsService = occMiscsService;
-        this.loadCardTypes$ = this.actions$.pipe(ofType(LOAD_CARD_TYPES), switchMap(() => {
-            return this.occMiscsService.loadCardTypes().pipe(map(data => new LoadCardTypesSuccess(data.cardTypes)), catchError(error => of(new LoadCardTypesFail(error))));
-        }));
-    }
-}
-CardTypesEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-CardTypesEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: OccMiscsService }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], CardTypesEffects.prototype, "loadCardTypes$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class UserAddressAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UserAddressConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    getAll(userId) {
-        return this.adapter.loadAll(userId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} address
-     * @return {?}
-     */
-    add(userId, address) {
-        return this.adapter.add(userId, address);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} addressId
-     * @param {?} address
-     * @return {?}
-     */
-    update(userId, addressId, address) {
-        return this.adapter.update(userId, addressId, address);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} address
-     * @return {?}
-     */
-    verify(userId, address) {
-        return this.adapter.verify(userId, address);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} addressId
-     * @return {?}
-     */
-    delete(userId, addressId) {
-        return this.adapter.delete(userId, addressId);
-    }
-}
-UserAddressConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-UserAddressConnector.ctorParameters = () => [
-    { type: UserAddressAdapter }
-];
-/** @nocollapse */ UserAddressConnector.ngInjectableDef = defineInjectable({ factory: function UserAddressConnector_Factory() { return new UserAddressConnector(inject(UserAddressAdapter)); }, token: UserAddressConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class AddressVerificationEffect {
-    /**
-     * @param {?} actions$
-     * @param {?} userAddressConnector
-     */
-    constructor(actions$, userAddressConnector) {
-        this.actions$ = actions$;
-        this.userAddressConnector = userAddressConnector;
-        this.verifyAddress$ = this.actions$.pipe(ofType(VERIFY_ADDRESS), map((action) => action.payload), mergeMap(payload => this.userAddressConnector.verify(payload.userId, payload.address).pipe(map(data => {
-            return new VerifyAddressSuccess(data);
-        }), catchError(error => of(new VerifyAddressFail(error))))));
-    }
-}
-AddressVerificationEffect.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-AddressVerificationEffect.ctorParameters = () => [
-    { type: Actions },
-    { type: UserAddressConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], AddressVerificationEffect.prototype, "verifyAddress$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const effects$4 = [
-    CheckoutEffects,
-    AddressVerificationEffect,
-    CardTypesEffects,
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$9 = {
-    address: {},
-    deliveryMode: {
-        supported: {},
-        selected: '',
-    },
-    paymentDetails: {},
-    orderDetails: {},
-};
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$9(state = initialState$9, action) {
-    switch (action.type) {
-        case ADD_DELIVERY_ADDRESS_SUCCESS:
-        case SET_DELIVERY_ADDRESS_SUCCESS: {
-            /** @type {?} */
-            const address = action.payload;
-            return Object.assign({}, state, { address });
-        }
-        case LOAD_SUPPORTED_DELIVERY_MODES_SUCCESS: {
-            /** @type {?} */
-            const supportedModes = action.payload;
-            if (!supportedModes) {
-                return state;
-            }
-            /** @type {?} */
-            const supported = supportedModes.reduce((modes, mode) => {
-                return Object.assign({}, modes, { [mode.code]: mode });
-            }, Object.assign({}, state.deliveryMode.supported));
-            return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { supported }) });
-        }
-        case SET_DELIVERY_MODE_SUCCESS: {
-            /** @type {?} */
-            const selected = action.payload;
-            return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { selected }) });
-        }
-        case CREATE_PAYMENT_DETAILS_SUCCESS:
-        case SET_PAYMENT_DETAILS_SUCCESS: {
-            return Object.assign({}, state, { paymentDetails: action.payload });
-        }
-        case CREATE_PAYMENT_DETAILS_FAIL: {
-            /** @type {?} */
-            const paymentDetails = action.payload;
-            if (paymentDetails['hasError']) {
-                return Object.assign({}, state, { paymentDetails });
-            }
-            return state;
-        }
-        case PLACE_ORDER_SUCCESS: {
-            /** @type {?} */
-            const orderDetails = action.payload;
-            return Object.assign({}, state, { orderDetails });
-        }
-        case CLEAR_CHECKOUT_DATA: {
-            return initialState$9;
-        }
-        case CLEAR_CHECKOUT_STEP: {
-            /** @type {?} */
-            const stepNumber = action.payload;
-            switch (stepNumber) {
-                case 1: {
-                    return Object.assign({}, state, { address: {} });
-                }
-                case 2: {
-                    return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { supported: {}, selected: '' }) });
-                }
-                case 3: {
-                    return Object.assign({}, state, { paymentDetails: {} });
-                }
-            }
-            return state;
-        }
-        case CLEAR_SUPPORTED_DELIVERY_MODES:
-        case CHECKOUT_CLEAR_MISCS_DATA: {
-            return Object.assign({}, state, { deliveryMode: Object.assign({}, state.deliveryMode, { supported: {} }) });
-        }
-        case LOAD_CHECKOUT_DETAILS_SUCCESS: {
-            return Object.assign({}, state, { address: action.payload.deliveryAddress, deliveryMode: Object.assign({}, state.deliveryMode, { selected: action.payload.deliveryMode && action.payload.deliveryMode.code }), paymentDetails: action.payload.paymentInfo });
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @return {?}
- */
-function getReducers$5() {
-    return {
-        steps: loaderReducer(CHECKOUT_DETAILS, reducer$9),
-        cardTypes: reducer$6,
-        addressVerification: reducer$7,
-    };
-}
-/** @type {?} */
-const reducerToken$5 = new InjectionToken('CheckoutReducers');
-/** @type {?} */
-const reducerProvider$5 = {
-    provide: reducerToken$5,
-    useFactory: getReducers$5,
-};
-/**
- * @param {?} reducer
- * @return {?}
- */
-function clearCheckoutState(reducer) {
-    return function (state, action) {
-        switch (action.type) {
-            case LANGUAGE_CHANGE: {
-                action = new CheckoutClearMiscsData();
-                break;
-            }
-            case CURRENCY_CHANGE: {
-                action = new ClearSupportedDeliveryModes();
-                break;
-            }
-            case LOGOUT: {
-                action = new ClearCheckoutData();
-                break;
-            }
-        }
-        return reducer(state, action);
-    };
-}
-/** @type {?} */
-const metaReducers$2 = [clearCheckoutState];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CheckoutService {
-    /**
-     * @param {?} checkoutStore
-     * @param {?} cartData
-     */
-    constructor(checkoutStore, cartData) {
-        this.checkoutStore = checkoutStore;
-        this.cartData = cartData;
-    }
-    /**
-     * Get supported delivery modes
-     * @return {?}
-     */
-    getSupportedDeliveryModes() {
-        return this.checkoutStore.pipe(select(getSupportedDeliveryModes));
-    }
-    /**
-     * Get selected delivery mode
-     * @return {?}
-     */
-    getSelectedDeliveryMode() {
-        return this.checkoutStore.pipe(select(getSelectedDeliveryMode));
-    }
-    /**
-     * Get selected delivery mode code
-     * @return {?}
-     */
-    getSelectedDeliveryModeCode() {
-        return this.checkoutStore.pipe(select(getSelectedCode));
-    }
-    /**
-     * Get card types
-     * @return {?}
-     */
-    getCardTypes() {
-        return this.checkoutStore.pipe(select(getAllCardTypes));
-    }
-    /**
-     * Get delivery address
-     * @return {?}
-     */
-    getDeliveryAddress() {
-        return this.checkoutStore.pipe(select(getDeliveryAddress));
-    }
-    /**
-     * Get address verification results
-     * @return {?}
-     */
-    getAddressVerificationResults() {
-        return this.checkoutStore.pipe(select(getAddressVerificationResults$1), filter(results => Object.keys(results).length !== 0));
-    }
-    /**
-     * Get payment details
-     * @return {?}
-     */
-    getPaymentDetails() {
-        return this.checkoutStore.pipe(select(getPaymentDetails));
-    }
-    /**
-     * Get order details
-     * @return {?}
-     */
-    getOrderDetails() {
-        return this.checkoutStore.pipe(select(getCheckoutOrderDetails));
-    }
-    /**
-     * Create and set a delivery address using the address param
-     * @param {?} address : the Address to be created and set
-     * @return {?}
-     */
-    createAndSetAddress(address) {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new AddDeliveryAddress({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cartId,
-                address: address,
-            }));
-        }
-    }
-    /**
-     * Load supported delivery modes
-     * @return {?}
-     */
-    loadSupportedDeliveryModes() {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new LoadSupportedDeliveryModes({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cartId,
-            }));
-        }
-    }
-    /**
-     * Set delivery mode
-     * @param {?} mode : The delivery mode to be set
-     * @return {?}
-     */
-    setDeliveryMode(mode) {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new SetDeliveryMode({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cartId,
-                selectedModeId: mode,
-            }));
-        }
-    }
-    /**
-     * Load the supported card types
-     * @return {?}
-     */
-    loadSupportedCardTypes() {
-        this.checkoutStore.dispatch(new LoadCardTypes());
-    }
-    /**
-     * Create payment details using the given paymentDetails param
-     * @param {?} paymentDetails
-     * @return {?}
-     */
-    createPaymentDetails(paymentDetails) {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new CreatePaymentDetails({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cartId,
-                paymentDetails,
-            }));
-        }
-    }
-    /**
-     * Places an order
-     * @return {?}
-     */
-    placeOrder() {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new PlaceOrder({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cartId,
-            }));
-        }
-    }
-    /**
-     * Verifies the address
-     * @param {?} address : the address to be verified
-     * @return {?}
-     */
-    verifyAddress(address) {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new VerifyAddress({
-                userId: this.cartData.userId,
-                address,
-            }));
-        }
-    }
-    /**
-     * Set delivery address
-     * @param {?} address : The address to be set
-     * @return {?}
-     */
-    setDeliveryAddress(address) {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new SetDeliveryAddress({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cart.code,
-                address: address,
-            }));
-        }
-    }
-    /**
-     * Set payment details
-     * @param {?} paymentDetails : the PaymentDetails to be set
-     * @return {?}
-     */
-    setPaymentDetails(paymentDetails) {
-        if (this.actionAllowed()) {
-            this.checkoutStore.dispatch(new SetPaymentDetails({
-                userId: this.cartData.userId,
-                cartId: this.cartData.cart.code,
-                paymentDetails: paymentDetails,
-            }));
-        }
-    }
-    /**
-     * Clear address verification results
-     * @return {?}
-     */
-    clearAddressVerificationResults() {
-        this.checkoutStore.dispatch(new ClearAddressVerificationResults());
-    }
-    /**
-     * Clear checkout data
-     * @return {?}
-     */
-    clearCheckoutData() {
-        this.checkoutStore.dispatch(new ClearCheckoutData());
-    }
-    /**
-     * Clear checkout step
-     * @param {?} stepNumber : the step number to be cleared
-     * @return {?}
-     */
-    clearCheckoutStep(stepNumber) {
-        this.checkoutStore.dispatch(new ClearCheckoutStep(stepNumber));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    loadCheckoutDetails(userId, cartId) {
-        this.checkoutStore.dispatch(new LoadCheckoutDetails({ userId, cartId }));
-    }
-    /**
-     * @return {?}
-     */
-    getCheckoutDetailsLoaded() {
-        return this.checkoutStore.pipe(select(getCheckoutDetailsLoaded));
-    }
-    /**
-     * @private
-     * @return {?}
-     */
-    actionAllowed() {
-        return this.cartData.userId !== ANONYMOUS_USERID;
-    }
-}
-CheckoutService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-CheckoutService.ctorParameters = () => [
-    { type: Store },
-    { type: CartDataService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const JSP_INCLUDE_CMS_COMPONENT_TYPE = 'JspIncludeComponent';
-/** @type {?} */
-const CMS_FLEX_COMPONENT_TYPE = 'CMSFlexComponent';
-/**
- * @abstract
- */
-class CmsConfig extends OccConfig {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const defaultCmsModuleConfig = {
-    backend: {
-        occ: {
-            endpoints: {
-                component: 'cms/components/${id}',
-                components: 'cms/components?fields=${fields}',
-                pages: 'cms/pages?fields=${fields}',
-                page: 'cms/pages/${id}?fields=${fields}',
-            },
-        },
-    },
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * The `CmsStructureConfig` is used to build pages in Spartacus by configuration
- * instead of using a backend CMS system. The configuration can be used to build
- * complete pages or parts of a page. The `CmsStructureConfig` is optimized to
- * only require the necessary properties. Adapter logic is applied to serialize
- * the `CmsStructureConfig` into the required UI model.
- * @abstract
- */
-class CmsStructureConfig extends CmsConfig {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @enum {string} */
-const PageRobotsMeta = {
-    INDEX: 'INDEX',
-    NOINDEX: 'NOINDEX',
-    FOLLOW: 'FOLLOW',
-    NOFOLLOW: 'NOFOLLOW',
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CMS_PAGE_NORMALIZE = new InjectionToken('CmsPageNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccCmsPageAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-        this.headers = new HttpHeaders().set('Content-Type', 'application/json');
-    }
-    /**
-     * @param {?} pageContext
-     * @param {?=} fields
-     * @return {?}
-     */
-    load(pageContext, fields) {
-        // load page by Id
-        if (pageContext.type === undefined) {
-            return this.http
-                .get(this.occEndpoints.getUrl('page', {
-                id: pageContext.id,
-                fields: fields ? fields : 'DEFAULT',
-            }), {
-                headers: this.headers,
-            })
-                .pipe(this.converter.pipeable(CMS_PAGE_NORMALIZE));
-        }
-        // load page by PageContext
-        /** @type {?} */
-        const httpParams = this.getPagesRequestParams(pageContext);
-        return this.http
-            .get(this.getPagesEndpoint(httpParams, fields), {
-            headers: this.headers,
-        })
-            .pipe(this.converter.pipeable(CMS_PAGE_NORMALIZE));
-    }
-    /**
-     * @private
-     * @param {?} params
-     * @param {?=} fields
-     * @return {?}
-     */
-    getPagesEndpoint(params, fields) {
-        fields = fields ? fields : 'DEFAULT';
-        return this.occEndpoints.getUrl('pages', { fields }, params);
-    }
-    /**
-     * @private
-     * @param {?} pageContext
-     * @return {?}
-     */
-    getPagesRequestParams(pageContext) {
-        /** @type {?} */
-        let httpParams = {};
-        // smartedit preview page is loaded by previewToken which added by interceptor
-        if (pageContext.id !== 'smartedit-preview') {
-            httpParams = { pageType: pageContext.type };
-            if (pageContext.type === PageType.CONTENT_PAGE) {
-                httpParams['pageLabelOrId'] = pageContext.id;
-            }
-            else {
-                httpParams['code'] = pageContext.id;
-            }
-        }
-        return httpParams;
-    }
-}
-OccCmsPageAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccCmsPageAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccCmsPageNormalizer {
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target = {}) {
-        this.normalizePageData(source, target);
-        this.normalizePageSlotData(source, target);
-        this.normalizePageComponentData(source, target);
-        this.normalizeComponentData(source, target);
-        return target;
-    }
-    /**
-     * @private
-     * @param {?} source
-     * @param {?} target
-     * @return {?}
-     */
-    normalizePageData(source, target) {
-        target.page = {
-            loadTime: Date.now(),
-            name: source.name,
-            type: source.typeCode,
-            title: source.title,
-            pageId: source.uid,
-            template: source.template,
-            slots: {},
-            properties: source.properties,
-        };
-    }
-    /**
-     * @private
-     * @param {?} source
-     * @param {?} target
-     * @return {?}
-     */
-    normalizePageSlotData(source, target) {
-        for (const slot of source.contentSlots.contentSlot) {
-            target.page.slots[slot.position] = (/** @type {?} */ ({
-                components: [],
-                properties: slot.properties,
-            }));
-        }
-    }
-    /**
-     * @private
-     * @param {?} source
-     * @param {?} target
-     * @return {?}
-     */
-    normalizePageComponentData(source, target) {
-        for (const slot of source.contentSlots.contentSlot) {
-            if (slot.components.component &&
-                Array.isArray(slot.components.component)) {
-                for (const component of slot.components.component) {
-                    /** @type {?} */
-                    const comp = {
-                        uid: component.uid,
-                        typeCode: component.typeCode,
-                        properties: component.properties,
-                    };
-                    if (component.typeCode === CMS_FLEX_COMPONENT_TYPE) {
-                        comp.flexType = component.flexType;
-                    }
-                    else if (component.typeCode === JSP_INCLUDE_CMS_COMPONENT_TYPE) {
-                        comp.flexType = component.uid;
-                    }
-                    else {
-                        comp.flexType = component.typeCode;
-                    }
-                    target.page.slots[slot.position].components.push(comp);
-                }
-            }
-        }
-    }
-    /**
-     * @private
-     * @param {?} source
-     * @param {?} target
-     * @return {?}
-     */
-    normalizeComponentData(source, target) {
-        target.components = [];
-        for (const slot of source.contentSlots.contentSlot) {
-            if (slot.components.component &&
-                Array.isArray(slot.components.component)) {
-                for (const component of (/** @type {?} */ (slot.components.component))) {
-                    // we dont put properties into component state
-                    if (component.properties) {
-                        component.properties = undefined;
-                    }
-                    target.components.push(component);
-                }
-            }
-        }
-    }
-}
-OccCmsPageNormalizer.decorators = [
-    { type: Injectable }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CMS_COMPONENT_NORMALIZER = new InjectionToken('CmsComponentNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccCmsComponentAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-        this.headers = new HttpHeaders().set('Content-Type', 'application/json');
-    }
-    /**
-     * @template T
-     * @param {?} id
-     * @param {?} pageContext
-     * @return {?}
-     */
-    load(id, pageContext) {
-        return this.http
-            .get(this.getComponentEndPoint(id, pageContext), {
-            headers: this.headers,
-        })
-            .pipe(this.converter.pipeable(CMS_COMPONENT_NORMALIZER));
-    }
-    /**
-     * @param {?} ids
-     * @param {?} pageContext
-     * @param {?=} fields
-     * @param {?=} currentPage
-     * @param {?=} pageSize
-     * @param {?=} sort
-     * @return {?}
-     */
-    findComponentsByIds(ids, pageContext, fields = 'DEFAULT', currentPage = 0, pageSize = ids.length, sort) {
-        /** @type {?} */
-        const requestParams = Object.assign({}, this.getContextParams(pageContext), this.getPaginationParams(currentPage, pageSize, sort));
-        requestParams['componentIds'] = ids.toString();
-        return this.http
-            .get(this.getComponentsEndpoint(requestParams, fields), {
-            headers: this.headers,
-        })
-            .pipe(pluck('component'), this.converter.pipeableMany(CMS_COMPONENT_NORMALIZER), catchError(error => {
-            if (error.status === 400) {
-                return this.searchComponentsByIds(ids, pageContext, fields, currentPage, pageSize, sort);
-            }
-        }));
-    }
-    /**
-     * @param {?} ids
-     * @param {?} pageContext
-     * @param {?=} fields
-     * @param {?=} currentPage
-     * @param {?=} pageSize
-     * @param {?=} sort
-     * @return {?}
-     */
-    searchComponentsByIds(ids, pageContext, fields = 'DEFAULT', currentPage = 0, pageSize = ids.length, sort) {
-        /** @type {?} */
-        const idList = { idList: ids };
-        /** @type {?} */
-        const requestParams = Object.assign({}, this.getContextParams(pageContext), this.getPaginationParams(currentPage, pageSize, sort));
-        return this.http
-            .post(this.getComponentsEndpoint(requestParams, fields), idList, {
-            headers: this.headers,
-        })
-            .pipe(pluck('component'), this.converter.pipeableMany(CMS_COMPONENT_NORMALIZER));
-    }
-    /**
-     * @protected
-     * @param {?} id
-     * @param {?} pageContext
-     * @return {?}
-     */
-    getComponentEndPoint(id, pageContext) {
-        return this.occEndpoints.getUrl('component', { id }, this.getContextParams(pageContext));
-    }
-    /**
-     * @protected
-     * @param {?} requestParams
-     * @param {?} fields
-     * @return {?}
-     */
-    getComponentsEndpoint(requestParams, fields) {
-        return this.occEndpoints.getUrl('components', { fields }, requestParams);
-    }
-    /**
-     * @private
-     * @param {?=} currentPage
-     * @param {?=} pageSize
-     * @param {?=} sort
-     * @return {?}
-     */
-    getPaginationParams(currentPage, pageSize, sort) {
-        /** @type {?} */
-        const requestParams = {};
-        if (currentPage !== undefined) {
-            requestParams['currentPage'] = currentPage.toString();
-        }
-        if (pageSize !== undefined) {
-            requestParams['pageSize'] = pageSize.toString();
-        }
-        if (sort !== undefined) {
-            requestParams['sort'] = sort;
-        }
-        return requestParams;
-    }
-    /**
-     * @private
-     * @param {?} pageContext
-     * @return {?}
-     */
-    getContextParams(pageContext) {
-        /** @type {?} */
-        let requestParams = {};
-        switch (pageContext.type) {
-            case PageType.PRODUCT_PAGE: {
-                requestParams = { productCode: pageContext.id };
-                break;
-            }
-            case PageType.CATEGORY_PAGE: {
-                requestParams = { categoryCode: pageContext.id };
-                break;
-            }
-            case PageType.CATALOG_PAGE: {
-                requestParams = { catalogCode: pageContext.id };
-                break;
-            }
-        }
-        return requestParams;
-    }
-}
-OccCmsComponentAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccCmsComponentAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * Abstract class that can be used to implement custom loader logic
- * in order to load CMS structure from third-party CMS system.
- * @abstract
- */
-class CmsPageAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ComponentMapperService {
-    /**
-     * @param {?} componentFactoryResolver
-     * @param {?} config
-     * @param {?} document
-     * @param {?} platform
-     */
-    constructor(componentFactoryResolver, config, document, platform) {
-        this.componentFactoryResolver = componentFactoryResolver;
-        this.config = config;
-        this.document = document;
-        this.platform = platform;
-        this.missingComponents = [];
-        this.loadedWebComponents = {};
-    }
-    /**
-     * @desc
-     * returns a web component for the CMS typecode.
-     *
-     * The mapping of CMS components to web componetns requires a mapping.
-     * This is configurable when the module is loaded.
-     *
-     * For example:
-     *
-     *  {
-     *      'CMSLinkComponent': 'LinkComponent',
-     *      'SimpleResponsiveBannerComponent': 'SimpleResponsiveBannerComponent',
-     *      [etc.]
-     *  }
-     *
-     * The type codes are dynamic since they depend on the implementation.
-     * Customer will add, extend or ingore standard components.
-     *
-     * @protected
-     * @param {?} typeCode the component type
-     * @return {?}
-     */
-    getType(typeCode) {
-        /** @type {?} */
-        const componentConfig = this.config.cmsComponents[typeCode];
-        if (!componentConfig) {
-            if (!this.missingComponents.includes(typeCode)) {
-                this.missingComponents.push(typeCode);
-                console.warn(`No component implementation found for the CMS component type '${typeCode}'.\n`, `Make sure you implement a component and register it in the mapper.`);
-            }
-        }
-        return componentConfig ? componentConfig.selector : null;
-    }
-    /**
-     * @param {?} typeCode
-     * @return {?}
-     */
-    getFactoryEntryByCode(typeCode) {
-        /** @type {?} */
-        const alias = this.getType(typeCode);
-        if (!alias) {
-            return;
-        }
-        /** @type {?} */
-        const factoryEntries = Array.from(this.componentFactoryResolver['_factories'].entries());
-        /** @type {?} */
-        const factory = factoryEntries.find(([, value]) => value.selector === alias);
-        if (!factory) {
-            console.warn(`No component factory found for the CMS component type '${typeCode}'.\n`, `Make sure you add a component to the 'entryComponents' array in the NgModule.`);
-        }
-        return factory;
-    }
-    /**
-     * @param {?} typeCode
-     * @return {?}
-     */
-    getComponentTypeByCode(typeCode) {
-        /** @type {?} */
-        const factoryEntry = this.getFactoryEntryByCode(typeCode);
-        return factoryEntry ? factoryEntry[0] : null;
-    }
-    /**
-     * @param {?} typeCode
-     * @return {?}
-     */
-    getComponentFactoryByCode(typeCode) {
-        /** @type {?} */
-        const factoryEntry = this.getFactoryEntryByCode(typeCode);
-        return factoryEntry ? factoryEntry[1] : null;
-    }
-    /**
-     * @param {?} typeCode
-     * @return {?}
-     */
-    isWebComponent(typeCode) {
-        return (this.getType(typeCode) || '').includes('#');
-    }
-    /**
-     * @param {?} componentType
-     * @param {?} renderer
-     * @return {?}
-     */
-    initWebComponent(componentType, renderer) {
-        return new Promise(resolve => {
-            const [path, selector] = this.getType(componentType).split('#');
-            /** @type {?} */
-            let script = this.loadedWebComponents[path];
-            if (!script) {
-                script = renderer.createElement('script');
-                this.loadedWebComponents[path] = script;
-                script.setAttribute('src', path);
-                renderer.appendChild(this.document.body, script);
-                if (isPlatformBrowser(this.platform)) {
-                    script.onload = () => {
-                        script.onload = null;
-                    };
-                }
-            }
-            if (script.onload) {
-                // If script is still loading (has onload callback defined)
-                // add new callback and chain it with the existing one.
-                // Needed to support loading multiple components from one script
-                /** @type {?} */
-                const chainedOnload = script.onload;
-                script.onload = () => {
-                    chainedOnload();
-                    resolve(selector);
-                };
-            }
-            else {
-                resolve(selector);
-            }
-        });
-    }
-}
-ComponentMapperService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ComponentMapperService.ctorParameters = () => [
-    { type: ComponentFactoryResolver },
-    { type: CmsConfig },
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] }] },
-    { type: undefined, decorators: [{ type: Inject, args: [PLATFORM_ID,] }] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class CmsComponentAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CmsOccModule {
-}
-CmsOccModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [CommonModule, HttpClientModule],
-                providers: [
-                    ComponentMapperService,
-                    {
-                        provide: CmsPageAdapter,
-                        useClass: OccCmsPageAdapter,
-                    },
-                    {
-                        provide: CMS_PAGE_NORMALIZE,
-                        useClass: OccCmsPageNormalizer,
-                        multi: true,
-                    },
-                    {
-                        provide: CmsComponentAdapter,
-                        useClass: OccCmsComponentAdapter,
-                    },
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * Service that provides access to CMS structure from a static
- * configuration or configuration file. This class uses static
- * configuration is designed in async fashion so that configuratiosn
- * can be loaded from a file or stream.
- *
- * The intend of the `CmsStructureConfigService` however is to provide
- * fast loading pages and default cms structure for comodoty commerce.
- * @abstract
- */
-class CmsStructureConfigService {
-    /**
-     * @param {?} cmsDataConfig
-     */
-    constructor(cmsDataConfig) {
-        this.cmsDataConfig = cmsDataConfig;
-    }
-    /**
-     * Merge the cms structure to the pageStructure. The page structure
-     * can either hold complete page structures or global structures that
-     * might apply to all pages (such has header coponents).
-     * @param {?} pageId
-     * @param {?} pageStructure
-     * @return {?}
-     */
-    mergePageStructure(pageId, pageStructure) {
-        return this.mergePage(pageId, pageStructure).pipe(switchMap(page => this.mergeSlots(page)));
-    }
-    /**
-     *
-     * Returns boolean observable to indicate whether the page should not be
-     * loaded from the backend. This is useful for pages which are comoditized
-     * and follow best practice.
-     *
-     * By default, configurable pages are driven by static configuration,
-     * in order to allow for fast loading pages (preventing network delays).
-     * @param {?} pageId
-     * @return {?}
-     */
-    shouldIgnoreBackend(pageId) {
-        return this.getPageFromConfig(pageId).pipe(map(page => !!page && !!page.ignoreBackend));
-    }
-    /**
-     * returns an Observable component data from the static configuration.
-     * @param {?} componentId
-     * @return {?}
-     */
-    getComponentFromConfig(componentId) {
-        return of(this.getComponentById(componentId));
-    }
-    /**
-     * returns an Observable components data from the static configuration.
-     * @param {?} ids
-     * @return {?}
-     */
-    getComponentsFromConfig(ids) {
-        return of(ids.map(id => this.getComponentById(id)));
-    }
-    /**
-     * returns an observable with the `PageConfig`.
-     * @private
-     * @param {?} pageId
-     * @return {?}
-     */
-    getPageFromConfig(pageId) {
-        return of(this.cmsDataConfig.cmsStructure && this.cmsDataConfig.cmsStructure.pages
-            ? this.cmsDataConfig.cmsStructure.pages.find(p => p.pageId === pageId)
-            : null);
-    }
-    /**
-     * Merge page data from the configuration into the given structure, if any.
-     * If the given page structure is empty, a page is created and the page slots are
-     * are merged into the page.
-     * @private
-     * @param {?} pageId
-     * @param {?} pageStructure
-     * @return {?}
-     */
-    mergePage(pageId, pageStructure) {
-        return this.getPageFromConfig(pageId).pipe(switchMap(page => {
-            if (page) {
-                // serialize page data
-                if (!pageStructure.page) {
-                    pageStructure.page = Object.assign({}, page);
-                    pageStructure.page.slots = {};
-                }
-                if (!pageStructure.page.slots) {
-                    pageStructure.page.slots = {};
-                }
-                return this.mergeSlots(pageStructure, page.slots);
-            }
-            else {
-                return of(pageStructure);
-            }
-        }));
-    }
-    /**
-     * Adds any pre-configured slots for pages that do not use them.
-     * If pages have a slot for the given position, the configiuration
-     * is ingored. Even if the slot does not have inner structure (such as
-     * components), so that the cms structure is able to override the (static)
-     * configuration.
-     * @private
-     * @param {?} pageStructure
-     * @param {?=} slots
-     * @return {?}
-     */
-    mergeSlots(pageStructure, slots) {
-        // if no slots have been given, we use the global configured slots
-        if (!slots &&
-            this.cmsDataConfig.cmsStructure &&
-            this.cmsDataConfig.cmsStructure.slots) {
-            slots = this.cmsDataConfig.cmsStructure.slots;
-        }
-        if (!slots) {
-            return of(pageStructure);
-        }
-        for (const position of Object.keys(slots)) {
-            if (!Object.keys(pageStructure.page.slots).includes(position)) {
-                // the global slot isn't yet part of the page structure
-                pageStructure.page.slots[position] = {};
-                for (const component of this.getComponentsByPosition(slots, position)) {
-                    if (!pageStructure.page.slots[position].components) {
-                        pageStructure.page.slots[position].components = [];
-                    }
-                    pageStructure.page.slots[position].components.push({
-                        uid: component.uid,
-                        flexType: component.flexType,
-                        typeCode: component.typeCode,
-                    });
-                    if (!pageStructure.components) {
-                        pageStructure.components = [];
-                    }
-                    pageStructure.components.push(component);
-                }
-            }
-        }
-        return of(pageStructure);
-    }
-    /**
-     * @private
-     * @param {?} slots
-     * @param {?} position
-     * @return {?}
-     */
-    getComponentsByPosition(slots, position) {
-        /** @type {?} */
-        const components = [];
-        if (slots[position] && slots[position].componentIds) {
-            for (const componentId of slots[position].componentIds) {
-                if (this.cmsDataConfig.cmsStructure &&
-                    this.cmsDataConfig.cmsStructure.components) {
-                    /** @type {?} */
-                    const component = this.cmsDataConfig.cmsStructure.components[componentId];
-                    if (component) {
-                        components.push(Object.assign({ uid: componentId }, component));
-                    }
-                }
-            }
-        }
-        return components;
-    }
-    /**
-     * @private
-     * @param {?} componentId
-     * @return {?}
-     */
-    getComponentById(componentId) {
-        return this.cmsDataConfig.cmsStructure &&
-            this.cmsDataConfig.cmsStructure.components
-            ? this.cmsDataConfig.cmsStructure.components[componentId]
-            : undefined;
-    }
-}
-CmsStructureConfigService.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CmsStructureConfigService.ctorParameters = () => [
-    { type: CmsStructureConfig }
-];
-/** @nocollapse */ CmsStructureConfigService.ngInjectableDef = defineInjectable({ factory: function CmsStructureConfigService_Factory() { return new CmsStructureConfigService(inject(CmsStructureConfig)); }, token: CmsStructureConfigService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CmsPageConnector {
-    /**
-     * @param {?} cmsPageAdapter
-     * @param {?} cmsStructureConfigService
-     */
-    constructor(cmsPageAdapter, cmsStructureConfigService) {
-        this.cmsPageAdapter = cmsPageAdapter;
-        this.cmsStructureConfigService = cmsStructureConfigService;
-    }
-    /**
-     * Returns an observable with the page structure. The page structure is
-     * typically loaded from a backend, but can also be returned from static
-     * configuration (see `CmsStructureConfigService`).
-     * @param {?} pageContext
-     * @return {?}
-     */
-    get(pageContext) {
-        return this.cmsStructureConfigService
-            .shouldIgnoreBackend(pageContext.id)
-            .pipe(switchMap(loadFromConfig => {
-            if (!loadFromConfig) {
-                return this.cmsPageAdapter.load(pageContext).pipe(catchError(error => {
-                    if (error instanceof HttpErrorResponse &&
-                        error.status === 400) {
-                        return of({});
-                    }
-                    else {
-                        return throwError(error);
-                    }
-                }));
-            }
-            else {
-                return of({});
-            }
-        }), switchMap(page => this.mergeDefaultPageStructure(pageContext, page)));
-    }
-    /**
-     *
-     * Merge default page structure inot the given `CmsStructureModel`.
-     * This is benefitial for a fast setup of the UI without necessary
-     * finegrained CMS setup.
-     * @private
-     * @param {?} pageContext
-     * @param {?} pageStructure
-     * @return {?}
-     */
-    mergeDefaultPageStructure(pageContext, pageStructure) {
-        return this.cmsStructureConfigService.mergePageStructure(pageContext.id, pageStructure);
-    }
-}
-CmsPageConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CmsPageConnector.ctorParameters = () => [
-    { type: CmsPageAdapter },
-    { type: CmsStructureConfigService }
-];
-/** @nocollapse */ CmsPageConnector.ngInjectableDef = defineInjectable({ factory: function CmsPageConnector_Factory() { return new CmsPageConnector(inject(CmsPageAdapter), inject(CmsStructureConfigService)); }, token: CmsPageConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CmsComponentConnector {
-    /**
-     * @param {?} cmsStructureConfigService
-     * @param {?} adapter
-     */
-    constructor(cmsStructureConfigService, adapter) {
-        this.cmsStructureConfigService = cmsStructureConfigService;
-        this.adapter = adapter;
-    }
-    /**
-     * @template T
-     * @param {?} id
-     * @param {?} pageContext
-     * @return {?}
-     */
-    get(id, pageContext) {
-        return this.cmsStructureConfigService
-            .getComponentFromConfig(id)
-            .pipe(switchMap(configuredComponent => configuredComponent
-            ? of(configuredComponent)
-            : this.adapter.load(id, pageContext)));
-    }
-    /**
-     * @param {?} ids
-     * @param {?} pageContext
-     * @return {?}
-     */
-    getList(ids, pageContext) {
-        return this.cmsStructureConfigService.getComponentsFromConfig(ids).pipe(switchMap(configuredComponents => {
-            // check if we have some components that are not loaded from configuration
-            /** @type {?} */
-            const missingIds = configuredComponents.reduce((acc, component, index) => {
-                if (component === undefined) {
-                    acc.push(ids[index]);
-                }
-                return acc;
-            }, []);
-            if (missingIds.length > 0) {
-                return this.adapter
-                    .findComponentsByIds(missingIds, pageContext)
-                    .pipe(map(loadedComponents => [
-                    ...configuredComponents.filter(Boolean),
-                    ...loadedComponents,
-                ]));
-            }
-            else {
-                return of(configuredComponents);
-            }
-        }));
-    }
-}
-CmsComponentConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CmsComponentConnector.ctorParameters = () => [
-    { type: CmsStructureConfigService },
-    { type: CmsComponentAdapter }
-];
-/** @nocollapse */ CmsComponentConnector.ngInjectableDef = defineInjectable({ factory: function CmsComponentConnector_Factory() { return new CmsComponentConnector(inject(CmsStructureConfigService), inject(CmsComponentAdapter)); }, token: CmsComponentConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const CMS_FEATURE = 'cms';
-/** @type {?} */
-const NAVIGATION_DETAIL_ENTITY = '[Cms] Navigation Entity';
-/** @type {?} */
-const COMPONENT_ENTITY = '[Cms[ Component Entity';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOAD_PAGE_DATA = '[Cms] Load Page Data';
-/** @type {?} */
-const LOAD_PAGE_DATA_FAIL = '[Cms] Load Page Data Fail';
-/** @type {?} */
-const LOAD_PAGE_DATA_SUCCESS = '[Cms] Load Page Data Success';
-class LoadPageData extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(payload.type, payload.id);
-        this.payload = payload;
-        this.type = LOAD_PAGE_DATA;
-    }
-}
-class LoadPageDataFail extends EntityFailAction {
-    /**
-     * @param {?} pageContext
-     * @param {?} error
-     */
-    constructor(pageContext, error) {
-        super(pageContext.type, pageContext.id, error);
-        this.type = LOAD_PAGE_DATA_FAIL;
-    }
-}
-class LoadPageDataSuccess extends EntitySuccessAction {
-    /**
-     * @param {?} pageContext
-     * @param {?} payload
-     */
-    constructor(pageContext, payload) {
-        super(pageContext.type, pageContext.id, payload);
-        this.type = LOAD_PAGE_DATA_SUCCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOAD_COMPONENT = '[Cms] Load Component';
-/** @type {?} */
-const LOAD_COMPONENT_FAIL = '[Cms] Load Component Fail';
-/** @type {?} */
-const LOAD_COMPONENT_SUCCESS = '[Cms] Load Component Success';
-/** @type {?} */
-const GET_COMPONENET_FROM_PAGE = '[Cms] Get Component from Page';
-class LoadComponent extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(COMPONENT_ENTITY, payload);
-        this.payload = payload;
-        this.type = LOAD_COMPONENT;
-    }
-}
-class LoadComponentFail extends EntityFailAction {
-    /**
-     * @param {?} uid
-     * @param {?} payload
-     */
-    constructor(uid, payload) {
-        super(COMPONENT_ENTITY, uid, payload);
-        this.payload = payload;
-        this.type = LOAD_COMPONENT_FAIL;
-    }
-}
-/**
- * @template T
- */
-class LoadComponentSuccess extends EntitySuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(COMPONENT_ENTITY, payload.uid);
-        this.payload = payload;
-        this.type = LOAD_COMPONENT_SUCCESS;
-    }
-}
-/**
- * @template T
- */
-class GetComponentFromPage extends EntitySuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(COMPONENT_ENTITY, payload.map(cmp => cmp.uid));
-        this.payload = payload;
-        this.type = GET_COMPONENET_FROM_PAGE;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOAD_NAVIGATION_ITEMS = '[Cms] Load NavigationEntry items';
-/** @type {?} */
-const LOAD_NAVIGATION_ITEMS_FAIL = '[Cms] Load NavigationEntry items Fail';
-/** @type {?} */
-const LOAD_NAVIGATION_ITEMS_SUCCESS = '[Cms] Load NavigationEntry items Success';
-class LoadNavigationItems extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(NAVIGATION_DETAIL_ENTITY, payload.nodeId);
-        this.payload = payload;
-        this.type = LOAD_NAVIGATION_ITEMS;
-    }
-}
-class LoadNavigationItemsFail extends EntityFailAction {
-    /**
-     * @param {?} nodeId
-     * @param {?} payload
-     */
-    constructor(nodeId, payload) {
-        super(NAVIGATION_DETAIL_ENTITY, nodeId, payload);
-        this.payload = payload;
-        this.type = LOAD_NAVIGATION_ITEMS_FAIL;
-    }
-}
-class LoadNavigationItemsSuccess extends EntitySuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(NAVIGATION_DETAIL_ENTITY, payload.nodeId);
-        this.payload = payload;
-        this.type = LOAD_NAVIGATION_ITEMS_SUCCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getCmsState = createFeatureSelector(CMS_FEATURE);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getPageEntitiesSelector = (state) => state.pageData.entities;
-/** @type {?} */
-const getIndexByType = (index, type) => {
-    switch (type) {
-        case PageType.CONTENT_PAGE: {
-            return index.content;
-        }
-        case PageType.PRODUCT_PAGE: {
-            return index.product;
-        }
-        case PageType.CATEGORY_PAGE: {
-            return index.category;
-        }
-        case PageType.CATALOG_PAGE: {
-            return index.catalog;
-        }
-    }
-    return { entities: {} };
-};
-/** @type {?} */
-const getPageComponentTypesSelector = (page) => {
-    /** @type {?} */
-    const componentTypes = new Set();
-    if (page && page.slots) {
-        for (const slot of Object.keys(page.slots)) {
-            for (const component of page.slots[slot].components || []) {
-                componentTypes.add(component.flexType);
-            }
-        }
-    }
-    return Array.from(componentTypes);
-};
-/** @type {?} */
-const getPageState = createSelector(getCmsState, (state) => state.page);
-/** @type {?} */
-const getPageStateIndex = createSelector(getPageState, (page) => page.index);
-/** @type {?} */
-const getIndex = (pageContext) => createSelector(getPageStateIndex, (index) => getIndexByType(index, pageContext.type));
-/** @type {?} */
-const getIndexEntity = (pageContext) => createSelector(getIndex(pageContext), index => index.entities[pageContext.id] || {});
-/** @type {?} */
-const getPageEntities = createSelector(getPageState, getPageEntitiesSelector);
-/** @type {?} */
-const getPageData = (pageContext) => createSelector(getPageEntities, getIndexEntity(pageContext), (entities, entity) => entities[entity.value]);
-/** @type {?} */
-const getPageComponentTypes = (pageContext) => createSelector(getPageData(pageContext), pageData => getPageComponentTypesSelector(pageData));
-/** @type {?} */
-const currentSlotSelectorFactory = (pageContext, position) => {
-    return createSelector(getPageData(pageContext), entity => {
-        if (entity) {
-            return entity.slots[position];
-        }
-    });
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getComponentEntitiesSelector = (state) => Object.keys(state.entities).reduce((acc, cur) => {
-    acc[cur] = state.entities[cur].value;
-    return acc;
-}, {});
-/** @type {?} */
-const getComponentState = createSelector(getCmsState, (state) => state.component);
-/** @type {?} */
-const getComponentEntities = createSelector(getComponentState, getComponentEntitiesSelector);
-/** @type {?} */
-const componentStateSelectorFactory = (uid) => {
-    return createSelector(getComponentState, entities => entityStateSelector(entities, uid));
-};
-/** @type {?} */
-const componentSelectorFactory = (uid) => {
-    return createSelector(componentStateSelectorFactory(uid), state => loaderValueSelector(state));
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getNavigationEntryItemState = createSelector(getCmsState, (state) => state.navigation);
-/** @type {?} */
-const getSelectedNavigationEntryItemState = (nodeId) => {
-    return createSelector(getNavigationEntryItemState, nodes => entityStateSelector(nodes, nodeId));
-};
-/** @type {?} */
-const itemsSelectorFactory = (nodeId) => {
-    return createSelector(getSelectedNavigationEntryItemState(nodeId), itemState => loaderValueSelector(itemState));
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$a = undefined;
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$a(state = initialState$a, action) {
-    switch (action.type) {
-        case LOAD_NAVIGATION_ITEMS_SUCCESS: {
-            if (action.payload.components) {
-                /** @type {?} */
-                const components = action.payload.components;
-                /** @type {?} */
-                const newItem = components.reduce((compItems, component) => {
-                    return Object.assign({}, compItems, { [`${component.uid}_AbstractCMSComponent`]: component });
-                }, Object.assign({}));
-                return Object.assign({}, state, newItem);
-            }
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$b = { entities: {} };
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$b(state = initialState$b, action) {
-    switch (action.type) {
-        case LOAD_PAGE_DATA_SUCCESS: {
-            /** @type {?} */
-            const page = action.payload;
-            return Object.assign({}, state, { entities: Object.assign({}, state.entities, { [page.pageId]: page }) });
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$c = undefined;
-/**
- * @param {?} entityType
- * @return {?}
- */
-function reducer$c(entityType) {
-    return (state = initialState$c, action) => {
-        if (action.meta && action.meta.entityType === entityType) {
-            switch (action.type) {
-                case LOAD_PAGE_DATA_SUCCESS: {
-                    return action.payload.pageId;
-                }
-                case LOAD_PAGE_DATA_FAIL: {
-                    return initialState$c;
-                }
-            }
-        }
-        return state;
-    };
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @return {?}
- */
-function getReducers$6() {
-    return {
-        page: combineReducers({
-            pageData: reducer$b,
-            index: combineReducers({
-                content: entityLoaderReducer(PageType.CONTENT_PAGE, reducer$c(PageType.CONTENT_PAGE)),
-                product: entityLoaderReducer(PageType.PRODUCT_PAGE, reducer$c(PageType.PRODUCT_PAGE)),
-                category: entityLoaderReducer(PageType.CATEGORY_PAGE, reducer$c(PageType.CATEGORY_PAGE)),
-                catalog: entityLoaderReducer(PageType.CATALOG_PAGE, reducer$c(PageType.CATALOG_PAGE)),
-            }),
-        }),
-        component: entityLoaderReducer(COMPONENT_ENTITY),
-        navigation: entityLoaderReducer(NAVIGATION_DETAIL_ENTITY, reducer$a),
-    };
-}
-/** @type {?} */
-const reducerToken$6 = new InjectionToken('CmsReducers');
-/** @type {?} */
-const reducerProvider$6 = {
-    provide: reducerToken$6,
-    useFactory: getReducers$6,
-};
-/**
- * @param {?} reducer
- * @return {?}
- */
-function clearCmsState(reducer) {
-    return function (state, action) {
-        if (action.type === LANGUAGE_CHANGE ||
-            action.type === LOGOUT ||
-            action.type === LOGIN) {
-            state = undefined;
-        }
-        return reducer(state, action);
-    };
-}
-/** @type {?} */
-const metaReducers$3 = [clearCmsState];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class PageContext {
-    /**
-     * @param {?} id
-     * @param {?=} type
-     */
-    constructor(id, type) {
-        this.id = id;
-        this.type = type;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UrlPipe {
-    /**
-     * @param {?} urlService
-     */
-    constructor(urlService) {
-        this.urlService = urlService;
-    }
-    /**
-     * @param {?} commands
-     * @return {?}
-     */
-    transform(commands) {
-        return this.urlService.generateUrl(commands);
-    }
-}
-UrlPipe.decorators = [
-    { type: Pipe, args: [{
-                name: 'cxUrl',
-            },] }
-];
-/** @nocollapse */
-UrlPipe.ctorParameters = () => [
-    { type: UrlService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UrlModule {
-}
-UrlModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [CommonModule],
-                declarations: [UrlPipe],
-                exports: [UrlPipe],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class PageEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} cmsPageConnector
-     * @param {?} routingService
-     */
-    constructor(actions$, cmsPageConnector, routingService) {
-        this.actions$ = actions$;
-        this.cmsPageConnector = cmsPageConnector;
-        this.routingService = routingService;
-        this.refreshPage$ = this.actions$.pipe(ofType(LANGUAGE_CHANGE, LOGOUT, LOGIN), switchMap(_ => this.routingService.getRouterState().pipe(filter(routerState => routerState &&
-            routerState.state &&
-            routerState.state.cmsRequired &&
-            !routerState.nextState), map(routerState => routerState.state.context), take(1), mergeMap(context => of(new LoadPageData(context))))));
-        this.loadPageData$ = this.actions$.pipe(ofType(LOAD_PAGE_DATA), map((action) => action.payload), switchMap(pageContext => {
-            return this.cmsPageConnector.get(pageContext).pipe(mergeMap((cmsStructure) => {
-                return [
-                    new GetComponentFromPage(cmsStructure.components),
-                    new LoadPageDataSuccess(pageContext, cmsStructure.page),
-                ];
-            }), catchError(error => {
-                return of(new LoadPageDataFail(pageContext, error));
-            }));
-        }));
-    }
-}
-PageEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-PageEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: CmsPageConnector },
-    { type: RoutingService }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], PageEffects.prototype, "refreshPage$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], PageEffects.prototype, "loadPageData$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ComponentEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} cmsComponentLoader
-     * @param {?} routingService
-     */
-    constructor(actions$, cmsComponentLoader, routingService) {
-        this.actions$ = actions$;
-        this.cmsComponentLoader = cmsComponentLoader;
-        this.routingService = routingService;
-        this.loadComponent$ = this.actions$.pipe(ofType(LOAD_COMPONENT), map((action) => action.payload), groupBy(uid => uid), mergeMap(group => group.pipe(switchMap(uid => {
-            return this.routingService.getRouterState().pipe(filter(routerState => routerState !== undefined), map(routerState => routerState.state.context), take(1), mergeMap(pageContext => this.cmsComponentLoader.get(uid, pageContext).pipe(map(data => new LoadComponentSuccess(data)), catchError(error => of(new LoadComponentFail(uid, error))))));
-        }))));
-    }
-}
-ComponentEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ComponentEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: CmsComponentConnector },
-    { type: RoutingService }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ComponentEffects.prototype, "loadComponent$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class NavigationEntryItemEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} cmsComponentConnector
-     * @param {?} routingService
-     */
-    constructor(actions$, cmsComponentConnector, routingService) {
-        this.actions$ = actions$;
-        this.cmsComponentConnector = cmsComponentConnector;
-        this.routingService = routingService;
-        this.loadNavigationItems$ = this.actions$.pipe(ofType(LOAD_NAVIGATION_ITEMS), map((action) => action.payload), map(payload => {
-            return {
-                ids: this.getIdListByItemType(payload.items),
-                nodeId: payload.nodeId,
-            };
-        }), mergeMap(data => {
-            if (data.ids.componentIds.length > 0) {
-                return this.routingService.getRouterState().pipe(filter(routerState => routerState !== undefined), map(routerState => routerState.state.context), take(1), mergeMap(pageContext => {
-                    // download all items in one request
-                    return this.cmsComponentConnector
-                        .getList(data.ids.componentIds, pageContext)
-                        .pipe(map(components => new LoadNavigationItemsSuccess({
-                        nodeId: data.nodeId,
-                        components: components,
-                    })), catchError(error => of(new LoadNavigationItemsFail(data.nodeId, error))));
-                }));
-            }
-            else if (data.ids.pageIds.length > 0) ;
-            else if (data.ids.mediaIds.length > 0) ;
-            else {
-                return of(new LoadNavigationItemsFail(data.nodeId, 'navigation nodes are empty'));
-            }
-        }));
-    }
-    // We only consider 3 item types: cms page, cms component, and media.
-    /**
-     * @param {?} itemList
-     * @return {?}
-     */
-    getIdListByItemType(itemList) {
-        /** @type {?} */
-        const pageIds = [];
-        /** @type {?} */
-        const componentIds = [];
-        /** @type {?} */
-        const mediaIds = [];
-        itemList.forEach(item => {
-            if (item.superType === 'AbstractCMSComponent') {
-                componentIds.push(item.id);
-            }
-            else if (item.superType === 'AbstractPage') {
-                pageIds.push(item.id);
-            }
-            else if (item.superType === 'AbstractMedia') {
-                mediaIds.push(item.id);
-            }
-        });
-        return { pageIds: pageIds, componentIds: componentIds, mediaIds: mediaIds };
-    }
-}
-NavigationEntryItemEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-NavigationEntryItemEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: CmsComponentConnector },
-    { type: RoutingService }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], NavigationEntryItemEffects.prototype, "loadNavigationItems$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const effects$5 = [
-    PageEffects,
-    ComponentEffects,
-    NavigationEntryItemEffects,
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CmsService {
-    /**
-     * @param {?} store
-     * @param {?} routingService
-     */
-    constructor(store, routingService) {
-        this.store = store;
-        this.routingService = routingService;
-        this._launchInSmartEdit = false;
-        this.components = {};
-    }
-    /**
-     * Set _launchInSmartEdit value
-     * @param {?} value
-     * @return {?}
-     */
-    set launchInSmartEdit(value) {
-        this._launchInSmartEdit = value;
-    }
-    /**
-     * Whether the app launched in smart edit
-     * @return {?}
-     */
-    isLaunchInSmartEdit() {
-        return this._launchInSmartEdit;
-    }
-    /**
-     * Get current CMS page data
-     * @return {?}
-     */
-    getCurrentPage() {
-        return this.routingService
-            .getPageContext()
-            .pipe(switchMap(pageContext => this.store.select(getPageData(pageContext))));
-    }
-    /**
-     * Get CMS component data by uid
-     * @template T
-     * @param {?} uid : CMS componet uid
-     * @return {?}
-     */
-    getComponentData(uid) {
-        if (!this.components[uid]) {
-            this.components[uid] = combineLatest(this.routingService.isNavigating(), this.store.pipe(select(componentStateSelectorFactory(uid)))).pipe(tap(([isNavigating, componentState]) => {
-                /** @type {?} */
-                const attemptedLoad = componentState.loading ||
-                    componentState.success ||
-                    componentState.error;
-                if (!attemptedLoad && !isNavigating) {
-                    this.store.dispatch(new LoadComponent(uid));
-                }
-            }), pluck(1), filter(componentState => componentState.success), pluck('value'), shareReplay({ bufferSize: 1, refCount: true }));
-        }
-        return (/** @type {?} */ (this.components[uid]));
-    }
-    /**
-     * Given the position, get the content slot data
-     * @param {?} position : content slot position
-     * @return {?}
-     */
-    getContentSlot(position) {
-        return this.routingService
-            .getPageContext()
-            .pipe(switchMap(pageContext => this.store.pipe(select(currentSlotSelectorFactory(pageContext, position)))));
-    }
-    /**
-     * Given navigation node uid, get items (with id and type) inside the navigation entries
-     * @param {?} navigationNodeUid : uid of the navigation node
-     * @return {?}
-     */
-    getNavigationEntryItems(navigationNodeUid) {
-        return this.store.pipe(select(itemsSelectorFactory(navigationNodeUid)));
-    }
-    /**
-     * Load navigation items data
-     * @param {?} rootUid : the uid of the root navigation node
-     * @param {?} itemList : list of items (with id and type)
-     * @return {?}
-     */
-    loadNavigationItems(rootUid, itemList) {
-        this.store.dispatch(new LoadNavigationItems({
-            nodeId: rootUid,
-            items: itemList,
-        }));
-    }
-    /**
-     * Refresh the content of the latest cms page
-     * @return {?}
-     */
-    refreshLatestPage() {
-        this.routingService
-            .getPageContext()
-            .pipe(take(1))
-            .subscribe(pageContext => this.store.dispatch(new LoadPageData(pageContext)));
-    }
-    /**
-     * Refresh the cms page content by page Id
-     * @param {?} pageId
-     * @return {?}
-     */
-    refreshPageById(pageId) {
-        /** @type {?} */
-        const pageContext = { id: pageId };
-        this.store.dispatch(new LoadPageData(pageContext));
-    }
-    /**
-     * Refresh cms component's content
-     * @param {?} uid : component uid
-     * @return {?}
-     */
-    refreshComponent(uid) {
-        this.store.dispatch(new LoadComponent(uid));
-    }
-    /**
-     * Given pageContext, return the CMS page data
-     * @param {?} pageContext
-     * @return {?}
-     */
-    getPageState(pageContext) {
-        return this.store.pipe(select(getPageData(pageContext)));
-    }
-    /**
-     * Given pageContext, return the CMS page data
-     * @param {?} pageContext
-     * @return {?}
-     */
-    getPageComponentTypes(pageContext) {
-        return this.store.pipe(select(getPageComponentTypes(pageContext)));
-    }
-    /**
-     * Given pageContext, return whether the CMS page data exists or not
-     * @param {?} pageContext
-     * @param {?=} forceReload
-     * @return {?}
-     */
-    hasPage(pageContext, forceReload = false) {
-        return this.store.pipe(select(getIndexEntity(pageContext)), tap((entity) => {
-            /** @type {?} */
-            const attemptedLoad = entity.loading || entity.success || entity.error;
-            /** @type {?} */
-            const shouldReload = forceReload && !entity.loading;
-            if (!attemptedLoad || shouldReload) {
-                this.store.dispatch(new LoadPageData(pageContext));
-            }
-        }), filter(entity => entity.success || entity.error), pluck('success'), catchError(() => of(false)));
-    }
-}
-CmsService.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CmsService.ctorParameters = () => [
-    { type: Store },
-    { type: RoutingService }
-];
-/** @nocollapse */ CmsService.ngInjectableDef = defineInjectable({ factory: function CmsService_Factory() { return new CmsService(inject(Store), inject(RoutingService)); }, token: CmsService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class PageMetaResolver {
-    /**
-     * @param {?} page
-     * @return {?}
-     */
-    getScore(page) {
-        /** @type {?} */
-        let score = 0;
-        if (this.pageType) {
-            score += page.type === this.pageType ? 1 : -1;
-        }
-        if (this.pageTemplate) {
-            score += page.template === this.pageTemplate ? 1 : -1;
-        }
-        return score;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class PageMetaService {
-    /**
-     * @param {?} resolvers
-     * @param {?} cms
-     */
-    constructor(resolvers, cms) {
-        this.resolvers = resolvers;
-        this.cms = cms;
-    }
-    /**
-     * @return {?}
-     */
-    getMeta() {
-        return this.cms.getCurrentPage().pipe(filter(Boolean), switchMap((page) => {
-            /** @type {?} */
-            const metaResolver = this.getMetaResolver(page);
-            if (metaResolver) {
-                return metaResolver.resolve();
-            }
-            else {
-                // we do not have a page resolver
-                return of(null);
-            }
-        }));
-    }
-    /**
-     * return the title resolver with the best match
-     * title resovers can by default match on PageType and page template
-     * but custom match comparisors can be implemented.
-     * @protected
-     * @param {?} page
-     * @return {?}
-     */
-    getMetaResolver(page) {
-        /** @type {?} */
-        const matchingResolvers = this.resolvers.filter(resolver => resolver.getScore(page) > 0);
-        matchingResolvers.sort(function (a, b) {
-            return b.getScore(page) - a.getScore(page);
-        });
-        return matchingResolvers[0];
-    }
-}
-PageMetaService.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-PageMetaService.ctorParameters = () => [
-    { type: Array, decorators: [{ type: Inject, args: [PageMetaResolver,] }] },
-    { type: CmsService }
-];
-/** @nocollapse */ PageMetaService.ngInjectableDef = defineInjectable({ factory: function PageMetaService_Factory() { return new PageMetaService(inject(PageMetaResolver), inject(CmsService)); }, token: PageMetaService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @return {?}
- */
-function cmsStoreConfigFactory() {
-    // if we want to reuse CMS_FEATURE const in config, we have to use factory instead of plain object
-    /** @type {?} */
-    const config = {
-        state: {
-            ssrTransfer: {
-                keys: { [CMS_FEATURE]: StateTransferType.TRANSFER_STATE },
-            },
-        },
-    };
-    return config;
-}
-class CmsStoreModule {
-}
-CmsStoreModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [
-                    CommonModule,
-                    HttpClientModule,
-                    StateModule,
-                    StoreModule.forFeature(CMS_FEATURE, reducerToken$6, { metaReducers: metaReducers$3 }),
-                    EffectsModule.forFeature(effects$5),
-                    ConfigModule.withConfigFactory(cmsStoreConfigFactory),
-                ],
-                providers: [reducerProvider$6],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ContentPageMetaResolver extends PageMetaResolver {
-    /**
-     * @param {?} cms
-     */
-    constructor(cms) {
-        super();
-        this.cms = cms;
-        this.pageType = PageType.CONTENT_PAGE;
-    }
-    /**
-     * @return {?}
-     */
-    resolve() {
-        return this.cms.getCurrentPage().pipe(filter(Boolean), switchMap(page => combineLatest([this.resolveTitle(page), this.resolveBreadcrumbs(page)])), map(([title, breadcrumbs]) => ({ title, breadcrumbs })));
-    }
-    /**
-     * @param {?} page
-     * @return {?}
-     */
-    resolveTitle(page) {
-        return of(page.title);
-    }
-    /**
-     * @param {?} _page
-     * @return {?}
-     */
-    resolveBreadcrumbs(_page) {
-        // as long as we do not have CMSX-8689 in place
-        // we need specific resolvers for nested pages
-        return of([{ label: 'Home', link: '/' }]);
-    }
-}
-ContentPageMetaResolver.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ContentPageMetaResolver.ctorParameters = () => [
-    { type: CmsService }
-];
-/** @nocollapse */ ContentPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function ContentPageMetaResolver_Factory() { return new ContentPageMetaResolver(inject(CmsService)); }, token: ContentPageMetaResolver, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CmsPageTitleModule {
-}
-CmsPageTitleModule.decorators = [
-    { type: NgModule, args: [{
-                providers: [
-                    {
-                        provide: PageMetaResolver,
-                        useExisting: ContentPageMetaResolver,
-                        multi: true,
-                    },
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CmsModule {
-}
-CmsModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [CmsOccModule, CmsStoreModule, CmsPageTitleModule],
-                providers: [CmsService, { provide: CmsStructureConfig, useExisting: Config }],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class DynamicAttributeService {
-    /**
-     * Add dynamic attributes to DOM. These attributes are extracted from the properties of cms items received from backend.
-     * There can by many different groups of properties, one of them is smaredit. But EC allows addons to create different groups.
-     * For example, personalization may add 'script' group etc.
-     * @param {?} properties
-     * @param {?} element
-     * @param {?} renderer
-     * @return {?}
-     */
-    addDynamicAttributes(properties, element, renderer) {
-        if (properties) {
-            // check each group of properties, e.g. smartedit
-            Object.keys(properties).forEach(group => {
-                /** @type {?} */
-                const name = 'data-' + group + '-';
-                /** @type {?} */
-                const groupProps = properties[group];
-                // check each property in the group
-                Object.keys(groupProps).forEach(propName => {
-                    /** @type {?} */
-                    const propValue = groupProps[propName];
-                    if (propName === 'classes') {
-                        /** @type {?} */
-                        const classes = propValue.split(' ');
-                        classes.forEach(classItem => {
-                            element.classList.add(classItem);
-                        });
-                    }
-                    else {
-                        renderer.setAttribute(element, name +
-                            propName
-                                .split(/(?=[A-Z])/)
-                                .join('-')
-                                .toLowerCase(), propValue);
-                    }
-                });
-            });
-        }
-    }
-}
-DynamicAttributeService.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */ DynamicAttributeService.ngInjectableDef = defineInjectable({ factory: function DynamicAttributeService_Factory() { return new DynamicAttributeService(); }, token: DynamicAttributeService, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CartPageMetaResolver extends PageMetaResolver {
-    /**
-     * @param {?} cartService
-     * @param {?} cms
-     */
-    constructor(cartService, cms) {
-        super();
-        this.cartService = cartService;
-        this.cms = cms;
-        this.pageType = PageType.CONTENT_PAGE;
-        this.pageTemplate = 'CartPageTemplate';
-    }
-    /**
-     * @return {?}
-     */
-    resolve() {
-        return this.cms.getCurrentPage().pipe(switchMap(page => combineLatest([this.resolveTitle(page), this.resolveRobots()])), map(([title, robots]) => ({ title, robots })));
-    }
-    /**
-     * @param {?} page
-     * @return {?}
-     */
-    resolveTitle(page) {
-        return this.cartService
-            .getActive()
-            .pipe(map(cart => cart && cart.code ? `${page.title} (${cart.code})` : page.title));
-    }
-    /**
-     * @return {?}
-     */
-    resolveRobots() {
-        return of([PageRobotsMeta.NOFOLLOW, PageRobotsMeta.NOINDEX]);
-    }
-}
-CartPageMetaResolver.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CartPageMetaResolver.ctorParameters = () => [
-    { type: CartService },
-    { type: CmsService }
-];
-/** @nocollapse */ CartPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function CartPageMetaResolver_Factory() { return new CartPageMetaResolver(inject(CartService), inject(CmsService)); }, token: CartPageMetaResolver, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CheckoutPageMetaResolver extends PageMetaResolver {
-    /**
-     * @param {?} cartService
-     */
-    constructor(cartService) {
-        super();
-        this.cartService = cartService;
-        this.pageType = PageType.CONTENT_PAGE;
-        this.pageTemplate = 'MultiStepCheckoutSummaryPageTemplate';
-    }
-    /**
-     * @return {?}
-     */
-    resolve() {
-        return this.cartService.getActive().pipe(switchMap(cart => combineLatest([this.resolveTitle(cart), this.resolveRobots()])), map(([title, robots]) => ({ title, robots })));
-    }
-    /**
-     * @param {?} cart
-     * @return {?}
-     */
-    resolveTitle(cart) {
-        return of(`Checkout ${cart.totalItems} items`);
-    }
-    /**
-     * @return {?}
-     */
-    resolveRobots() {
-        return of([PageRobotsMeta.NOFOLLOW, PageRobotsMeta.NOINDEX]);
-    }
-}
-CheckoutPageMetaResolver.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CheckoutPageMetaResolver.ctorParameters = () => [
-    { type: CartService }
-];
-/** @nocollapse */ CheckoutPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function CheckoutPageMetaResolver_Factory() { return new CheckoutPageMetaResolver(inject(CartService)); }, token: CheckoutPageMetaResolver, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CheckoutStoreModule {
-}
-CheckoutStoreModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [
-                    CommonModule,
-                    HttpClientModule,
-                    StoreModule.forFeature(CHECKOUT_FEATURE, reducerToken$5, { metaReducers: metaReducers$2 }),
-                    EffectsModule.forFeature(effects$4),
-                ],
-                providers: [reducerProvider$5],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CheckoutModule {
-}
-CheckoutModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [CheckoutStoreModule],
-                providers: [
-                    CheckoutService,
-                    {
-                        provide: PageMetaResolver,
-                        useExisting: CartPageMetaResolver,
-                        multi: true,
-                    },
-                    {
-                        provide: PageMetaResolver,
-                        useExisting: CheckoutPageMetaResolver,
-                        multi: true,
-                    },
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CxApiModule {
-}
-CxApiModule.decorators = [
-    { type: NgModule, args: [{},] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class ProductAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} productCode
-     * @return {?}
-     */
-    get(productCode) {
-        return this.adapter.load(productCode);
-    }
-}
-ProductConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ProductConnector.ctorParameters = () => [
-    { type: ProductAdapter }
-];
-/** @nocollapse */ ProductConnector.ngInjectableDef = defineInjectable({ factory: function ProductConnector_Factory() { return new ProductConnector(inject(ProductAdapter)); }, token: ProductConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PRODUCT_REFERENCES_NORMALIZER = new InjectionToken('ProductReferencesListNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class ProductReferencesAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReferencesConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} productCode
-     * @param {?=} referenceType
-     * @param {?=} pageSize
-     * @return {?}
-     */
-    get(productCode, referenceType, pageSize) {
-        return this.adapter.load(productCode, referenceType, pageSize);
-    }
-}
-ProductReferencesConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ProductReferencesConnector.ctorParameters = () => [
-    { type: ProductReferencesAdapter }
-];
-/** @nocollapse */ ProductReferencesConnector.ngInjectableDef = defineInjectable({ factory: function ProductReferencesConnector_Factory() { return new ProductReferencesConnector(inject(ProductReferencesAdapter)); }, token: ProductReferencesConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class ProductReviewsAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReviewsConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} productCode
-     * @param {?=} maxCount
-     * @return {?}
-     */
-    get(productCode, maxCount) {
-        return this.adapter.load(productCode, maxCount);
-    }
-    /**
-     * @param {?} productCode
-     * @param {?} review
-     * @return {?}
-     */
-    add(productCode, review) {
-        return this.adapter.post(productCode, review);
-    }
-}
-ProductReviewsConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ProductReviewsConnector.ctorParameters = () => [
-    { type: ProductReviewsAdapter }
-];
-/** @nocollapse */ ProductReviewsConnector.ngInjectableDef = defineInjectable({ factory: function ProductReviewsConnector_Factory() { return new ProductReviewsConnector(inject(ProductReviewsAdapter)); }, token: ProductReviewsConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PRODUCT_REVIEW_NORMALIZER = new InjectionToken('ProductReviewNormalizer');
-/** @type {?} */
-const PRODUCT_REVIEW_SERIALIZER = new InjectionToken('ProductReviewSerializer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class ProductSearchAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductSearchConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} query
-     * @param {?=} searchConfig
-     * @return {?}
-     */
-    search(query, searchConfig) {
-        return this.adapter.search(query, searchConfig);
-    }
-    /**
-     * @param {?} term
-     * @param {?=} pageSize
-     * @return {?}
-     */
-    getSuggestions(term, pageSize) {
-        return this.adapter.loadSuggestions(term, pageSize);
-    }
-}
-ProductSearchConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ProductSearchConnector.ctorParameters = () => [
-    { type: ProductSearchAdapter }
-];
-/** @nocollapse */ ProductSearchConnector.ngInjectableDef = defineInjectable({ factory: function ProductSearchConnector_Factory() { return new ProductSearchConnector(inject(ProductSearchAdapter)); }, token: ProductSearchConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PRODUCT_SEARCH_PAGE_NORMALIZER = new InjectionToken('ProductSearchPageNormalizer');
-/** @type {?} */
-const PRODUCT_SUGGESTION_NORMALIZER = new InjectionToken('ProductSuggestionNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductImageNormalizer {
-    /**
-     * @param {?} config
-     */
-    constructor(config) {
-        this.config = config;
-    }
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target) {
-        if (target === undefined) {
-            target = Object.assign({}, ((/** @type {?} */ (source))));
-        }
-        if (source.images) {
-            target.images = this.normalize(source.images);
-        }
-        return target;
-    }
-    /**
-     * @desc
-     * Creates the image structure we'd like to have. Instead of
-     * having a single list with all images despite type and format
-     * we create a proper structure. With that we can do:
-     * - images.primary.thumnail.url
-     * - images.GALLERY[0].thumnail.url
-     * @param {?} source
-     * @return {?}
-     */
-    normalize(source) {
-        /** @type {?} */
-        const images = {};
-        if (source) {
-            for (const image of source) {
-                /** @type {?} */
-                const isList = image.hasOwnProperty('galleryIndex');
-                if (!images.hasOwnProperty(image.imageType)) {
-                    images[image.imageType] = isList ? [] : {};
-                }
-                /** @type {?} */
-                let imageContainer;
-                if (isList && !images[image.imageType][image.galleryIndex]) {
-                    images[image.imageType][image.galleryIndex] = {};
-                }
-                if (isList) {
-                    imageContainer = images[image.imageType][image.galleryIndex];
-                }
-                else {
-                    imageContainer = images[image.imageType];
-                }
-                /**
-                 * Traditionally, in an on-prem world, medias and other backend related calls
-                 * are hosted at the same platform, but in a cloud setup, applications are are
-                 * typically distributed cross different environments. For media, we use the
-                 * `backend.media.baseUrl` by default, but fallback to `backend.occ.baseUrl`
-                 * if none provided.
-                 */
-                image.url =
-                    (this.config.backend.media.baseUrl ||
-                        this.config.backend.occ.baseUrl ||
-                        '') + image.url;
-                imageContainer[image.format] = image;
-            }
-        }
-        return images;
-    }
-}
-ProductImageNormalizer.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductImageNormalizer.ctorParameters = () => [
-    { type: OccConfig }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReferenceNormalizer {
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target) {
-        if (target === undefined) {
-            target = Object.assign({}, ((/** @type {?} */ (source))));
-        }
-        if (source.productReferences) {
-            target.productReferences = this.normalize(source.productReferences);
-        }
-        return target;
-    }
-    /**
-     * @desc
-     * Creates the reference structure we'd like to have. Instead of
-     * having a single list with all references we create a proper structure.
-     * With that we have a semantic API for the clients
-     * - product.references.SIMILAR[0].code
-     * @protected
-     * @param {?} source
-     * @return {?}
-     */
-    normalize(source) {
-        /** @type {?} */
-        const references = {};
-        if (source) {
-            for (const reference of source) {
-                if (!references.hasOwnProperty(reference.referenceType)) {
-                    references[reference.referenceType] = [];
-                }
-                references[reference.referenceType].push(reference);
-            }
-        }
-        return references;
-    }
-}
-ProductReferenceNormalizer.decorators = [
-    { type: Injectable }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccProductSearchPageNormalizer {
-    /**
-     * @param {?} converterService
-     */
-    constructor(converterService) {
-        this.converterService = converterService;
-    }
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target = {}) {
-        target = Object.assign({}, target, ((/** @type {?} */ (source))));
-        if (source.products) {
-            target.products = source.products.map(product => this.converterService.convert(product, PRODUCT_NORMALIZER));
-        }
-        return target;
-    }
-}
-OccProductSearchPageNormalizer.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccProductSearchPageNormalizer.ctorParameters = () => [
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOAD_PRODUCT_REFERENCES = '[Product] Load Product References Data';
-/** @type {?} */
-const LOAD_PRODUCT_REFERENCES_FAIL = '[Product] Load Product References Data Fail';
-/** @type {?} */
-const LOAD_PRODUCT_REFERENCES_SUCCESS = '[Product] Load Product References Data Success';
-class LoadProductReferences {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_REFERENCES;
-    }
-}
-class LoadProductReferencesFail {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_REFERENCES_FAIL;
-    }
-}
-class LoadProductReferencesSuccess {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_REFERENCES_SUCCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOAD_PRODUCT_REVIEWS = '[Product] Load Product Reviews Data';
-/** @type {?} */
-const LOAD_PRODUCT_REVIEWS_FAIL = '[Product] Load Product Reviews Data Fail';
-/** @type {?} */
-const LOAD_PRODUCT_REVIEWS_SUCCESS = '[Product] Load Product Reviews Data Success';
-/** @type {?} */
-const POST_PRODUCT_REVIEW = '[Product] Post Product Review';
-/** @type {?} */
-const POST_PRODUCT_REVIEW_FAIL = '[Product] Post Product Review Fail';
-/** @type {?} */
-const POST_PRODUCT_REVIEW_SUCCESS = '[Product] Post Product Review Success';
-class LoadProductReviews {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_REVIEWS;
-    }
-}
-class LoadProductReviewsFail {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_REVIEWS_FAIL;
-    }
-}
-class LoadProductReviewsSuccess {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_REVIEWS_SUCCESS;
-    }
-}
-class PostProductReview {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = POST_PRODUCT_REVIEW;
-    }
-}
-class PostProductReviewFail {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = POST_PRODUCT_REVIEW_FAIL;
-    }
-}
-class PostProductReviewSuccess {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = POST_PRODUCT_REVIEW_SUCCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const SEARCH_PRODUCTS = '[Product] Search Products';
-/** @type {?} */
-const SEARCH_PRODUCTS_FAIL = '[Product] Search Products Fail';
-/** @type {?} */
-const SEARCH_PRODUCTS_SUCCESS = '[Product] Search Products Success';
-/** @type {?} */
-const GET_PRODUCT_SUGGESTIONS = '[Product] Get Product Suggestions';
-/** @type {?} */
-const GET_PRODUCT_SUGGESTIONS_SUCCESS = '[Product] Get Product Suggestions Success';
-/** @type {?} */
-const GET_PRODUCT_SUGGESTIONS_FAIL = '[Product] Get Product Suggestions Fail';
-/** @type {?} */
-const CLEAN_PRODUCT_SEARCH = '[Product] Clean Product Search State';
-class SearchProducts {
-    /**
-     * @param {?} payload
-     * @param {?=} auxiliary
-     */
-    constructor(payload, auxiliary) {
-        this.payload = payload;
-        this.auxiliary = auxiliary;
-        this.type = SEARCH_PRODUCTS;
-    }
-}
-class SearchProductsFail {
-    /**
-     * @param {?} payload
-     * @param {?=} auxiliary
-     */
-    constructor(payload, auxiliary) {
-        this.payload = payload;
-        this.auxiliary = auxiliary;
-        this.type = SEARCH_PRODUCTS_FAIL;
-    }
-}
-class SearchProductsSuccess {
-    /**
-     * @param {?} payload
-     * @param {?=} auxiliary
-     */
-    constructor(payload, auxiliary) {
-        this.payload = payload;
-        this.auxiliary = auxiliary;
-        this.type = SEARCH_PRODUCTS_SUCCESS;
-    }
-}
-class GetProductSuggestions {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = GET_PRODUCT_SUGGESTIONS;
-    }
-}
-class GetProductSuggestionsSuccess {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = GET_PRODUCT_SUGGESTIONS_SUCCESS;
-    }
-}
-class GetProductSuggestionsFail {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        this.payload = payload;
-        this.type = GET_PRODUCT_SUGGESTIONS_FAIL;
-    }
-}
-class CleanProductSearchState {
-    constructor() {
-        this.type = CLEAN_PRODUCT_SEARCH;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PRODUCT_FEATURE = 'product';
-/** @type {?} */
-const PRODUCT_DETAIL_ENTITY = '[Product] Detail Entity';
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const LOAD_PRODUCT = '[Product] Load Product Data';
-/** @type {?} */
-const LOAD_PRODUCT_FAIL = '[Product] Load Product Data Fail';
-/** @type {?} */
-const LOAD_PRODUCT_SUCCESS = '[Product] Load Product Data Success';
-class LoadProduct extends EntityLoadAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PRODUCT_DETAIL_ENTITY, payload);
-        this.payload = payload;
-        this.type = LOAD_PRODUCT;
-    }
-}
-class LoadProductFail extends EntityFailAction {
-    /**
-     * @param {?} productCode
-     * @param {?} payload
-     */
-    constructor(productCode, payload) {
-        super(PRODUCT_DETAIL_ENTITY, productCode, payload);
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_FAIL;
-    }
-}
-class LoadProductSuccess extends EntitySuccessAction {
-    /**
-     * @param {?} payload
-     */
-    constructor(payload) {
-        super(PRODUCT_DETAIL_ENTITY, payload.code);
-        this.payload = payload;
-        this.type = LOAD_PRODUCT_SUCCESS;
-    }
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReferencesEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} productReferencesConnector
-     */
-    constructor(actions$, productReferencesConnector) {
-        this.actions$ = actions$;
-        this.productReferencesConnector = productReferencesConnector;
-        this.loadProductReferences$ = this.actions$.pipe(ofType(LOAD_PRODUCT_REFERENCES), map((action) => action.payload), mergeMap(payload => {
-            return this.productReferencesConnector
-                .get(payload.productCode, payload.referenceType, payload.pageSize)
-                .pipe(map(data => {
-                return new LoadProductReferencesSuccess({
-                    productCode: payload.productCode,
-                    list: data,
-                });
-            }), catchError(_error => of(new LoadProductReferencesFail((/** @type {?} */ ({
-                message: payload.productCode,
-            }))))));
-        }));
-    }
-}
-ProductReferencesEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductReferencesEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: ProductReferencesConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ProductReferencesEffects.prototype, "loadProductReferences$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReviewsEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} productReviewsConnector
-     */
-    constructor(actions$, productReviewsConnector) {
-        this.actions$ = actions$;
-        this.productReviewsConnector = productReviewsConnector;
-        this.loadProductReviews$ = this.actions$.pipe(ofType(LOAD_PRODUCT_REVIEWS), map((action) => action.payload), mergeMap(productCode => {
-            return this.productReviewsConnector.get(productCode).pipe(map(data => {
-                return new LoadProductReviewsSuccess({
-                    productCode,
-                    list: data,
-                });
-            }), catchError(_error => of(new LoadProductReviewsFail((/** @type {?} */ ({
-                message: productCode,
-            }))))));
-        }));
-        this.postProductReview = this.actions$.pipe(ofType(POST_PRODUCT_REVIEW), map((action) => action.payload), mergeMap(payload => {
-            return this.productReviewsConnector
-                .add(payload.productCode, payload.review)
-                .pipe(map(reviewResponse => {
-                return new PostProductReviewSuccess(reviewResponse);
-            }), catchError(_error => of(new PostProductReviewFail(payload.productCode))));
-        }));
-    }
-}
-ProductReviewsEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductReviewsEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: ProductReviewsConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ProductReviewsEffects.prototype, "loadProductReviews$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ProductReviewsEffects.prototype, "postProductReview", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductsSearchEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} productSearchConnector
-     */
-    constructor(actions$, productSearchConnector) {
-        this.actions$ = actions$;
-        this.productSearchConnector = productSearchConnector;
-        this.searchProducts$ = this.actions$.pipe(ofType(SEARCH_PRODUCTS), groupBy((action) => action.auxiliary), mergeMap(group => group.pipe(switchMap((action) => {
-            return this.productSearchConnector
-                .search(action.payload.queryText, action.payload.searchConfig)
-                .pipe(map(data => {
-                return new SearchProductsSuccess(data, action.auxiliary);
-            }), catchError(error => of(new SearchProductsFail(error, action.auxiliary))));
-        }))));
-        this.getProductSuggestions$ = this.actions$.pipe(ofType(GET_PRODUCT_SUGGESTIONS), map((action) => action.payload), switchMap(payload => {
-            return this.productSearchConnector
-                .getSuggestions(payload.term, payload.searchConfig.pageSize)
-                .pipe(map(suggestions => {
-                if (suggestions === undefined) {
-                    return new GetProductSuggestionsSuccess([]);
-                }
-                return new GetProductSuggestionsSuccess(suggestions);
-            }), catchError(error => of(new GetProductSuggestionsFail(error))));
-        }));
-    }
-}
-ProductsSearchEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductsSearchEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: ProductSearchConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ProductsSearchEffects.prototype, "searchProducts$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ProductsSearchEffects.prototype, "getProductSuggestions$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} productConnector
-     */
-    constructor(actions$, productConnector) {
-        this.actions$ = actions$;
-        this.productConnector = productConnector;
-        this.loadProduct$ = this.actions$.pipe(ofType(LOAD_PRODUCT), map((action) => action.payload), groupBy(productCode => productCode), mergeMap(group => group.pipe(switchMap(productCode => {
-            return this.productConnector.get(productCode).pipe(map(product => {
-                return new LoadProductSuccess(product);
-            }), catchError(error => of(new LoadProductFail(productCode, error))));
-        }))));
-    }
-}
-ProductEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: ProductConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], ProductEffects.prototype, "loadProduct$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const effects$6 = [
-    ProductsSearchEffects,
-    ProductEffects,
-    ProductReviewsEffects,
-    ProductReferencesEffects,
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$d = {
-    productCode: '',
-    list: [],
-};
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$d(state = initialState$d, action) {
-    switch (action.type) {
-        case LOAD_PRODUCT_REFERENCES_SUCCESS: {
-            /** @type {?} */
-            const productCode = action.payload.productCode;
-            /** @type {?} */
-            const list = action.payload.list;
-            return Object.assign({}, state, { list,
-                productCode });
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$e = {
-    productCode: '',
-    list: [],
-};
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$e(state = initialState$e, action) {
-    switch (action.type) {
-        case LOAD_PRODUCT_REVIEWS_SUCCESS: {
-            /** @type {?} */
-            const productCode = action.payload.productCode;
-            /** @type {?} */
-            const list = action.payload.list;
-            return Object.assign({}, state, { productCode,
-                list });
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 /** @type {?} */
 const initialState$f = {
-    results: {},
-    suggestions: [],
-    auxResults: {},
+    entities: {},
 };
 /**
  * @param {?=} state
@@ -13039,1833 +12695,21 @@ const initialState$f = {
  */
 function reducer$f(state = initialState$f, action) {
     switch (action.type) {
-        case SEARCH_PRODUCTS_SUCCESS: {
+        case LOAD_BILLING_COUNTRIES_SUCCESS: {
             /** @type {?} */
-            const results = action.payload;
+            const billingCountries = action.payload;
             /** @type {?} */
-            const res = action.auxiliary ? { auxResults: results } : { results };
-            return Object.assign({}, state, res);
+            const entities = billingCountries.reduce((countryEntities, name) => {
+                return Object.assign({}, countryEntities, { [name.isocode]: name });
+            }, Object.assign({}, state.entities));
+            return Object.assign({}, state, { entities });
         }
-        case GET_PRODUCT_SUGGESTIONS_SUCCESS: {
-            /** @type {?} */
-            const suggestions = action.payload;
-            return Object.assign({}, state, { suggestions });
-        }
-        case CLEAN_PRODUCT_SEARCH: {
+        case CLEAR_MISCS_DATA: {
             return initialState$f;
         }
     }
     return state;
 }
-/** @type {?} */
-const getSearchResults = (state) => state.results;
-/** @type {?} */
-const getAuxSearchResults = (state) => state.auxResults;
-/** @type {?} */
-const getProductSuggestions = (state) => state.suggestions;
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @return {?}
- */
-function getReducers$7() {
-    return {
-        search: reducer$f,
-        details: entityLoaderReducer(PRODUCT_DETAIL_ENTITY),
-        reviews: reducer$e,
-        references: reducer$d,
-    };
-}
-/** @type {?} */
-const reducerToken$7 = new InjectionToken('ProductReducers');
-/** @type {?} */
-const reducerProvider$7 = {
-    provide: reducerToken$7,
-    useFactory: getReducers$7,
-};
-/**
- * @param {?} reducer
- * @return {?}
- */
-function clearProductsState(reducer) {
-    return function (state, action) {
-        if (action.type === CURRENCY_CHANGE || action.type === LANGUAGE_CHANGE) {
-            state = undefined;
-        }
-        return reducer(state, action);
-    };
-}
-/** @type {?} */
-const metaReducers$4 = [clearProductsState];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getProductsState = createFeatureSelector(PRODUCT_FEATURE);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getProductReferencesState = createSelector(getProductsState, (state) => state.references);
-/** @type {?} */
-const getSelectedProductReferencesFactory = (productCode) => {
-    return createSelector(getProductReferencesState, referenceTypeData => {
-        if (referenceTypeData.productCode === productCode) {
-            return referenceTypeData.list;
-        }
-    });
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getProductReviewsState = createSelector(getProductsState, (state) => state.reviews);
-/** @type {?} */
-const getSelectedProductReviewsFactory = (productCode) => {
-    return createSelector(getProductReviewsState, reviewData => {
-        if (reviewData.productCode === productCode) {
-            return reviewData.list;
-        }
-    });
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getProductsSearchState = createSelector(getProductsState, (state) => state.search);
-/** @type {?} */
-const getSearchResults$1 = createSelector(getProductsSearchState, getSearchResults);
-/** @type {?} */
-const getAuxSearchResults$1 = createSelector(getProductsSearchState, getAuxSearchResults);
-/** @type {?} */
-const getProductSuggestions$1 = createSelector(getProductsSearchState, getProductSuggestions);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getProductState = createSelector(getProductsState, (state) => state.details);
-/** @type {?} */
-const getSelectedProductsFactory = (codes) => {
-    return createSelector(getProductState, (details) => {
-        return codes
-            .map(code => details.entities[code] ? details.entities[code].value : undefined)
-            .filter(product => product !== undefined);
-    });
-};
-/** @type {?} */
-const getSelectedProductStateFactory = (code) => {
-    return createSelector(getProductState, details => entityStateSelector(details, code));
-};
-/** @type {?} */
-const getSelectedProductFactory = (code) => {
-    return createSelector(getSelectedProductStateFactory(code), productState => loaderValueSelector(productState));
-};
-/** @type {?} */
-const getSelectedProductLoadingFactory = (code) => {
-    return createSelector(getSelectedProductStateFactory(code), productState => loaderLoadingSelector(productState));
-};
-/** @type {?} */
-const getSelectedProductSuccessFactory = (code) => {
-    return createSelector(getSelectedProductStateFactory(code), productState => loaderSuccessSelector(productState));
-};
-/** @type {?} */
-const getSelectedProductErrorFactory = (code) => {
-    return createSelector(getSelectedProductStateFactory(code), productState => loaderErrorSelector(productState));
-};
-/** @type {?} */
-const getAllProductCodes = createSelector(getProductState, details => {
-    return Object.keys(details.entities);
-});
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReferenceService {
-    /**
-     * @param {?} store
-     */
-    constructor(store) {
-        this.store = store;
-    }
-    /**
-     * @param {?} productCode
-     * @param {?=} referenceType
-     * @param {?=} pageSize
-     * @return {?}
-     */
-    get(productCode, referenceType, pageSize) {
-        return this.store.pipe(select(getSelectedProductReferencesFactory(productCode)), tap(references => {
-            if (references === undefined && productCode !== undefined) {
-                this.store.dispatch(new LoadProductReferences({
-                    productCode,
-                    referenceType,
-                    pageSize,
-                }));
-            }
-        }));
-    }
-}
-ProductReferenceService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductReferenceService.ctorParameters = () => [
-    { type: Store }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductReviewService {
-    /**
-     * @param {?} store
-     */
-    constructor(store) {
-        this.store = store;
-    }
-    /**
-     * @param {?} productCode
-     * @return {?}
-     */
-    getByProductCode(productCode) {
-        /** @type {?} */
-        const selector = getSelectedProductReviewsFactory(productCode);
-        return this.store.pipe(select(selector), tap(reviews => {
-            if (reviews === undefined && productCode !== undefined) {
-                this.store.dispatch(new LoadProductReviews(productCode));
-            }
-        }));
-    }
-    /**
-     * @param {?} productCode
-     * @param {?} review
-     * @return {?}
-     */
-    add(productCode, review) {
-        this.store.dispatch(new PostProductReview({
-            productCode: productCode,
-            review,
-        }));
-    }
-}
-ProductReviewService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductReviewService.ctorParameters = () => [
-    { type: Store }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductSearchService {
-    /**
-     * @param {?} store
-     * @param {?} router
-     */
-    constructor(store, router) {
-        this.store = store;
-        this.router = router;
-    }
-    /**
-     * @param {?} query
-     * @param {?=} searchConfig
-     * @return {?}
-     */
-    search(query, searchConfig) {
-        /** @type {?} */
-        const urlTree = this.router.createUrlTree([], {
-            queryParams: Object.assign({}, searchConfig, { query }),
-            preserveFragment: false,
-        });
-        this.router.navigateByUrl(urlTree);
-        this.store.dispatch(new SearchProducts({
-            queryText: query,
-            searchConfig: searchConfig,
-        }));
-    }
-    /**
-     * @return {?}
-     */
-    getSearchResults() {
-        return this.store.pipe(select(getSearchResults$1));
-    }
-    /**
-     * @return {?}
-     */
-    clearSearchResults() {
-        this.store.dispatch(new CleanProductSearchState());
-    }
-    /**
-     * @return {?}
-     */
-    getAuxSearchResults() {
-        return this.store.pipe(select(getAuxSearchResults$1), filter(results => Object.keys(results).length > 0));
-    }
-    /**
-     * @return {?}
-     */
-    getSearchSuggestions() {
-        return this.store.pipe(select(getProductSuggestions$1));
-    }
-    /**
-     * @param {?} query
-     * @param {?=} searchConfig
-     * @return {?}
-     */
-    searchAuxiliary(query, searchConfig) {
-        this.store.dispatch(new SearchProducts({
-            queryText: query,
-            searchConfig: searchConfig,
-        }, true));
-    }
-    /**
-     * @param {?} query
-     * @param {?=} searchConfig
-     * @return {?}
-     */
-    getSuggestions(query, searchConfig) {
-        this.store.dispatch(new GetProductSuggestions({
-            term: query,
-            searchConfig: searchConfig,
-        }));
-    }
-}
-ProductSearchService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductSearchService.ctorParameters = () => [
-    { type: Store },
-    { type: Router }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductService {
-    /**
-     * @param {?} store
-     */
-    constructor(store) {
-        this.store = store;
-        this.products = {};
-    }
-    /**
-     * Returns the product observable. The product will be loaded
-     * whenever there's no value observed.
-     *
-     * The underlying product loader ensures that the product is
-     * only loaded once, even in case of parallel observers.
-     * @param {?} productCode
-     * @return {?}
-     */
-    get(productCode) {
-        if (!this.products[productCode]) {
-            this.products[productCode] = this.store.pipe(select(getSelectedProductStateFactory(productCode)), tap(productState => {
-                /** @type {?} */
-                const attemptedLoad = productState.loading || productState.success || productState.error;
-                if (!attemptedLoad) {
-                    this.store.dispatch(new LoadProduct(productCode));
-                }
-            }), map(productState => productState.value), shareReplay({ bufferSize: 1, refCount: true }));
-        }
-        return this.products[productCode];
-    }
-    /**
-     * Returns boolean observable for product's loading state
-     * @param {?} productCode
-     * @return {?}
-     */
-    isLoading(productCode) {
-        return this.store.pipe(select(getSelectedProductLoadingFactory(productCode)));
-    }
-    /**
-     * Returns boolean observable for product's load success state
-     * @param {?} productCode
-     * @return {?}
-     */
-    isSuccess(productCode) {
-        return this.store.pipe(select(getSelectedProductSuccessFactory(productCode)));
-    }
-    /**
-     * Returns boolean observable for product's load error state
-     * @param {?} productCode
-     * @return {?}
-     */
-    hasError(productCode) {
-        return this.store.pipe(select(getSelectedProductErrorFactory(productCode)));
-    }
-    /**
-     * Reloads the product. The product is loaded implicetly
-     * whenever selected by the `get`, but in some cases an
-     * explicit reload might be needed.
-     * @param {?} productCode
-     * @return {?}
-     */
-    reload(productCode) {
-        this.store.dispatch(new LoadProduct(productCode));
-    }
-}
-ProductService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-ProductService.ctorParameters = () => [
-    { type: Store }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccProductReferencesAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @param {?} productCode
-     * @param {?=} referenceType
-     * @param {?=} pageSize
-     * @return {?}
-     */
-    load(productCode, referenceType, pageSize) {
-        return this.http
-            .get(this.getEndpoint(productCode, referenceType, pageSize))
-            .pipe(this.converter.pipeable(PRODUCT_REFERENCES_NORMALIZER));
-    }
-    /**
-     * @protected
-     * @param {?} code
-     * @param {?=} reference
-     * @param {?=} pageSize
-     * @return {?}
-     */
-    getEndpoint(code, reference, pageSize) {
-        return this.occEndpoints.getUrl('productReferences', {
-            productCode: code,
-        }, { referenceType: reference, pageSize });
-    }
-}
-OccProductReferencesAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccProductReferencesAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccProductReviewsAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @param {?} productCode
-     * @param {?=} maxCount
-     * @return {?}
-     */
-    load(productCode, maxCount) {
-        return this.http.get(this.getEndpoint(productCode, maxCount)).pipe(pluck('reviews'), this.converter.pipeableMany(PRODUCT_REVIEW_NORMALIZER));
-    }
-    /**
-     * @param {?} productCode
-     * @param {?} review
-     * @return {?}
-     */
-    post(productCode, review) {
-        review = this.converter.convert(review, PRODUCT_REVIEW_SERIALIZER);
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        /** @type {?} */
-        const body = new URLSearchParams();
-        body.append('headline', review.headline);
-        body.append('comment', review.comment);
-        body.append('rating', review.rating.toString());
-        body.append('alias', review.alias);
-        return this.http.post(this.getEndpoint(productCode), body.toString(), {
-            headers,
-        });
-    }
-    /**
-     * @protected
-     * @param {?} code
-     * @param {?=} maxCount
-     * @return {?}
-     */
-    getEndpoint(code, maxCount) {
-        return this.occEndpoints.getUrl('productReviews', {
-            productCode: code,
-        }, { maxCount });
-    }
-}
-OccProductReviewsAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccProductReviewsAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const DEFAULT_SEARCH_CONFIG = {
-    pageSize: 20,
-};
-class OccProductSearchAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @param {?} query
-     * @param {?=} searchConfig
-     * @return {?}
-     */
-    search(query, searchConfig = DEFAULT_SEARCH_CONFIG) {
-        return this.http
-            .get(this.getSearchEndpoint(query, searchConfig))
-            .pipe(this.converter.pipeable(PRODUCT_SEARCH_PAGE_NORMALIZER));
-    }
-    /**
-     * @param {?} term
-     * @param {?=} pageSize
-     * @return {?}
-     */
-    loadSuggestions(term, pageSize = 3) {
-        return this.http
-            .get(this.getSuggestionEndpoint(term, pageSize.toString()))
-            .pipe(pluck('suggestions'), this.converter.pipeableMany(PRODUCT_SUGGESTION_NORMALIZER));
-    }
-    /**
-     * @protected
-     * @param {?} query
-     * @param {?} searchConfig
-     * @return {?}
-     */
-    getSearchEndpoint(query, searchConfig) {
-        return this.occEndpoints.getUrl('productSearch', {
-            query,
-        }, {
-            pageSize: searchConfig.pageSize,
-            currentPage: searchConfig.currentPage,
-            sort: searchConfig.sortCode,
-        });
-    }
-    /**
-     * @protected
-     * @param {?} term
-     * @param {?} max
-     * @return {?}
-     */
-    getSuggestionEndpoint(term, max) {
-        return this.occEndpoints.getUrl('productSuggestions', {
-            term,
-            max,
-        });
-    }
-}
-OccProductSearchAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccProductSearchAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccProductAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @param {?} productCode
-     * @return {?}
-     */
-    load(productCode) {
-        return this.http
-            .get(this.getEndpoint(productCode))
-            .pipe(this.converter.pipeable(PRODUCT_NORMALIZER));
-    }
-    /**
-     * @protected
-     * @param {?} code
-     * @return {?}
-     */
-    getEndpoint(code) {
-        return this.occEndpoints.getUrl('product', {
-            productCode: code,
-        });
-    }
-}
-OccProductAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccProductAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const defaultOccProductConfig = {
-    backend: {
-        occ: {
-            endpoints: {
-                product: 'products/${productCode}?fields=DEFAULT,averageRating,images(FULL),classifications,numberOfReviews',
-                productReviews: 'products/${productCode}/reviews',
-                // Uncomment this when occ gets configured
-                // productReferences:
-                //   'products/${productCode}/references?fields=DEFAULT,references(target(images(FULL)))&referenceType=${referenceType}',
-                productReferences: 'products/${productCode}/references?fields=DEFAULT,references(target(images(FULL)))',
-                // tslint:disable:max-line-length
-                productSearch: 'products/search?fields=products(code,name,summary,price(FULL),images(DEFAULT),stock(FULL),averageRating),facets,breadcrumbs,pagination(DEFAULT),sorts(DEFAULT)&query=${query}',
-                // tslint:enable
-                productSuggestions: 'products/suggestions?term=${term}&max=${max}',
-            },
-        },
-    },
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccProductReferencesListNormalizer {
-    /**
-     * @param {?} converter
-     */
-    constructor(converter) {
-        this.converter = converter;
-    }
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target = []) {
-        if (target === undefined) {
-            target = Object.assign({}, ((/** @type {?} */ (source))));
-        }
-        if (source && source.references) {
-            target = source.references.map(reference => (Object.assign({}, reference, { target: this.converter.convert(reference.target, PRODUCT_NORMALIZER) })));
-            return target;
-        }
-    }
-}
-OccProductReferencesListNormalizer.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccProductReferencesListNormalizer.ctorParameters = () => [
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductOccModule {
-}
-ProductOccModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [
-                    CommonModule,
-                    HttpClientModule,
-                    OccModule,
-                    ConfigModule.withConfig(defaultOccProductConfig),
-                ],
-                providers: [
-                    {
-                        provide: ProductAdapter,
-                        useClass: OccProductAdapter,
-                    },
-                    {
-                        provide: PRODUCT_NORMALIZER,
-                        useClass: ProductImageNormalizer,
-                        multi: true,
-                    },
-                    {
-                        provide: ProductReferencesAdapter,
-                        useClass: OccProductReferencesAdapter,
-                    },
-                    {
-                        provide: PRODUCT_REFERENCES_NORMALIZER,
-                        useClass: OccProductReferencesListNormalizer,
-                        multi: true,
-                    },
-                    {
-                        provide: ProductSearchAdapter,
-                        useClass: OccProductSearchAdapter,
-                    },
-                    {
-                        provide: PRODUCT_SEARCH_PAGE_NORMALIZER,
-                        useClass: OccProductSearchPageNormalizer,
-                        multi: true,
-                    },
-                    {
-                        provide: ProductReviewsAdapter,
-                        useClass: OccProductReviewsAdapter,
-                    },
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CategoryPageMetaResolver extends PageMetaResolver {
-    /**
-     * @param {?} routingService
-     * @param {?} productSearchService
-     * @param {?} cms
-     */
-    constructor(routingService, productSearchService, cms) {
-        super();
-        this.routingService = routingService;
-        this.productSearchService = productSearchService;
-        this.cms = cms;
-        this.pageType = PageType.CATEGORY_PAGE;
-    }
-    /**
-     * @return {?}
-     */
-    resolve() {
-        return this.cms.getCurrentPage().pipe(filter(Boolean), switchMap(page => {
-            // only the existence of a plp component tells us if products
-            // are rendered or if this is an ordinary content page
-            if (this.hasProductListComponent(page)) {
-                return this.productSearchService.getSearchResults().pipe(filter(data => data.breadcrumbs && data.breadcrumbs.length > 0), switchMap(data => combineLatest([
-                    this.resolveTitle(data),
-                    this.resolveBreadcrumbs(data),
-                ])), map(([title, breadcrumbs]) => ({ title, breadcrumbs })));
-            }
-            else {
-                return of({
-                    title: page.title || page.name,
-                });
-            }
-        }));
-    }
-    /**
-     * @param {?} data
-     * @return {?}
-     */
-    resolveTitle(data) {
-        return of(`${data.pagination.totalResults} results for ${data.breadcrumbs[0].facetValueName}`);
-    }
-    /**
-     * @param {?} data
-     * @return {?}
-     */
-    resolveBreadcrumbs(data) {
-        /** @type {?} */
-        const breadcrumbs = [];
-        breadcrumbs.push({ label: 'Home', link: '/' });
-        for (const br of data.breadcrumbs) {
-            breadcrumbs.push({
-                label: br.facetValueName,
-                link: '/c/' + br.facetValueCode,
-            });
-        }
-        return of(breadcrumbs);
-    }
-    /**
-     * @private
-     * @param {?} page
-     * @return {?}
-     */
-    hasProductListComponent(page) {
-        // ProductListComponent
-        return !!Object.keys(page.slots).find(key => !!page.slots[key].components.find(comp => comp.typeCode === 'CMSProductListComponent'));
-    }
-}
-CategoryPageMetaResolver.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-CategoryPageMetaResolver.ctorParameters = () => [
-    { type: RoutingService },
-    { type: ProductSearchService },
-    { type: CmsService }
-];
-/** @nocollapse */ CategoryPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function CategoryPageMetaResolver_Factory() { return new CategoryPageMetaResolver(inject(RoutingService), inject(ProductSearchService), inject(CmsService)); }, token: CategoryPageMetaResolver, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class ProductPageMetaResolver extends PageMetaResolver {
-    /**
-     * @param {?} routingService
-     * @param {?} productService
-     */
-    constructor(routingService, productService) {
-        super();
-        this.routingService = routingService;
-        this.productService = productService;
-        this.pageType = PageType.PRODUCT_PAGE;
-    }
-    /**
-     * @return {?}
-     */
-    resolve() {
-        return this.routingService.getRouterState().pipe(map(state => state.state.params['productCode']), filter(Boolean), switchMap(code => this.productService.get(code)), filter(Boolean), switchMap((p) => combineLatest([
-            this.resolveHeading(p),
-            this.resolveTitle(p),
-            this.resolveDescription(p),
-            this.resolveBreadcrumbs(p),
-            this.resolveImage(p),
-        ])), map(([heading, title, description, breadcrumbs, image]) => ({
-            heading,
-            title,
-            description,
-            breadcrumbs,
-            image,
-        })));
-    }
-    /**
-     * @param {?} product
-     * @return {?}
-     */
-    resolveHeading(product) {
-        return of(product.name);
-    }
-    /**
-     * @param {?} product
-     * @return {?}
-     */
-    resolveTitle(product) {
-        /** @type {?} */
-        let title = product.name;
-        title += this.resolveFirstCategory(product);
-        title += this.resolveManufacturer(product);
-        return of(title);
-    }
-    /**
-     * @param {?} product
-     * @return {?}
-     */
-    resolveDescription(product) {
-        return of(product.summary);
-    }
-    /**
-     * @param {?} product
-     * @return {?}
-     */
-    resolveBreadcrumbs(product) {
-        /** @type {?} */
-        const breadcrumbs = [];
-        breadcrumbs.push({ label: 'Home', link: '/' });
-        for (const c of product.categories) {
-            breadcrumbs.push({
-                label: c.name || c.code,
-                link: '/c/' + c.code,
-            });
-        }
-        return of(breadcrumbs);
-    }
-    /**
-     * @param {?} product
-     * @return {?}
-     */
-    resolveImage(product) {
-        /** @type {?} */
-        let result;
-        if (product.images &&
-            product.images.PRIMARY &&
-            product.images.PRIMARY.zoom &&
-            product.images.PRIMARY.zoom.url) {
-            result = product.images.PRIMARY.zoom.url;
-        }
-        return of(result);
-    }
-    /**
-     * @private
-     * @param {?} product
-     * @return {?}
-     */
-    resolveFirstCategory(product) {
-        /** @type {?} */
-        let firstCategory;
-        if (product.categories && product.categories.length > 0) {
-            firstCategory = product.categories[0];
-        }
-        return firstCategory
-            ? ` | ${firstCategory.name || firstCategory.code}`
-            : '';
-    }
-    /**
-     * @private
-     * @param {?} product
-     * @return {?}
-     */
-    resolveManufacturer(product) {
-        return product.manufacturer ? ` | ${product.manufacturer}` : '';
-    }
-}
-ProductPageMetaResolver.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-ProductPageMetaResolver.ctorParameters = () => [
-    { type: RoutingService },
-    { type: ProductService }
-];
-/** @nocollapse */ ProductPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function ProductPageMetaResolver_Factory() { return new ProductPageMetaResolver(inject(RoutingService), inject(ProductService)); }, token: ProductPageMetaResolver, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class SearchPageMetaResolver extends PageMetaResolver {
-    /**
-     * @param {?} routingService
-     * @param {?} productSearchService
-     */
-    constructor(routingService, productSearchService) {
-        super();
-        this.routingService = routingService;
-        this.productSearchService = productSearchService;
-        this.pageType = PageType.CONTENT_PAGE;
-        this.pageTemplate = 'SearchResultsListPageTemplate';
-    }
-    /**
-     * @return {?}
-     */
-    resolve() {
-        /** @type {?} */
-        const total$ = this.productSearchService.getSearchResults().pipe(filter(data => !!(data && data.pagination)), map(results => results.pagination.totalResults));
-        /** @type {?} */
-        const query$ = this.routingService.getRouterState().pipe(map(state => state.state.params['query']), filter(Boolean));
-        return combineLatest([total$, query$]).pipe(switchMap(([total, query]) => this.resolveTitle(total, query)), map(title => ({ title })));
-    }
-    /**
-     * @param {?} total
-     * @param {?} query
-     * @return {?}
-     */
-    resolveTitle(total, query) {
-        return of(`${total} results for "${query}"`);
-    }
-}
-SearchPageMetaResolver.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-SearchPageMetaResolver.ctorParameters = () => [
-    { type: RoutingService },
-    { type: ProductSearchService }
-];
-/** @nocollapse */ SearchPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function SearchPageMetaResolver_Factory() { return new SearchPageMetaResolver(inject(RoutingService), inject(ProductSearchService)); }, token: SearchPageMetaResolver, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @return {?}
- */
-function productStoreConfigFactory() {
-    // if we want to reuse PRODUCT_FEATURE const in config, we have to use factory instead of plain object
-    /** @type {?} */
-    const config = {
-        state: {
-            ssrTransfer: {
-                keys: { [PRODUCT_FEATURE]: StateTransferType.TRANSFER_STATE },
-            },
-        },
-    };
-    return config;
-}
-class ProductStoreModule {
-}
-ProductStoreModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [
-                    CommonModule,
-                    HttpClientModule,
-                    ProductOccModule,
-                    StoreModule.forFeature(PRODUCT_FEATURE, reducerToken$7, { metaReducers: metaReducers$4 }),
-                    EffectsModule.forFeature(effects$6),
-                    ConfigModule.withConfigFactory(productStoreConfigFactory),
-                ],
-                providers: [reducerProvider$7],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const pageTitleResolvers = [
-    {
-        provide: PageMetaResolver,
-        useExisting: ProductPageMetaResolver,
-        multi: true,
-    },
-    {
-        provide: PageMetaResolver,
-        useExisting: CategoryPageMetaResolver,
-        multi: true,
-    },
-    {
-        provide: PageMetaResolver,
-        useExisting: SearchPageMetaResolver,
-        multi: true,
-    },
-];
-class ProductModule {
-}
-ProductModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [ProductOccModule, ProductStoreModule, CmsModule],
-                providers: [
-                    ProductService,
-                    ProductSearchService,
-                    ProductReviewService,
-                    ProductReferenceService,
-                    ...pageTitleResolvers,
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const ADDRESS_NORMALIZER = new InjectionToken('AddressNormalizer');
-/** @type {?} */
-const ADDRESS_SERIALIZER = new InjectionToken('AddressSerializer');
-/** @type {?} */
-const ADDRESS_VALIDATION_NORMALIZER = new InjectionToken('AddressValidationNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_ENDPOINT = 'users/';
-/** @type {?} */
-const ADDRESSES_ENDPOINT = '/addresses';
-/** @type {?} */
-const ADDRESSES_VERIFICATION_ENDPOINT = '/addresses/verification';
-class OccUserAddressAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @private
-     * @param {?} userId
-     * @return {?}
-     */
-    getUserEndpoint(userId) {
-        /** @type {?} */
-        const endpoint = `${USER_ENDPOINT}${userId}`;
-        return this.occEndpoints.getEndpoint(endpoint);
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    loadAll(userId) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + ADDRESSES_ENDPOINT;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        return this.http.get(url, { headers }).pipe(catchError((error) => throwError(error)), map(addressList => addressList.addresses), this.converter.pipeableMany(ADDRESS_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} address
-     * @return {?}
-     */
-    add(userId, address) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + ADDRESSES_ENDPOINT;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        address = this.converter.convert(address, ADDRESS_SERIALIZER);
-        return this.http
-            .post(url, address, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} addressId
-     * @param {?} address
-     * @return {?}
-     */
-    update(userId, addressId, address) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + ADDRESSES_ENDPOINT + '/' + addressId;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        address = this.converter.convert(address, ADDRESS_SERIALIZER);
-        return this.http
-            .patch(url, address, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} address
-     * @return {?}
-     */
-    verify(userId, address) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + ADDRESSES_VERIFICATION_ENDPOINT;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        address = this.converter.convert(address, ADDRESS_SERIALIZER);
-        return this.http.post(url, address, { headers }).pipe(catchError((error) => throwError(error)), this.converter.pipeable(ADDRESS_VALIDATION_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} addressId
-     * @return {?}
-     */
-    delete(userId, addressId) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + ADDRESSES_ENDPOINT + '/' + addressId;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        return this.http
-            .delete(url, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-}
-OccUserAddressAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccUserAddressAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_REGISTER_FORM_SERIALIZER = new InjectionToken('UserRegisterFormSerializer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_NORMALIZER = new InjectionToken('UserNormalizer');
-/** @type {?} */
-const USER_SERIALIZER = new InjectionToken('UserSerializer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_ENDPOINT$1 = 'users/';
-/** @type {?} */
-const FORGOT_PASSWORD_ENDPOINT = '/forgottenpasswordtokens';
-/** @type {?} */
-const RESET_PASSWORD_ENDPOINT = '/resetpassword';
-/** @type {?} */
-const UPDATE_EMAIL_ENDPOINT = '/login';
-/** @type {?} */
-const UPDATE_PASSWORD_ENDPOINT = '/password';
-/** @type {?} */
-const CONSENTS_TEMPLATES_ENDPOINT = '/consenttemplates';
-/** @type {?} */
-const CONSENTS_ENDPOINT = '/consents';
-class OccUserAccountAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @private
-     * @param {?=} userId
-     * @return {?}
-     */
-    getUserEndpoint(userId) {
-        /** @type {?} */
-        const endpoint = userId ? `${USER_ENDPOINT$1}${userId}` : USER_ENDPOINT$1;
-        return this.occEndpoints.getEndpoint(endpoint);
-    }
-    /**
-     * @param {?} user
-     * @return {?}
-     */
-    register(user) {
-        /** @type {?} */
-        const url = this.getUserEndpoint();
-        /** @type {?} */
-        let headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        headers = InterceptorUtil.createHeader(USE_CLIENT_TOKEN, true, headers);
-        user = this.converter.convert(user, USER_REGISTER_FORM_SERIALIZER);
-        return this.http.post(url, user, { headers }).pipe(catchError((error) => throwError(error)), this.converter.pipeable(USER_NORMALIZER));
-    }
-    /**
-     * @param {?} userEmailAddress
-     * @return {?}
-     */
-    requestForgotPasswordEmail(userEmailAddress) {
-        /** @type {?} */
-        const url = this.occEndpoints.getEndpoint(FORGOT_PASSWORD_ENDPOINT);
-        /** @type {?} */
-        const httpParams = new HttpParams().set('userId', userEmailAddress);
-        /** @type {?} */
-        let headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        headers = InterceptorUtil.createHeader(USE_CLIENT_TOKEN, true, headers);
-        return this.http
-            .post(url, httpParams, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} token
-     * @param {?} newPassword
-     * @return {?}
-     */
-    resetPassword(token, newPassword) {
-        /** @type {?} */
-        const url = this.occEndpoints.getEndpoint(RESET_PASSWORD_ENDPOINT);
-        /** @type {?} */
-        let headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        headers = InterceptorUtil.createHeader(USE_CLIENT_TOKEN, true, headers);
-        return this.http
-            .post(url, { token, newPassword }, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} currentPassword
-     * @param {?} newUserId
-     * @return {?}
-     */
-    updateEmail(userId, currentPassword, newUserId) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + UPDATE_EMAIL_ENDPOINT;
-        /** @type {?} */
-        const httpParams = new HttpParams()
-            .set('password', currentPassword)
-            .set('newLogin', newUserId);
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        return this.http
-            .put(url, httpParams, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} oldPassword
-     * @param {?} newPassword
-     * @return {?}
-     */
-    updatePassword(userId, oldPassword, newPassword) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId) + UPDATE_PASSWORD_ENDPOINT;
-        /** @type {?} */
-        const httpParams = new HttpParams()
-            .set('old', oldPassword)
-            .set('new', newPassword);
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        return this.http
-            .put(url, httpParams, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    remove(userId) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId);
-        return this.http
-            .delete(url)
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    loadConsents(userId) {
-        /** @type {?} */
-        const url = this.getUserEndpoint() + userId + CONSENTS_TEMPLATES_ENDPOINT;
-        /** @type {?} */
-        const headers = new HttpHeaders({ 'Cache-Control': 'no-cache' });
-        return this.http
-            .get(url, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} consentTemplateId
-     * @param {?} consentTemplateVersion
-     * @return {?}
-     */
-    giveConsent(userId, consentTemplateId, consentTemplateVersion) {
-        /** @type {?} */
-        const url = this.getUserEndpoint() + userId + CONSENTS_ENDPOINT;
-        /** @type {?} */
-        const httpParams = new HttpParams()
-            .set('consentTemplateId', consentTemplateId)
-            .set('consentTemplateVersion', consentTemplateVersion.toString());
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Cache-Control': 'no-cache',
-        });
-        return this.http
-            .post(url, httpParams, { headers })
-            .pipe(catchError(error => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} consentCode
-     * @return {?}
-     */
-    withdrawConsent(userId, consentCode) {
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Cache-Control': 'no-cache',
-        });
-        /** @type {?} */
-        const url = this.getUserEndpoint() + userId + CONSENTS_ENDPOINT + '/' + consentCode;
-        return this.http.delete(url, { headers });
-    }
-}
-OccUserAccountAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccUserAccountAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_ENDPOINT$2 = 'users/';
-class OccUserDetailsAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @private
-     * @param {?} userId
-     * @return {?}
-     */
-    getUserEndpoint(userId) {
-        /** @type {?} */
-        const endpoint = `${USER_ENDPOINT$2}${userId}`;
-        return this.occEndpoints.getEndpoint(endpoint);
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    load(userId) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId);
-        return this.http.get(url).pipe(catchError((error) => throwError(error)), this.converter.pipeable(USER_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} user
-     * @return {?}
-     */
-    update(userId, user) {
-        /** @type {?} */
-        const url = this.getUserEndpoint(userId);
-        user = this.converter.convert(user, USER_SERIALIZER);
-        return this.http
-            .patch(url, user)
-            .pipe(catchError(error => throwError(error)));
-    }
-}
-OccUserDetailsAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccUserDetailsAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_ENDPOINT$3 = 'users/';
-/** @type {?} */
-const PAYMENT_DETAILS_ENDPOINT = '/paymentdetails';
-class OccUserPaymentAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @private
-     * @param {?} userId
-     * @return {?}
-     */
-    getPaymentDetailsEndpoint(userId) {
-        /** @type {?} */
-        const endpoint = `${USER_ENDPOINT$3}${userId}${PAYMENT_DETAILS_ENDPOINT}`;
-        return this.occEndpoints.getEndpoint(endpoint);
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    loadAll(userId) {
-        /** @type {?} */
-        const url = this.getPaymentDetailsEndpoint(userId) + '?saved=true';
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        return this.http.get(url, { headers }).pipe(catchError((error) => throwError(error)), map(methodList => methodList.payments), this.converter.pipeableMany(PAYMENT_DETAILS_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} paymentMethodID
-     * @return {?}
-     */
-    delete(userId, paymentMethodID) {
-        /** @type {?} */
-        const url = this.getPaymentDetailsEndpoint(userId) + `/${paymentMethodID}`;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        return this.http
-            .delete(url, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} paymentMethodID
-     * @return {?}
-     */
-    setDefault(userId, paymentMethodID) {
-        /** @type {?} */
-        const url = this.getPaymentDetailsEndpoint(userId) + `/${paymentMethodID}`;
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json',
-        });
-        return this.http
-            .patch(url, 
-        // TODO: Remove billingAddress property
-        { billingAddress: { titleCode: 'mr' }, defaultPayment: true }, { headers })
-            .pipe(catchError((error) => throwError(error)));
-    }
-}
-OccUserPaymentAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccUserPaymentAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const ORDER_NORMALIZER = new InjectionToken('OrderNormalizer');
-/** @type {?} */
-const ORDER_HISTORY_NORMALIZER = new InjectionToken('OrderHistoryNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-// To be changed to a more optimised params after ticket: C3PO-1076
-/** @type {?} */
-const FULL_PARAMS = 'fields=FULL';
-class OccOrderAdapter {
-    /**
-     * @param {?} http
-     * @param {?} occEndpoints
-     * @param {?} converter
-     */
-    constructor(http, occEndpoints, converter) {
-        this.http = http;
-        this.occEndpoints = occEndpoints;
-        this.converter = converter;
-    }
-    /**
-     * @protected
-     * @param {?} userId
-     * @return {?}
-     */
-    getOrderEndpoint(userId) {
-        /** @type {?} */
-        const orderEndpoint = 'users/' + userId + '/orders';
-        return this.occEndpoints.getEndpoint(orderEndpoint);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} cartId
-     * @return {?}
-     */
-    place(userId, cartId) {
-        /** @type {?} */
-        const url = this.getOrderEndpoint(userId);
-        /** @type {?} */
-        const params = new HttpParams({
-            fromString: 'cartId=' + cartId + '&' + FULL_PARAMS,
-        });
-        /** @type {?} */
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        return this.http.post(url, {}, { headers, params }).pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(ORDER_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?} orderCode
-     * @return {?}
-     */
-    load(userId, orderCode) {
-        /** @type {?} */
-        const url = this.getOrderEndpoint(userId);
-        /** @type {?} */
-        const orderUrl = url + '/' + orderCode;
-        /** @type {?} */
-        const params = new HttpParams({
-            fromString: FULL_PARAMS,
-        });
-        return this.http
-            .get(orderUrl, {
-            params: params,
-        })
-            .pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(ORDER_NORMALIZER));
-    }
-    /**
-     * @param {?} userId
-     * @param {?=} pageSize
-     * @param {?=} currentPage
-     * @param {?=} sort
-     * @return {?}
-     */
-    loadHistory(userId, pageSize, currentPage, sort) {
-        /** @type {?} */
-        const url = this.getOrderEndpoint(userId);
-        /** @type {?} */
-        let params = new HttpParams();
-        if (pageSize) {
-            params = params.set('pageSize', pageSize.toString());
-        }
-        if (currentPage) {
-            params = params.set('currentPage', currentPage.toString());
-        }
-        if (sort) {
-            params = params.set('sort', sort);
-        }
-        return this.http.get(url, { params: params }).pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(ORDER_HISTORY_NORMALIZER));
-    }
-}
-OccOrderAdapter.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccOrderAdapter.ctorParameters = () => [
-    { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class OccOrderNormalizer {
-    /**
-     * @param {?} converter
-     */
-    constructor(converter) {
-        this.converter = converter;
-    }
-    /**
-     * @param {?} source
-     * @param {?=} target
-     * @return {?}
-     */
-    convert(source, target) {
-        if (target === undefined) {
-            target = Object.assign({}, ((/** @type {?} */ (source))));
-        }
-        if (source.entries) {
-            target.entries = source.entries.map(entry => this.convertOrderEntry(entry));
-        }
-        if (source.consignments) {
-            target.consignments = source.consignments.map(consignment => (Object.assign({}, consignment, { entries: consignment.entries.map(entry => (Object.assign({}, entry, { orderEntry: this.convertOrderEntry(entry.orderEntry) }))) })));
-        }
-        if (source.unconsignedEntries) {
-            target.unconsignedEntries = source.unconsignedEntries.map(entry => this.convertOrderEntry(entry));
-        }
-        return target;
-    }
-    /**
-     * @private
-     * @param {?} source
-     * @return {?}
-     */
-    convertOrderEntry(source) {
-        return Object.assign({}, source, { product: this.converter.convert(source.product, PRODUCT_NORMALIZER) });
-    }
-}
-OccOrderNormalizer.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccOrderNormalizer.ctorParameters = () => [
-    { type: ConverterService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class UserDetailsAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class UserAccountAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class UserPaymentAdapter {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UserOccModule {
-}
-UserOccModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [CommonModule, HttpClientModule, OccModule],
-                providers: [
-                    { provide: UserDetailsAdapter, useClass: OccUserDetailsAdapter },
-                    { provide: UserAddressAdapter, useClass: OccUserAddressAdapter },
-                    { provide: UserAccountAdapter, useClass: OccUserAccountAdapter },
-                    {
-                        provide: UserPaymentAdapter,
-                        useClass: OccUserPaymentAdapter,
-                    },
-                    { provide: OrderAdapter, useClass: OccOrderAdapter },
-                    { provide: ORDER_NORMALIZER, useClass: OccOrderNormalizer, multi: true },
-                ],
-            },] }
-];
 
 /**
  * @fileoverview added by tsickle
@@ -14882,12 +12726,12 @@ const initialState$g = {
  */
 function reducer$g(state = initialState$g, action) {
     switch (action.type) {
-        case LOAD_BILLING_COUNTRIES_SUCCESS: {
+        case LOAD_DELIVERY_COUNTRIES_SUCCESS: {
             /** @type {?} */
-            const billingCountries = action.payload;
+            const deliveryCountries = action.payload;
             /** @type {?} */
-            const entities = billingCountries.reduce((countryEntities, name) => {
-                return Object.assign({}, countryEntities, { [name.isocode]: name });
+            const entities = deliveryCountries.reduce((countryEntities, country) => {
+                return Object.assign({}, countryEntities, { [country.isocode]: country });
             }, Object.assign({}, state.entities));
             return Object.assign({}, state, { entities });
         }
@@ -14904,7 +12748,7 @@ function reducer$g(state = initialState$g, action) {
  */
 /** @type {?} */
 const initialState$h = {
-    entities: {},
+    order: {},
 };
 /**
  * @param {?=} state
@@ -14913,16 +12757,12 @@ const initialState$h = {
  */
 function reducer$h(state = initialState$h, action) {
     switch (action.type) {
-        case LOAD_DELIVERY_COUNTRIES_SUCCESS: {
+        case LOAD_ORDER_DETAILS_SUCCESS: {
             /** @type {?} */
-            const deliveryCountries = action.payload;
-            /** @type {?} */
-            const entities = deliveryCountries.reduce((countryEntities, country) => {
-                return Object.assign({}, countryEntities, { [country.isocode]: country });
-            }, Object.assign({}, state.entities));
-            return Object.assign({}, state, { entities });
+            const order = action.payload;
+            return Object.assign({}, state, { order });
         }
-        case CLEAR_MISCS_DATA: {
+        case CLEAR_ORDER_DETAILS: {
             return initialState$h;
         }
     }
@@ -14934,9 +12774,7 @@ function reducer$h(state = initialState$h, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$i = {
-    order: {},
-};
+const initialState$i = [];
 /**
  * @param {?=} state
  * @param {?=} action
@@ -14944,12 +12782,10 @@ const initialState$i = {
  */
 function reducer$i(state = initialState$i, action) {
     switch (action.type) {
-        case LOAD_ORDER_DETAILS_SUCCESS: {
-            /** @type {?} */
-            const order = action.payload;
-            return Object.assign({}, state, { order });
+        case LOAD_USER_PAYMENT_METHODS_SUCCESS: {
+            return action.payload ? action.payload : initialState$i;
         }
-        case CLEAR_ORDER_DETAILS: {
+        case LOAD_USER_PAYMENT_METHODS_FAIL: {
             return initialState$i;
         }
     }
@@ -14961,30 +12797,7 @@ function reducer$i(state = initialState$i, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$j = [];
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$j(state = initialState$j, action) {
-    switch (action.type) {
-        case LOAD_USER_PAYMENT_METHODS_SUCCESS: {
-            return action.payload ? action.payload : initialState$j;
-        }
-        case LOAD_USER_PAYMENT_METHODS_FAIL: {
-            return initialState$j;
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$k = {
+const initialState$j = {
     entities: [],
 };
 /**
@@ -14992,7 +12805,7 @@ const initialState$k = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$k(state = initialState$k, action) {
+function reducer$j(state = initialState$j, action) {
     switch (action.type) {
         case LOAD_REGIONS_SUCCESS: {
             /** @type {?} */
@@ -15000,13 +12813,13 @@ function reducer$k(state = initialState$k, action) {
             if (entities) {
                 return Object.assign({}, state, { entities });
             }
-            return initialState$k;
+            return initialState$j;
         }
         case LOAD_REGIONS: {
             return Object.assign({}, state);
         }
         case CLEAR_MISCS_DATA: {
-            return Object.assign({}, initialState$k);
+            return Object.assign({}, initialState$j);
         }
     }
     return state;
@@ -15017,13 +12830,13 @@ function reducer$k(state = initialState$k, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$l = false;
+const initialState$k = false;
 /**
  * @param {?=} state
  * @param {?=} action
  * @return {?}
  */
-function reducer$l(state = initialState$l, action) {
+function reducer$k(state = initialState$k, action) {
     switch (action.type) {
         case RESET_PASSWORD_SUCCESS: {
             return true;
@@ -15037,7 +12850,7 @@ function reducer$l(state = initialState$l, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$m = {
+const initialState$l = {
     entities: {},
 };
 /**
@@ -15045,7 +12858,7 @@ const initialState$m = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$m(state = initialState$m, action) {
+function reducer$l(state = initialState$l, action) {
     switch (action.type) {
         case LOAD_TITLES_SUCCESS: {
             /** @type {?} */
@@ -15057,7 +12870,7 @@ function reducer$m(state = initialState$m, action) {
             return Object.assign({}, state, { entities });
         }
         case CLEAR_MISCS_DATA: {
-            return initialState$m;
+            return initialState$l;
         }
     }
     return state;
@@ -15068,71 +12881,36 @@ function reducer$m(state = initialState$m, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$n = [];
+const initialState$m = [];
+/**
+ * @param {?=} state
+ * @param {?=} action
+ * @return {?}
+ */
+function reducer$m(state = initialState$m, action) {
+    switch (action.type) {
+        case LOAD_USER_ADDRESSES_FAIL: {
+            return initialState$m;
+        }
+        case LOAD_USER_ADDRESSES_SUCCESS: {
+            return action.payload ? action.payload : initialState$m;
+        }
+    }
+    return state;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const initialState$n = (/** @type {?} */ ({}));
 /**
  * @param {?=} state
  * @param {?=} action
  * @return {?}
  */
 function reducer$n(state = initialState$n, action) {
-    switch (action.type) {
-        case LOAD_USER_ADDRESSES_FAIL: {
-            return initialState$n;
-        }
-        case LOAD_USER_ADDRESSES_SUCCESS: {
-            return action.payload ? action.payload : initialState$n;
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$o = {
-    consentTemplates: [],
-};
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$o(state = initialState$o, action) {
-    switch (action.type) {
-        case LOAD_USER_CONSENTS_SUCCESS: {
-            /** @type {?} */
-            const consents = action.payload;
-            return consents ? consents : initialState$o;
-        }
-        case GIVE_USER_CONSENT_SUCCESS: {
-            /** @type {?} */
-            const updatedConsentTemplate = action.consentTemplate;
-            /** @type {?} */
-            const updatedTemplates = state.consentTemplates.map(consentTemplate => consentTemplate.id === updatedConsentTemplate.id
-                ? updatedConsentTemplate
-                : consentTemplate);
-            return {
-                consentTemplates: updatedTemplates,
-            };
-        }
-    }
-    return state;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const initialState$p = (/** @type {?} */ ({}));
-/**
- * @param {?=} state
- * @param {?=} action
- * @return {?}
- */
-function reducer$p(state = initialState$p, action) {
     switch (action.type) {
         case LOAD_USER_DETAILS_SUCCESS: {
             return action.payload;
@@ -15151,7 +12929,7 @@ function reducer$p(state = initialState$p, action) {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const initialState$q = {
+const initialState$o = {
     orders: [],
     pagination: {},
     sorts: [],
@@ -15161,13 +12939,13 @@ const initialState$q = {
  * @param {?=} action
  * @return {?}
  */
-function reducer$q(state = initialState$q, action) {
+function reducer$o(state = initialState$o, action) {
     switch (action.type) {
         case LOAD_USER_ORDERS_SUCCESS: {
-            return action.payload ? action.payload : initialState$q;
+            return action.payload ? action.payload : initialState$o;
         }
         case LOAD_USER_ORDERS_FAIL: {
-            return initialState$q;
+            return initialState$o;
         }
     }
     return state;
@@ -15183,18 +12961,17 @@ function reducer$q(state = initialState$q, action) {
 function getReducers$8() {
     return {
         account: combineReducers({
-            details: reducer$p,
+            details: reducer$n,
         }),
-        addresses: loaderReducer(USER_ADDRESSES, reducer$n),
-        billingCountries: reducer$g,
-        consents: loaderReducer(USER_CONSENTS, reducer$o),
-        payments: loaderReducer(USER_PAYMENT_METHODS, reducer$j),
-        orders: loaderReducer(USER_ORDERS, reducer$q),
-        order: reducer$i,
-        countries: reducer$h,
-        titles: reducer$m,
-        regions: reducer$k,
-        resetPassword: reducer$l,
+        addresses: loaderReducer(USER_ADDRESSES, reducer$m),
+        billingCountries: reducer$f,
+        payments: loaderReducer(USER_PAYMENT_METHODS, reducer$i),
+        orders: loaderReducer(USER_ORDERS, reducer$o),
+        order: reducer$h,
+        countries: reducer$g,
+        titles: reducer$l,
+        regions: reducer$j,
+        resetPassword: reducer$k,
     };
 }
 /** @type {?} */
@@ -15231,33 +13008,20 @@ const getUserState = createFeatureSelector(USER_FEATURE);
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getBillingCountriesState = createSelector(getUserState, (state) => state.billingCountries);
+const getDetailsState = createSelector(getUserState, (state) => state.account);
 /** @type {?} */
-const getBillingCountriesEntites = createSelector(getBillingCountriesState, (state) => state.entities);
-/** @type {?} */
-const getAllBillingCountries = createSelector(getBillingCountriesEntites, entites => Object.keys(entites).map(isocode => entites[isocode]));
+const getDetails = createSelector(getDetailsState, (state) => state.details);
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getDeliveryCountriesState = createSelector(getUserState, (state) => state.countries);
+const getAddressesLoaderState = createSelector(getUserState, (state) => state.addresses);
 /** @type {?} */
-const getDeliveryCountriesEntites = createSelector(getDeliveryCountriesState, (state) => state.entities);
+const getAddresses = createSelector(getAddressesLoaderState, (state) => loaderValueSelector(state));
 /** @type {?} */
-const getAllDeliveryCountries = createSelector(getDeliveryCountriesEntites, entites => Object.keys(entites).map(isocode => entites[isocode]));
-/** @type {?} */
-const countrySelectorFactory = (isocode) => createSelector(getDeliveryCountriesEntites, entities => (Object.keys(entities).length !== 0 ? entities[isocode] : null));
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const getOrderState = createSelector(getUserState, (state) => state.order);
-/** @type {?} */
-const getOrderDetails = createSelector(getOrderState, (state) => state.order);
+const getAddressesLoading = createSelector(getAddressesLoaderState, (state) => loaderLoadingSelector(state));
 
 /**
  * @fileoverview added by tsickle
@@ -15275,16 +13039,11 @@ const getPaymentMethodsLoading = createSelector(getPaymentMethodsState, (state) 
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getRegionsState = createSelector(getUserState, (state) => state.regions);
+const getOrdersState = createSelector(getUserState, (state) => state.orders);
 /** @type {?} */
-const getAllRegions = createSelector(getRegionsState, (state) => state.entities);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
+const getOrdersLoaded = createSelector(getOrdersState, (state) => loaderSuccessSelector(state));
 /** @type {?} */
-const getResetPassword = createSelector(getUserState, (state) => state.resetPassword);
+const getOrders = createSelector(getOrdersState, (state) => loaderValueSelector(state));
 
 /**
  * @fileoverview added by tsickle
@@ -15304,46 +13063,49 @@ const titleSelectorFactory = (code) => createSelector(getTitlesEntites, entities
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getAddressesLoaderState = createSelector(getUserState, (state) => state.addresses);
+const getDeliveryCountriesState = createSelector(getUserState, (state) => state.countries);
 /** @type {?} */
-const getAddresses = createSelector(getAddressesLoaderState, (state) => loaderValueSelector(state));
+const getDeliveryCountriesEntites = createSelector(getDeliveryCountriesState, (state) => state.entities);
 /** @type {?} */
-const getAddressesLoading = createSelector(getAddressesLoaderState, (state) => loaderLoadingSelector(state));
+const getAllDeliveryCountries = createSelector(getDeliveryCountriesEntites, entites => Object.keys(entites).map(isocode => entites[isocode]));
+/** @type {?} */
+const countrySelectorFactory = (isocode) => createSelector(getDeliveryCountriesEntites, entities => (Object.keys(entities).length !== 0 ? entities[isocode] : null));
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getConsentsState = createSelector(getUserState, (state) => state.consents);
+const getRegionsState = createSelector(getUserState, (state) => state.regions);
 /** @type {?} */
-const getConsentsValue = createSelector(getConsentsState, loaderValueSelector);
-/** @type {?} */
-const getConsentsLoading = createSelector(getConsentsState, loaderLoadingSelector);
-/** @type {?} */
-const getConsentsSuccess = createSelector(getConsentsState, loaderSuccessSelector);
-/** @type {?} */
-const getConsentsError = createSelector(getConsentsState, loaderErrorSelector);
+const getAllRegions = createSelector(getRegionsState, (state) => state.entities);
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getDetailsState = createSelector(getUserState, (state) => state.account);
+const getOrderState = createSelector(getUserState, (state) => state.order);
 /** @type {?} */
-const getDetails = createSelector(getDetailsState, (state) => state.details);
+const getOrderDetails$1 = createSelector(getOrderState, (state) => state.order);
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const getOrdersState = createSelector(getUserState, (state) => state.orders);
+const getBillingCountriesState = createSelector(getUserState, (state) => state.billingCountries);
 /** @type {?} */
-const getOrdersLoaded = createSelector(getOrdersState, (state) => loaderSuccessSelector(state));
+const getBillingCountriesEntites = createSelector(getBillingCountriesState, (state) => state.entities);
 /** @type {?} */
-const getOrders = createSelector(getOrdersState, (state) => loaderValueSelector(state));
+const getAllBillingCountries = createSelector(getBillingCountriesEntites, entites => Object.keys(entites).map(isocode => entites[isocode]));
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const getResetPassword = createSelector(getUserState, (state) => state.resetPassword);
 
 /**
  * @fileoverview added by tsickle
@@ -15440,49 +13202,11 @@ class UserService {
         this.store.dispatch(new RegisterUser(userRegisterFormData));
     }
     /**
-     * Remove user account, that's also called close user's account
-     *
-     * @param {?} userId
-     * @return {?}
-     */
-    remove(userId) {
-        this.store.dispatch(new RemoveUser(userId));
-    }
-    /**
-     * Returns the remove user loading flag
-     * @return {?}
-     */
-    getRemoveUserResultLoading() {
-        return this.store.pipe(select(getProcessLoadingFactory(REMOVE_USER_PROCESS_ID)));
-    }
-    /**
-     * Returns the remove user failure outcome.
-     * @return {?}
-     */
-    getRemoveUserResultError() {
-        return this.store.pipe(select(getProcessErrorFactory(REMOVE_USER_PROCESS_ID)));
-    }
-    /**
-     * Returns the remove user process success outcome.
-     * @return {?}
-     */
-    getRemoveUserResultSuccess() {
-        return this.store.pipe(select(getProcessSuccessFactory(REMOVE_USER_PROCESS_ID)));
-    }
-    /**
-     * Resets the remove user process state. The state needs to be reset after the process
-     * concludes, regardless if it's a success or an error
-     * @return {?}
-     */
-    resetRemoveUserProcessState() {
-        this.store.dispatch(new RemoveUserReset());
-    }
-    /**
      * Returns an order's detail
      * @return {?}
      */
     getOrderDetails() {
-        return this.store.pipe(select(getOrderDetails));
+        return this.store.pipe(select(getOrderDetails$1));
     }
     /**
      * Retrieves order's details
@@ -15737,13 +13461,6 @@ class UserService {
         this.store.dispatch(new ClearUserOrders());
     }
     /**
-     * Return whether user's password is successfully reset
-     * @return {?}
-     */
-    isPasswordReset() {
-        return this.store.pipe(select(getResetPassword));
-    }
-    /**
      * Updates the user's details
      * @param {?} username
      * @param {?} userDetails to be updated
@@ -15800,42 +13517,11 @@ class UserService {
         this.store.dispatch(new ForgotPasswordEmailRequest(userEmailAddress));
     }
     /**
-     * Updates the user's email
-     * @param {?} uid to be updated
-     * @param {?} password
-     * @param {?} newUid
+     * Return whether user's password is successfully reset.  Part of the forgot password flow.
      * @return {?}
      */
-    updateEmail(uid, password, newUid) {
-        this.store.dispatch(new UpdateEmailAction({ uid, password, newUid }));
-    }
-    /**
-     * Returns the update user's email success flag
-     * @return {?}
-     */
-    getUpdateEmailResultSuccess() {
-        return this.store.pipe(select(getProcessSuccessFactory(UPDATE_EMAIL_PROCESS_ID)));
-    }
-    /**
-     * Returns the update user's email error flag
-     * @return {?}
-     */
-    getUpdateEmailResultError() {
-        return this.store.pipe(select(getProcessErrorFactory(UPDATE_EMAIL_PROCESS_ID)));
-    }
-    /**
-     * Returns the update user's email loading flag
-     * @return {?}
-     */
-    getUpdateEmailResultLoading() {
-        return this.store.pipe(select(getProcessLoadingFactory(UPDATE_EMAIL_PROCESS_ID)));
-    }
-    /**
-     * Resets the update user's email processing state
-     * @return {?}
-     */
-    resetUpdateEmailResultState() {
-        this.store.dispatch(new ResetUpdateEmailAction());
+    isPasswordReset() {
+        return this.store.pipe(select(getResetPassword));
     }
     /**
      * Updates the password for an authenticated user
@@ -15848,7 +13534,7 @@ class UserService {
         this.store.dispatch(new UpdatePassword({ userId, oldPassword, newPassword }));
     }
     /**
-     * Returns the update password loading flag
+     * Returns the update passwrod loading flag
      * @return {?}
      */
     getUpdatePasswordResultLoading() {
@@ -15875,128 +13561,6 @@ class UserService {
      */
     resetUpdatePasswordProcessState() {
         this.store.dispatch(new UpdatePasswordReset());
-    }
-    /**
-     * Retrieves all consents
-     * @param {?} userId user ID for which to retrieve consents
-     * @return {?}
-     */
-    loadConsents(userId) {
-        this.store.dispatch(new LoadUserConsents(userId));
-    }
-    /**
-     * Returns all consents
-     * @return {?}
-     */
-    getConsents() {
-        return this.store.pipe(select(getConsentsValue));
-    }
-    /**
-     * Returns the consents loading flag
-     * @return {?}
-     */
-    getConsentsResultLoading() {
-        return this.store.pipe(select(getConsentsLoading));
-    }
-    /**
-     * Returns the consents success flag
-     * @return {?}
-     */
-    getConsentsResultSuccess() {
-        return this.store.pipe(select(getConsentsSuccess));
-    }
-    /**
-     * Returns the consents error flag
-     * @return {?}
-     */
-    getConsentsResultError() {
-        return this.store.pipe(select(getConsentsError));
-    }
-    /**
-     * Resets the processing state for consent retrieval
-     * @return {?}
-     */
-    resetConsentsProcessState() {
-        this.store.dispatch(new ResetLoadUserConsents());
-    }
-    /**
-     * Give consent for specified consent template ID and version.
-     * @param {?} userId and ID of a user giving the consent
-     * @param {?} consentTemplateId a template ID for which to give a consent
-     * @param {?} consentTemplateVersion a template version for which to give a consent
-     * @return {?}
-     */
-    giveConsent(userId, consentTemplateId, consentTemplateVersion) {
-        this.store.dispatch(new GiveUserConsent({
-            userId,
-            consentTemplateId,
-            consentTemplateVersion,
-        }));
-    }
-    /**
-     * Returns the give consent process loading flag
-     * @return {?}
-     */
-    getGiveConsentResultLoading() {
-        return this.store.pipe(select(getProcessLoadingFactory(GIVE_CONSENT_PROCESS_ID)));
-    }
-    /**
-     * Returns the give consent process success flag
-     * @return {?}
-     */
-    getGiveConsentResultSuccess() {
-        return this.store.pipe(select(getProcessSuccessFactory(GIVE_CONSENT_PROCESS_ID)));
-    }
-    /**
-     * Returns the give consent process error flag
-     * @return {?}
-     */
-    getGiveConsentResultError() {
-        return this.store.pipe(select(getProcessErrorFactory(GIVE_CONSENT_PROCESS_ID)));
-    }
-    /**
-     * Resents the give consent process flags
-     * @return {?}
-     */
-    resetGiveConsentProcessState() {
-        return this.store.dispatch(new ResetGiveUserConsentProcess());
-    }
-    /**
-     * Withdraw consent for the given `consentCode`
-     * @param {?} userId a user ID for which to withdraw the consent
-     * @param {?} consentCode for which to withdraw the consent
-     * @return {?}
-     */
-    withdrawConsent(userId, consentCode) {
-        this.store.dispatch(new WithdrawUserConsent({ userId, consentCode }));
-    }
-    /**
-     * Returns the withdraw consent process loading flag
-     * @return {?}
-     */
-    getWithdrawConsentResultLoading() {
-        return this.store.pipe(select(getProcessLoadingFactory(WITHDRAW_CONSENT_PROCESS_ID)));
-    }
-    /**
-     * Returns the withdraw consent process success flag
-     * @return {?}
-     */
-    getWithdrawConsentResultSuccess() {
-        return this.store.pipe(select(getProcessSuccessFactory(WITHDRAW_CONSENT_PROCESS_ID)));
-    }
-    /**
-     * Returns the withdraw consent process error flag
-     * @return {?}
-     */
-    getWithdrawConsentResultError() {
-        return this.store.pipe(select(getProcessErrorFactory(WITHDRAW_CONSENT_PROCESS_ID)));
-    }
-    /**
-     * Resets the process flags for withdraw consent
-     * @return {?}
-     */
-    resetWithdrawConsentProcessState() {
-        return this.store.dispatch(new ResetWithdrawUserConsentProcess());
     }
 }
 UserService.decorators = [
@@ -16120,117 +13684,23 @@ __decorate([
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class UserAccountConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} user
-     * @return {?}
-     */
-    register(user) {
-        return this.adapter.register(user);
-    }
-    /**
-     * @param {?} userEmailAddress
-     * @return {?}
-     */
-    requestForgotPasswordEmail(userEmailAddress) {
-        return this.adapter.requestForgotPasswordEmail(userEmailAddress);
-    }
-    /**
-     * @param {?} token
-     * @param {?} newPassword
-     * @return {?}
-     */
-    resetPassword(token, newPassword) {
-        return this.adapter.resetPassword(token, newPassword);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} currentPassword
-     * @param {?} newUserId
-     * @return {?}
-     */
-    updateEmail(userId, currentPassword, newUserId) {
-        return this.adapter.updateEmail(userId, currentPassword, newUserId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} oldPassword
-     * @param {?} newPassword
-     * @return {?}
-     */
-    updatePassword(userId, oldPassword, newPassword) {
-        return this.adapter.updatePassword(userId, oldPassword, newPassword);
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    remove(userId) {
-        return this.adapter.remove(userId);
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    loadConsents(userId) {
-        return this.adapter.loadConsents(userId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} consentTemplateId
-     * @param {?} consentTemplateVersion
-     * @return {?}
-     */
-    giveConsent(userId, consentTemplateId, consentTemplateVersion) {
-        return this.adapter.giveConsent(userId, consentTemplateId, consentTemplateVersion);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} consentCode
-     * @return {?}
-     */
-    withdrawConsent(userId, consentCode) {
-        return this.adapter.withdrawConsent(userId, consentCode);
-    }
-}
-UserAccountConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-UserAccountConnector.ctorParameters = () => [
-    { type: UserAccountAdapter }
-];
-/** @nocollapse */ UserAccountConnector.ngInjectableDef = defineInjectable({ factory: function UserAccountConnector_Factory() { return new UserAccountConnector(inject(UserAccountAdapter)); }, token: UserAccountConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 class ForgotPasswordEffects {
     /**
      * @param {?} actions$
-     * @param {?} userAccountConnector
+     * @param {?} occUserService
      */
-    constructor(actions$, userAccountConnector) {
+    constructor(actions$, occUserService) {
         this.actions$ = actions$;
-        this.userAccountConnector = userAccountConnector;
+        this.occUserService = occUserService;
         this.requestForgotPasswordEmail$ = this.actions$.pipe(ofType(FORGOT_PASSWORD_EMAIL_REQUEST), map((action) => {
             return action.payload;
         }), concatMap(userEmailAddress => {
-            return this.userAccountConnector
+            return this.occUserService
                 .requestForgotPasswordEmail(userEmailAddress)
                 .pipe(switchMap(() => [
                 new ForgotPasswordEmailRequestSuccess(),
                 new AddMessage({
-                    text: { key: 'forgottenPassword.passwordResetEmailSent' },
+                    text: 'An email has been sent to you with information on how to reset your password.',
                     type: GlobalMessageType.MSG_TYPE_CONFIRMATION,
                 }),
             ]), catchError(error => of(new ForgotPasswordEmailRequestFail(error))));
@@ -16243,7 +13713,7 @@ ForgotPasswordEffects.decorators = [
 /** @nocollapse */
 ForgotPasswordEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserAccountConnector }
+    { type: OccUserService }
 ];
 __decorate([
     Effect(),
@@ -16257,13 +13727,29 @@ __decorate([
 class OrderDetailsEffect {
     /**
      * @param {?} actions$
-     * @param {?} orderConnector
+     * @param {?} occOrderService
+     * @param {?} productImageConverter
      */
-    constructor(actions$, orderConnector) {
+    constructor(actions$, occOrderService, productImageConverter) {
         this.actions$ = actions$;
-        this.orderConnector = orderConnector;
+        this.occOrderService = occOrderService;
+        this.productImageConverter = productImageConverter;
         this.loadOrderDetails$ = this.actions$.pipe(ofType(LOAD_ORDER_DETAILS), map((action) => action.payload), switchMap(payload => {
-            return this.orderConnector.get(payload.userId, payload.orderCode).pipe(map((order) => {
+            return this.occOrderService
+                .getOrder(payload.userId, payload.orderCode)
+                .pipe(map((order) => {
+                if (order.consignments) {
+                    order.consignments.forEach(element => {
+                        element.entries.forEach(entry => {
+                            this.productImageConverter.convertProduct(entry.orderEntry.product);
+                        });
+                    });
+                }
+                if (order.unconsignedEntries) {
+                    order.unconsignedEntries.forEach(entry => {
+                        this.productImageConverter.convertProduct(entry.product);
+                    });
+                }
                 return new LoadOrderDetailsSuccess(order);
             }), catchError(error => of(new LoadOrderDetailsFail(error))));
         }));
@@ -16275,7 +13761,8 @@ OrderDetailsEffect.decorators = [
 /** @nocollapse */
 OrderDetailsEffect.ctorParameters = () => [
     { type: Actions },
-    { type: OrderConnector }
+    { type: OccOrderService },
+    { type: ProductImageNormalizer }
 ];
 __decorate([
     Effect(),
@@ -16286,68 +13773,22 @@ __decorate([
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class UserPaymentConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    getAll(userId) {
-        return this.adapter.loadAll(userId);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} paymentMethodID
-     * @return {?}
-     */
-    delete(userId, paymentMethodID) {
-        return this.adapter.delete(userId, paymentMethodID);
-    }
-    /**
-     * @param {?} userId
-     * @param {?} paymentMethodID
-     * @return {?}
-     */
-    setDefault(userId, paymentMethodID) {
-        return this.adapter.setDefault(userId, paymentMethodID);
-    }
-}
-UserPaymentConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-UserPaymentConnector.ctorParameters = () => [
-    { type: UserPaymentAdapter }
-];
-/** @nocollapse */ UserPaymentConnector.ngInjectableDef = defineInjectable({ factory: function UserPaymentConnector_Factory() { return new UserPaymentConnector(inject(UserPaymentAdapter)); }, token: UserPaymentConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 class UserPaymentMethodsEffects {
     /**
      * @param {?} actions$
-     * @param {?} userPaymentMethodConnector
+     * @param {?} occUserService
      */
-    constructor(actions$, userPaymentMethodConnector) {
+    constructor(actions$, occUserService) {
         this.actions$ = actions$;
-        this.userPaymentMethodConnector = userPaymentMethodConnector;
+        this.occUserService = occUserService;
         this.loadUserPaymentMethods$ = this.actions$.pipe(ofType(LOAD_USER_PAYMENT_METHODS), map((action) => action.payload), mergeMap(payload => {
-            return this.userPaymentMethodConnector.getAll(payload).pipe(map((payments) => {
-                return new LoadUserPaymentMethodsSuccess(payments);
+            return this.occUserService.loadUserPaymentMethods(payload).pipe(map((paymentsList) => {
+                return new LoadUserPaymentMethodsSuccess(paymentsList.payments);
             }), catchError(error => of(new LoadUserPaymentMethodsFail(error))));
         }));
         this.setDefaultUserPaymentMethod$ = this.actions$.pipe(ofType(SET_DEFAULT_USER_PAYMENT_METHOD), map((action) => action.payload), mergeMap(payload => {
-            return this.userPaymentMethodConnector
-                .setDefault(payload.userId, payload.paymentMethodId)
+            return this.occUserService
+                .setDefaultUserPaymentMethod(payload.userId, payload.paymentMethodId)
                 .pipe(switchMap((data) => {
                 return [
                     new SetDefaultUserPaymentMethodSuccess(data),
@@ -16356,8 +13797,8 @@ class UserPaymentMethodsEffects {
             }), catchError(error => of(new SetDefaultUserPaymentMethodFail(error))));
         }));
         this.deleteUserPaymentMethod$ = this.actions$.pipe(ofType(DELETE_USER_PAYMENT_METHOD), map((action) => action.payload), mergeMap(payload => {
-            return this.userPaymentMethodConnector
-                .delete(payload.userId, payload.paymentMethodId)
+            return this.occUserService
+                .deleteUserPaymentMethod(payload.userId, payload.paymentMethodId)
                 .pipe(switchMap((data) => {
                 return [
                     new DeleteUserPaymentMethodSuccess(data),
@@ -16373,7 +13814,7 @@ UserPaymentMethodsEffects.decorators = [
 /** @nocollapse */
 UserPaymentMethodsEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserPaymentConnector }
+    { type: OccUserService }
 ];
 __decorate([
     Effect(),
@@ -16427,18 +13868,18 @@ __decorate([
 class ResetPasswordEffects {
     /**
      * @param {?} actions$
-     * @param {?} userAccountConnector
+     * @param {?} occUserService
      */
-    constructor(actions$, userAccountConnector) {
+    constructor(actions$, occUserService) {
         this.actions$ = actions$;
-        this.userAccountConnector = userAccountConnector;
+        this.occUserService = occUserService;
         this.resetPassword$ = this.actions$.pipe(ofType(RESET_PASSWORD), map((action) => {
             return action.payload;
         }), switchMap(({ token, password }) => {
-            return this.userAccountConnector.resetPassword(token, password).pipe(switchMap(() => [
+            return this.occUserService.resetPassword(token, password).pipe(switchMap(() => [
                 new ResetPasswordSuccess(),
                 new AddMessage({
-                    text: { key: 'forgottenPassword.passwordResetSuccess' },
+                    text: 'Success! You can now login using your new password.',
                     type: GlobalMessageType.MSG_TYPE_CONFIRMATION,
                 }),
             ]), catchError(error => of(new ResetPasswordFail(error))));
@@ -16451,7 +13892,7 @@ ResetPasswordEffects.decorators = [
 /** @nocollapse */
 ResetPasswordEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserAccountConnector }
+    { type: OccUserService }
 ];
 __decorate([
     Effect(),
@@ -16512,45 +13953,15 @@ __decorate([
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class UpdateEmailEffects {
-    /**
-     * @param {?} actions$
-     * @param {?} userAccountConnector
-     */
-    constructor(actions$, userAccountConnector) {
-        this.actions$ = actions$;
-        this.userAccountConnector = userAccountConnector;
-        this.updateEmail$ = this.actions$.pipe(ofType(UPDATE_EMAIL), map((action) => action.payload), concatMap(payload => this.userAccountConnector
-            .updateEmail(payload.uid, payload.password, payload.newUid)
-            .pipe(map(() => new UpdateEmailSuccessAction(payload.newUid)), catchError(error => of(new UpdateEmailErrorAction(error))))));
-    }
-}
-UpdateEmailEffects.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-UpdateEmailEffects.ctorParameters = () => [
-    { type: Actions },
-    { type: UserAccountConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UpdateEmailEffects.prototype, "updateEmail$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 class UpdatePasswordEffects {
     /**
      * @param {?} actions$
-     * @param {?} userAccountConnector
+     * @param {?} occUserService
      */
-    constructor(actions$, userAccountConnector) {
+    constructor(actions$, occUserService) {
         this.actions$ = actions$;
-        this.userAccountConnector = userAccountConnector;
-        this.updatePassword$ = this.actions$.pipe(ofType(UPDATE_PASSWORD), map((action) => action.payload), concatMap(payload => this.userAccountConnector
+        this.occUserService = occUserService;
+        this.updatePassword$ = this.actions$.pipe(ofType(UPDATE_PASSWORD), map((action) => action.payload), concatMap(payload => this.occUserService
             .updatePassword(payload.userId, payload.oldPassword, payload.newPassword)
             .pipe(map(_ => new UpdatePasswordSuccess()), catchError(error => of(new UpdatePasswordFail(error))))));
     }
@@ -16561,7 +13972,7 @@ UpdatePasswordEffects.decorators = [
 /** @nocollapse */
 UpdatePasswordEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserAccountConnector }
+    { type: OccUserService }
 ];
 __decorate([
     Effect(),
@@ -16575,37 +13986,37 @@ __decorate([
 class UserAddressesEffects {
     /**
      * @param {?} actions$
-     * @param {?} userAddressConnector
+     * @param {?} occUserService
      * @param {?} userService
      * @param {?} messageService
      */
-    constructor(actions$, userAddressConnector, userService, messageService) {
+    constructor(actions$, occUserService, userService, messageService) {
         this.actions$ = actions$;
-        this.userAddressConnector = userAddressConnector;
+        this.occUserService = occUserService;
         this.userService = userService;
         this.messageService = messageService;
         this.loadUserAddresses$ = this.actions$.pipe(ofType(LOAD_USER_ADDRESSES), map((action) => action.payload), mergeMap(payload => {
-            return this.userAddressConnector.getAll(payload).pipe(map((addresses) => {
-                return new LoadUserAddressesSuccess(addresses);
+            return this.occUserService.loadUserAddresses(payload).pipe(map((addressesList) => {
+                return new LoadUserAddressesSuccess(addressesList.addresses);
             }), catchError(error => of(new LoadUserAddressesFail(error))));
         }));
         this.addUserAddress$ = this.actions$.pipe(ofType(ADD_USER_ADDRESS), map((action) => action.payload), mergeMap(payload => {
-            return this.userAddressConnector
-                .add(payload.userId, payload.address)
+            return this.occUserService
+                .addUserAddress(payload.userId, payload.address)
                 .pipe(map((data) => {
                 return new AddUserAddressSuccess(data);
             }), catchError(error => of(new AddUserAddressFail(error))));
         }));
         this.updateUserAddress$ = this.actions$.pipe(ofType(UPDATE_USER_ADDRESS), map((action) => action.payload), mergeMap(payload => {
-            return this.userAddressConnector
-                .update(payload.userId, payload.addressId, payload.address)
+            return this.occUserService
+                .updateUserAddress(payload.userId, payload.addressId, payload.address)
                 .pipe(map((data) => {
                 return new UpdateUserAddressSuccess(data);
             }), catchError(error => of(new UpdateUserAddressFail(error))));
         }));
         this.deleteUserAddress$ = this.actions$.pipe(ofType(DELETE_USER_ADDRESS), map((action) => action.payload), mergeMap(payload => {
-            return this.userAddressConnector
-                .delete(payload.userId, payload.addressId)
+            return this.occUserService
+                .deleteUserAddress(payload.userId, payload.addressId)
                 .pipe(map((data) => {
                 return new DeleteUserAddressSuccess(data);
             }), catchError(error => of(new DeleteUserAddressFail(error))));
@@ -16615,21 +14026,21 @@ class UserAddressesEffects {
          */
         this.showGlobalMessageOnAddSuccess$ = this.actions$.pipe(ofType(ADD_USER_ADDRESS_SUCCESS), tap(() => {
             this.loadAddresses();
-            this.showGlobalMessage('addressForm.userAddressAddSuccess');
+            this.showGlobalMessage('New address was added successfully!');
         }));
         /**
          *  Reload addresses and notify about update success
          */
         this.showGlobalMessageOnUpdateSuccess$ = this.actions$.pipe(ofType(UPDATE_USER_ADDRESS_SUCCESS), tap(() => {
             this.loadAddresses();
-            this.showGlobalMessage('addressForm.userAddressUpdateSuccess');
+            this.showGlobalMessage('Address updated successfully!');
         }));
         /**
          *  Reload addresses and notify about delete success
          */
         this.showGlobalMessageOnDeleteSuccess$ = this.actions$.pipe(ofType(DELETE_USER_ADDRESS_SUCCESS), tap(() => {
             this.loadAddresses();
-            this.showGlobalMessage('addressForm.userAddressDeleteSuccess');
+            this.showGlobalMessage('Address deleted successfully!');
         }));
     }
     /**
@@ -16644,7 +14055,10 @@ class UserAddressesEffects {
         this.messageService.remove(GlobalMessageType.MSG_TYPE_ERROR);
         this.messageService.remove(GlobalMessageType.MSG_TYPE_CONFIRMATION);
         // ----------
-        this.messageService.add({ key: text }, GlobalMessageType.MSG_TYPE_CONFIRMATION);
+        this.messageService.add({
+            type: GlobalMessageType.MSG_TYPE_CONFIRMATION,
+            text,
+        });
     }
     /**
      * @private
@@ -16665,7 +14079,7 @@ UserAddressesEffects.decorators = [
 /** @nocollapse */
 UserAddressesEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserAddressConnector },
+    { type: OccUserService },
     { type: UserService },
     { type: GlobalMessageService }
 ];
@@ -16702,99 +14116,21 @@ __decorate([
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class UserConsentsEffect {
-    /**
-     * @param {?} actions$
-     * @param {?} userAccountConnector
-     */
-    constructor(actions$, userAccountConnector) {
-        this.actions$ = actions$;
-        this.userAccountConnector = userAccountConnector;
-        this.getConsents$ = this.actions$.pipe(ofType(LOAD_USER_CONSENTS), map((action) => action.payload), switchMap(userId => this.userAccountConnector.loadConsents(userId).pipe(map(consents => new LoadUserConsentsSuccess(consents)), catchError(error => of(new LoadUserConsentsFail(error))))));
-        this.giveConsent$ = this.actions$.pipe(ofType(GIVE_USER_CONSENT), map((action) => action.payload), switchMap(({ userId, consentTemplateId, consentTemplateVersion }) => this.userAccountConnector
-            .giveConsent(userId, consentTemplateId, consentTemplateVersion)
-            .pipe(map(consent => new GiveUserConsentSuccess(consent)), catchError(error => of(new GiveUserConsentFail(error))))));
-        this.withdrawConsent$ = this.actions$.pipe(ofType(WITHDRAW_USER_CONSENT), map((action) => action.payload), switchMap(({ userId, consentCode }) => this.userAccountConnector.withdrawConsent(userId, consentCode).pipe(map(_ => new WithdrawUserConsentSuccess()), catchError(error => of(new WithdrawUserConsentFail(error))))));
-    }
-}
-UserConsentsEffect.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-UserConsentsEffect.ctorParameters = () => [
-    { type: Actions },
-    { type: UserAccountConnector }
-];
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserConsentsEffect.prototype, "getConsents$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserConsentsEffect.prototype, "giveConsent$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserConsentsEffect.prototype, "withdrawConsent$", void 0);
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class UserDetailsConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} userId
-     * @return {?}
-     */
-    get(userId) {
-        return this.adapter.load(userId);
-    }
-    /**
-     * @param {?} username
-     * @param {?} user
-     * @return {?}
-     */
-    update(username, user) {
-        return this.adapter.update(username, user);
-    }
-}
-UserDetailsConnector.decorators = [
-    { type: Injectable, args: [{
-                providedIn: 'root',
-            },] }
-];
-/** @nocollapse */
-UserDetailsConnector.ctorParameters = () => [
-    { type: UserDetailsAdapter }
-];
-/** @nocollapse */ UserDetailsConnector.ngInjectableDef = defineInjectable({ factory: function UserDetailsConnector_Factory() { return new UserDetailsConnector(inject(UserDetailsAdapter)); }, token: UserDetailsConnector, providedIn: "root" });
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
 class UserDetailsEffects {
     /**
      * @param {?} actions$
-     * @param {?} userDetailsConnector
+     * @param {?} occUserService
      */
-    constructor(actions$, userDetailsConnector) {
+    constructor(actions$, occUserService) {
         this.actions$ = actions$;
-        this.userDetailsConnector = userDetailsConnector;
+        this.occUserService = occUserService;
         this.loadUserDetails$ = this.actions$.pipe(ofType(LOAD_USER_DETAILS), map((action) => action.payload), mergeMap(userId => {
-            return this.userDetailsConnector.get(userId).pipe(map((user) => {
+            return this.occUserService.loadUser(userId).pipe(map((user) => {
                 return new LoadUserDetailsSuccess(user);
             }), catchError(error => of(new LoadUserDetailsFail(error))));
         }));
-        this.updateUserDetails$ = this.actions$.pipe(ofType(UPDATE_USER_DETAILS), map((action) => action.payload), concatMap(payload => this.userDetailsConnector
-            .update(payload.username, payload.userDetails)
+        this.updateUserDetails$ = this.actions$.pipe(ofType(UPDATE_USER_DETAILS), map((action) => action.payload), concatMap(payload => this.occUserService
+            .updateUserDetails(payload.username, payload.userDetails)
             .pipe(map(_ => new UpdateUserDetailsSuccess(payload.userDetails)), catchError(error => of(new UpdateUserDetailsFail(error))))));
     }
 }
@@ -16804,7 +14140,7 @@ UserDetailsEffects.decorators = [
 /** @nocollapse */
 UserDetailsEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserDetailsConnector }
+    { type: OccUserService }
 ];
 __decorate([
     Effect(),
@@ -16822,14 +14158,14 @@ __decorate([
 class UserOrdersEffect {
     /**
      * @param {?} actions$
-     * @param {?} orderConnector
+     * @param {?} occOrderService
      */
-    constructor(actions$, orderConnector) {
+    constructor(actions$, occOrderService) {
         this.actions$ = actions$;
-        this.orderConnector = orderConnector;
+        this.occOrderService = occOrderService;
         this.loadUserOrders$ = this.actions$.pipe(ofType(LOAD_USER_ORDERS), map((action) => action.payload), switchMap(payload => {
-            return this.orderConnector
-                .getHistory(payload.userId, payload.pageSize, payload.currentPage, payload.sort)
+            return this.occOrderService
+                .getOrders(payload.userId, payload.pageSize, payload.currentPage, payload.sort)
                 .pipe(map((orders) => {
                 return new LoadUserOrdersSuccess(orders);
             }), catchError(error => of(new LoadUserOrdersFail(error))));
@@ -16845,7 +14181,7 @@ UserOrdersEffect.decorators = [
 /** @nocollapse */
 UserOrdersEffect.ctorParameters = () => [
     { type: Actions },
-    { type: OrderConnector }
+    { type: OccOrderService }
 ];
 __decorate([
     Effect(),
@@ -16863,25 +14199,19 @@ __decorate([
 class UserRegisterEffects {
     /**
      * @param {?} actions$
-     * @param {?} userAccountConnector
+     * @param {?} userService
      */
-    constructor(actions$, userAccountConnector) {
+    constructor(actions$, userService) {
         this.actions$ = actions$;
-        this.userAccountConnector = userAccountConnector;
+        this.userService = userService;
         this.registerUser$ = this.actions$.pipe(ofType(REGISTER_USER), map((action) => action.payload), mergeMap((user) => {
-            return this.userAccountConnector.register(user).pipe(switchMap(_result => [
+            return this.userService.registerUser(user).pipe(switchMap(_result => [
                 new LoadUserToken({
                     userId: user.uid,
                     password: user.password,
                 }),
                 new RegisterUserSuccess(),
             ]), catchError(error => of(new RegisterUserFail(error))));
-        }));
-        this.removeUser$ = this.actions$.pipe(ofType(REMOVE_USER), map((action) => action.payload), mergeMap((userId) => {
-            return this.userAccountConnector.remove(userId).pipe(switchMap(_result => [
-                new RemoveUserSuccess(),
-                new Logout(),
-            ]), catchError(error => of(new RemoveUserFail(error))));
         }));
     }
 }
@@ -16891,23 +14221,19 @@ UserRegisterEffects.decorators = [
 /** @nocollapse */
 UserRegisterEffects.ctorParameters = () => [
     { type: Actions },
-    { type: UserAccountConnector }
+    { type: OccUserService }
 ];
 __decorate([
     Effect(),
     __metadata("design:type", Observable)
 ], UserRegisterEffects.prototype, "registerUser$", void 0);
-__decorate([
-    Effect(),
-    __metadata("design:type", Observable)
-], UserRegisterEffects.prototype, "removeUser$", void 0);
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const effects$7 = [
+const effects$6 = [
     DeliveryCountriesEffects,
     RegionsEffects,
     TitlesEffects,
@@ -16920,9 +14246,7 @@ const effects$7 = [
     BillingCountriesEffect,
     ResetPasswordEffects,
     ForgotPasswordEffects,
-    UpdateEmailEffects,
     UpdatePasswordEffects,
-    UserConsentsEffect,
 ];
 
 /**
@@ -16938,7 +14262,7 @@ UserStoreModule.decorators = [
                     ReactiveFormsModule,
                     StateModule,
                     StoreModule.forFeature(USER_FEATURE, reducerToken$8, { metaReducers: metaReducers$5 }),
-                    EffectsModule.forFeature(effects$7),
+                    EffectsModule.forFeature(effects$6),
                     RouterModule,
                 ],
                 providers: [reducerProvider$8],
@@ -16967,383 +14291,603 @@ UserModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const USER_PAYMENT_NORMALIZER = new InjectionToken('UserNormalizer');
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class I18nConfig extends ServerConfig {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-// type CxDatePipe, not DatePipe, due to conflict with Angular's DatePipe - problem occurs for the backward compatibility compiler of Ivy
-class CxDatePipe extends DatePipe {
+class CheckoutEffects {
     /**
-     * @param {?} language
-     * @param {?} config
+     * @param {?} actions$
+     * @param {?} occCartService
+     * @param {?} occOrderService
+     * @param {?} productImageConverter
      */
-    constructor(language, config) {
-        super(null);
-        this.language = language;
-        this.config = config;
-    }
-    /**
-     * @param {?} value
-     * @param {?=} format
-     * @param {?=} timezone
-     * @return {?}
-     */
-    transform(value, format, timezone) {
-        return super.transform(value, format, timezone, this.getLang());
-    }
-    /**
-     * @private
-     * @return {?}
-     */
-    getLang() {
-        /** @type {?} */
-        const lang = this.getActiveLang();
-        try {
-            getLocaleId(lang);
-            return lang;
-        }
-        catch (_a) {
-            this.reportMissingLocaleData(lang);
-            return 'en';
-        }
-    }
-    /**
-     * @private
-     * @return {?}
-     */
-    getActiveLang() {
-        /** @type {?} */
-        let result;
-        this.language
-            .getActive()
-            .subscribe(lang => (result = lang))
-            .unsubscribe();
-        return result;
-    }
-    /**
-     * @private
-     * @param {?} lang
-     * @return {?}
-     */
-    reportMissingLocaleData(lang) {
-        if (!this.config.production) {
-            console.warn(`cxDate pipe: No locale data registered for '${lang}' (see https://angular.io/api/common/registerLocaleData).`);
-        }
-    }
-}
-CxDatePipe.decorators = [
-    { type: Pipe, args: [{ name: 'cxDate' },] }
-];
-/** @nocollapse */
-CxDatePipe.ctorParameters = () => [
-    { type: LanguageService },
-    { type: I18nConfig }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @abstract
- */
-class TranslationService {
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @param {?} objA
- * @param {?} objB
- * @return {?}
- */
-function shallowEqualObjects(objA, objB) {
-    if (objA === objB) {
-        return true;
-    }
-    if (!objA || !objB) {
-        return false;
-    }
-    /** @type {?} */
-    const aKeys = Object.keys(objA);
-    /** @type {?} */
-    const bKeys = Object.keys(objB);
-    /** @type {?} */
-    const aKeysLen = aKeys.length;
-    /** @type {?} */
-    const bKeysLen = bKeys.length;
-    if (aKeysLen !== bKeysLen) {
-        return false;
-    }
-    for (let i = 0; i < aKeysLen; i++) {
-        /** @type {?} */
-        const key = aKeys[i];
-        if (objA[key] !== objB[key]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class TranslatePipe {
-    /**
-     * @param {?} service
-     * @param {?} cd
-     */
-    constructor(service, cd) {
-        this.service = service;
-        this.cd = cd;
-    }
-    /**
-     * @param {?} input
-     * @param {?=} options
-     * @return {?}
-     */
-    transform(input, options = {}) {
-        if (((/** @type {?} */ (input))).raw) {
-            return ((/** @type {?} */ (input))).raw;
-        }
-        /** @type {?} */
-        const key = typeof input === 'string' ? input : input.key;
-        if (typeof input !== 'string') {
-            options = Object.assign({}, options, input.params);
-        }
-        this.translate(key, options);
-        return this.translatedValue;
-    }
-    /**
-     * @private
-     * @param {?} key
-     * @param {?} options
-     * @return {?}
-     */
-    translate(key, options) {
-        if (key !== this.lastKey ||
-            !shallowEqualObjects(options, this.lastOptions)) {
-            this.lastKey = key;
-            this.lastOptions = options;
-            if (this.sub) {
-                this.sub.unsubscribe();
-            }
-            this.sub = this.service
-                .translate(key, options, true)
-                .subscribe(val => this.markForCheck(val));
-        }
-    }
-    /**
-     * @private
-     * @param {?} value
-     * @return {?}
-     */
-    markForCheck(value) {
-        this.translatedValue = value;
-        this.cd.markForCheck();
-    }
-    /**
-     * @return {?}
-     */
-    ngOnDestroy() {
-        if (this.sub) {
-            this.sub.unsubscribe();
-        }
-    }
-}
-TranslatePipe.decorators = [
-    { type: Pipe, args: [{ name: 'cxTranslate', pure: false },] }
-];
-/** @nocollapse */
-TranslatePipe.ctorParameters = () => [
-    { type: TranslationService },
-    { type: ChangeDetectorRef }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class TranslationChunkService {
-    /**
-     * @param {?} config
-     */
-    constructor(config) {
-        this.config = config;
-        this.duplicates = {};
-        this.chunks = {};
-        this.KEY_SEPARATOR = '.';
-        Object.keys(config.i18n.chunks).forEach(chunk => {
-            config.i18n.chunks[chunk].forEach(key => {
-                if (this.chunks.hasOwnProperty(key)) {
-                    if (!this.duplicates[key]) {
-                        this.duplicates[key] = [this.chunks[key]];
+    constructor(actions$, occCartService, occOrderService, productImageConverter) {
+        this.actions$ = actions$;
+        this.occCartService = occCartService;
+        this.occOrderService = occOrderService;
+        this.productImageConverter = productImageConverter;
+        this.addDeliveryAddress$ = this.actions$.pipe(ofType(ADD_DELIVERY_ADDRESS), map((action) => action.payload), mergeMap(payload => this.occCartService
+            .createAddressOnCart(payload.userId, payload.cartId, payload.address)
+            .pipe(mergeMap(address => {
+            address['titleCode'] = payload.address.titleCode;
+            return [
+                new LoadUserAddresses(payload.userId),
+                new SetDeliveryAddress({
+                    userId: payload.userId,
+                    cartId: payload.cartId,
+                    address: address,
+                }),
+            ];
+        }), catchError(error => of(new AddDeliveryAddressFail(error))))));
+        this.setDeliveryAddress$ = this.actions$.pipe(ofType(SET_DELIVERY_ADDRESS), map((action) => action.payload), mergeMap(payload => {
+            return this.occCartService
+                .setDeliveryAddress(payload.userId, payload.cartId, payload.address.id)
+                .pipe(map(() => new SetDeliveryAddressSuccess(payload.address)), catchError(error => of(new SetDeliveryAddressFail(error))));
+        }));
+        this.loadSupportedDeliveryModes$ = this.actions$.pipe(ofType(LOAD_SUPPORTED_DELIVERY_MODES), map((action) => action.payload), mergeMap(payload => {
+            return this.occCartService
+                .getSupportedDeliveryModes(payload.userId, payload.cartId)
+                .pipe(map(data => {
+                return new LoadSupportedDeliveryModesSuccess(data);
+            }), catchError(error => of(new LoadSupportedDeliveryModesFail(error))));
+        }));
+        this.setDeliveryMode$ = this.actions$.pipe(ofType(SET_DELIVERY_MODE), map((action) => action.payload), mergeMap(payload => {
+            return this.occCartService
+                .setDeliveryMode(payload.userId, payload.cartId, payload.selectedModeId)
+                .pipe(map(() => new SetDeliveryModeSuccess(payload.selectedModeId)), catchError(error => of(new SetDeliveryModeFail(error))));
+        }));
+        this.createPaymentDetails$ = this.actions$.pipe(ofType(CREATE_PAYMENT_DETAILS), map((action) => action.payload), mergeMap(payload => {
+            // get information for creating a subscription directly with payment provider
+            return this.occCartService
+                .getPaymentProviderSubInfo(payload.userId, payload.cartId)
+                .pipe(map(data => {
+                /** @type {?} */
+                const labelsMap = this.convertToMap(data.mappingLabels.entry);
+                return {
+                    url: data.postUrl,
+                    parameters: this.getParamsForPaymentProvider(payload.paymentDetails, data.parameters.entry, labelsMap),
+                    mappingLabels: labelsMap,
+                };
+            }), mergeMap(sub => {
+                // create a subscription directly with payment provider
+                return this.occCartService
+                    .createSubWithPaymentProvider(sub.url, sub.parameters)
+                    .pipe(map(response => this.extractPaymentDetailsFromHtml(response)), mergeMap(fromPaymentProvider => {
+                    if (!fromPaymentProvider['hasError']) {
+                        // consume response from payment provider and creates payment details
+                        return this.occCartService
+                            .createPaymentDetails(payload.userId, payload.cartId, this.getPaymentSopResponseParams(payload.paymentDetails, fromPaymentProvider, sub.mappingLabels))
+                            .pipe(mergeMap(details => {
+                            return [
+                                new LoadUserPaymentMethods(payload.userId),
+                                new CreatePaymentDetailsSuccess(details),
+                            ];
+                        }), catchError(error => of(new CreatePaymentDetailsFail(error))));
                     }
-                    this.duplicates[key].push(chunk);
+                    else {
+                        return of(new CreatePaymentDetailsFail(fromPaymentProvider));
+                    }
+                }));
+            }));
+        }));
+        this.setPaymentDetails$ = this.actions$.pipe(ofType(SET_PAYMENT_DETAILS), map((action) => action.payload), mergeMap(payload => {
+            return this.occCartService
+                .setPaymentDetails(payload.userId, payload.cartId, payload.paymentDetails.id)
+                .pipe(map(() => new SetPaymentDetailsSuccess(payload.paymentDetails)), catchError(error => of(new SetPaymentDetailsFail(error))));
+        }));
+        this.placeOrder$ = this.actions$.pipe(ofType(PLACE_ORDER), map((action) => action.payload), mergeMap(payload => {
+            return this.occOrderService
+                .placeOrder(payload.userId, payload.cartId)
+                .pipe(map(data => {
+                for (const entry of (/** @type {?} */ (data.entries))) {
+                    this.productImageConverter.convertProduct(entry.product);
                 }
-                else {
-                    this.chunks[key] = chunk;
+                return data;
+            }), switchMap(data => [
+                new PlaceOrderSuccess(data),
+                new AddMessage({
+                    text: 'Order placed successfully',
+                    type: GlobalMessageType.MSG_TYPE_CONFIRMATION,
+                }),
+            ]), catchError(error => of(new PlaceOrderFail(error))));
+        }));
+        if (typeof DOMParser !== 'undefined') {
+            this.domparser = new DOMParser();
+        }
+    }
+    /**
+     * @private
+     * @param {?} paymentDetails
+     * @param {?} fromPaymentProvider
+     * @param {?} mappingLabels
+     * @return {?}
+     */
+    getPaymentSopResponseParams(paymentDetails, fromPaymentProvider, mappingLabels) {
+        /** @type {?} */
+        const sopResponseParams = {};
+        sopResponseParams['decision'] =
+            fromPaymentProvider[mappingLabels['hybris_sop_decision']];
+        sopResponseParams['amount'] =
+            fromPaymentProvider[mappingLabels['hybris_sop_amount']];
+        sopResponseParams['currency'] =
+            fromPaymentProvider[mappingLabels['hybris_sop_currency']];
+        sopResponseParams['billTo_country'] =
+            fromPaymentProvider[mappingLabels['hybris_billTo_country']];
+        sopResponseParams['billTo_firstName'] =
+            fromPaymentProvider[mappingLabels['hybris_billTo_firstname']];
+        sopResponseParams['billTo_lastName'] =
+            fromPaymentProvider[mappingLabels['hybris_billTo_lastname']];
+        sopResponseParams['billTo_street1'] =
+            fromPaymentProvider[mappingLabels['hybris_billTo_street1']];
+        sopResponseParams['billTo_city'] =
+            fromPaymentProvider[mappingLabels['hybris_billTo_city']];
+        sopResponseParams['billTo_postalCode'] =
+            fromPaymentProvider[mappingLabels['hybris_billTo_postalcode']];
+        sopResponseParams['card_cardType'] = paymentDetails.cardType.code;
+        sopResponseParams['card_accountNumber'] =
+            fromPaymentProvider[mappingLabels['hybris_sop_card_number']];
+        sopResponseParams['card_expirationMonth'] = paymentDetails.expiryMonth;
+        sopResponseParams['card_expirationYear'] = paymentDetails.expiryYear;
+        sopResponseParams['card_nameOnCard'] = paymentDetails.accountHolderName;
+        sopResponseParams['defaultPayment'] = paymentDetails.defaultPayment;
+        sopResponseParams['savePaymentInfo'] = true;
+        sopResponseParams['reasonCode'] =
+            fromPaymentProvider[mappingLabels['hybris_sop_reason_code']];
+        sopResponseParams['paySubscriptionCreateReply_subscriptionID'] =
+            fromPaymentProvider[mappingLabels['hybris_sop_subscriptionID']];
+        if (mappingLabels['hybris_sop_uses_public_signature'] === 'true') {
+            sopResponseParams['paySubscriptionCreateReply_subscriptionIDPublicSignature'] = fromPaymentProvider[mappingLabels['hybris_sop_public_signature']];
+        }
+        return sopResponseParams;
+    }
+    /**
+     * @private
+     * @param {?} paymentDetails
+     * @param {?} parameters
+     * @param {?} mappingLabels
+     * @return {?}
+     */
+    getParamsForPaymentProvider(paymentDetails, parameters, mappingLabels) {
+        /** @type {?} */
+        const params = this.convertToMap(parameters);
+        params[mappingLabels['hybris_account_holder_name']] =
+            paymentDetails.accountHolderName;
+        params[mappingLabels['hybris_card_type']] = paymentDetails.cardType.code;
+        params[mappingLabels['hybris_card_number']] = paymentDetails.cardNumber;
+        if (mappingLabels['hybris_combined_expiry_date'] === 'true') {
+            params[mappingLabels['hybris_card_expiry_date']] =
+                paymentDetails.expiryMonth +
+                    mappingLabels['hybris_separator_expiry_date'] +
+                    paymentDetails.expiryYear;
+        }
+        else {
+            params[mappingLabels['hybris_card_expiration_month']] =
+                paymentDetails.expiryMonth;
+            params[mappingLabels['hybris_card_expiration_year']] =
+                paymentDetails.expiryYear;
+        }
+        params[mappingLabels['hybris_card_cvn']] = paymentDetails.cvn;
+        // billing address
+        params[mappingLabels['hybris_billTo_country']] =
+            paymentDetails.billingAddress.country.isocode;
+        params[mappingLabels['hybris_billTo_firstname']] =
+            paymentDetails.billingAddress.firstName;
+        params[mappingLabels['hybris_billTo_lastname']] =
+            paymentDetails.billingAddress.lastName;
+        params[mappingLabels['hybris_billTo_street1']] =
+            paymentDetails.billingAddress.line1 +
+                ' ' +
+                paymentDetails.billingAddress.line2;
+        params[mappingLabels['hybris_billTo_city']] =
+            paymentDetails.billingAddress.town;
+        params[mappingLabels['hybris_billTo_postalcode']] =
+            paymentDetails.billingAddress.postalCode;
+        return params;
+    }
+    /**
+     * @private
+     * @param {?} html
+     * @return {?}
+     */
+    extractPaymentDetailsFromHtml(html) {
+        /** @type {?} */
+        const domdoc = this.domparser.parseFromString(html, 'text/xml');
+        /** @type {?} */
+        const responseForm = domdoc.getElementsByTagName('form')[0];
+        /** @type {?} */
+        const inputs = responseForm.getElementsByTagName('input');
+        /** @type {?} */
+        const values = {};
+        for (let i = 0; inputs[i]; i++) {
+            /** @type {?} */
+            const input = inputs[i];
+            if (input.getAttribute('name') !== '{}' &&
+                input.getAttribute('value') !== '') {
+                values[input.getAttribute('name')] = input.getAttribute('value');
+            }
+        }
+        // rejected for some reason
+        if (values['decision'] !== 'ACCEPT') {
+            /** @type {?} */
+            const reason = { hasError: true };
+            Object.keys(values).forEach(name => {
+                if (name === 'reasonCode' || name.startsWith('InvalidField')) {
+                    reason[name] = values[name];
                 }
             });
-        });
-        if (Object.keys(this.duplicates).length > 0 && !this.config.production) {
-            this.warnDuplicates(this.duplicates);
+            return reason;
         }
-    }
-    /**
-     * @param {?} key
-     * @return {?}
-     */
-    getChunkNameForKey(key) {
-        /** @type {?} */
-        const mainKey = (key || '').split(this.KEY_SEPARATOR)[0];
-        /** @type {?} */
-        const chunk = this.chunks && this.chunks[mainKey];
-        if (!chunk) {
-            return mainKey; // fallback to main key as a chunk
-        }
-        return chunk;
+        return values;
     }
     /**
      * @private
-     * @param {?} items
+     * @param {?} paramList
      * @return {?}
      */
-    warnDuplicates(items) {
-        /** @type {?} */
-        const dupes = [];
-        Object.keys(items).forEach(key => {
-            dupes.push(`* '${key}' found in chunks: ${items[key].join(', ')}. Used '${this.chunks[key]}.${key}'.`);
-        });
-        console.warn(`Duplicated keys has been found in the config of i18n chunks:\n${dupes.join('\n')}`);
+    convertToMap(paramList) {
+        return paramList.reduce(function (result, item) {
+            /** @type {?} */
+            const key = item.key;
+            result[key] = item.value;
+            return result;
+        }, {});
     }
 }
-TranslationChunkService.decorators = [
+CheckoutEffects.decorators = [
     { type: Injectable }
 ];
 /** @nocollapse */
-TranslationChunkService.ctorParameters = () => [
-    { type: I18nConfig }
+CheckoutEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: OccCartService },
+    { type: OccOrderService },
+    { type: ProductImageNormalizer }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "addDeliveryAddress$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "setDeliveryAddress$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "loadSupportedDeliveryModes$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "setDeliveryMode$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "createPaymentDetails$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "setPaymentDetails$", void 0);
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CheckoutEffects.prototype, "placeOrder$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CardTypesEffects {
+    /**
+     * @param {?} actions$
+     * @param {?} occMiscsService
+     */
+    constructor(actions$, occMiscsService) {
+        this.actions$ = actions$;
+        this.occMiscsService = occMiscsService;
+        this.loadCardTypes$ = this.actions$.pipe(ofType(LOAD_CARD_TYPES), switchMap(() => {
+            return this.occMiscsService.loadCardTypes().pipe(map(data => new LoadCardTypesSuccess(data.cardTypes)), catchError(error => of(new LoadCardTypesFail(error))));
+        }));
+    }
+}
+CardTypesEffects.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+CardTypesEffects.ctorParameters = () => [
+    { type: Actions },
+    { type: OccMiscsService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], CardTypesEffects.prototype, "loadCardTypes$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class AddressVerificationEffect {
+    /**
+     * @param {?} actions$
+     * @param {?} occUserService
+     */
+    constructor(actions$, occUserService) {
+        this.actions$ = actions$;
+        this.occUserService = occUserService;
+        this.verifyAddress$ = this.actions$.pipe(ofType(VERIFY_ADDRESS), map((action) => action.payload), mergeMap(payload => this.occUserService.verifyAddress(payload.userId, payload.address).pipe(map(data => {
+            return new VerifyAddressSuccess(data);
+        }), catchError(error => of(new VerifyAddressFail(error))))));
+    }
+}
+AddressVerificationEffect.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+AddressVerificationEffect.ctorParameters = () => [
+    { type: Actions },
+    { type: OccUserService }
+];
+__decorate([
+    Effect(),
+    __metadata("design:type", Observable)
+], AddressVerificationEffect.prototype, "verifyAddress$", void 0);
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const effects$7 = [
+    CheckoutEffects,
+    AddressVerificationEffect,
+    CardTypesEffects,
 ];
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+
 /**
- * @param {?} config
- * @param {?} languageService
- * @return {?}
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-function i18nextInit(config, languageService) {
-    return () => {
-        /** @type {?} */
-        let i18nextConfig = {
-            ns: [],
-            // don't preload any namespaces
-            fallbackLng: config.i18n.fallbackLang,
-            debug: config.i18n.debug,
-        };
-        if (config.i18n.backend) {
-            i18next.use(i18nextXhrBackend);
-            i18nextConfig = Object.assign({}, i18nextConfig, { backend: config.i18n.backend });
+class CheckoutService {
+    /**
+     * @param {?} checkoutStore
+     * @param {?} cartData
+     */
+    constructor(checkoutStore, cartData) {
+        this.checkoutStore = checkoutStore;
+        this.cartData = cartData;
+    }
+    /**
+     * Get supported delivery modes
+     * @return {?}
+     */
+    getSupportedDeliveryModes() {
+        return this.checkoutStore.pipe(select(getSupportedDeliveryModes));
+    }
+    /**
+     * Get selected delivery mode
+     * @return {?}
+     */
+    getSelectedDeliveryMode() {
+        return this.checkoutStore.pipe(select(getSelectedDeliveryMode));
+    }
+    /**
+     * Get selected delivery mode code
+     * @return {?}
+     */
+    getSelectedDeliveryModeCode() {
+        return this.checkoutStore.pipe(select(getSelectedCode));
+    }
+    /**
+     * Get card types
+     * @return {?}
+     */
+    getCardTypes() {
+        return this.checkoutStore.pipe(select(getAllCardTypes));
+    }
+    /**
+     * Get delivery address
+     * @return {?}
+     */
+    getDeliveryAddress() {
+        return this.checkoutStore.pipe(select(getDeliveryAddress$1));
+    }
+    /**
+     * Get address verification results
+     * @return {?}
+     */
+    getAddressVerificationResults() {
+        return this.checkoutStore.pipe(select(getAddressVerificationResults$1), filter(results => Object.keys(results).length !== 0));
+    }
+    /**
+     * Get payment details
+     * @return {?}
+     */
+    getPaymentDetails() {
+        return this.checkoutStore.pipe(select(getPaymentDetails$1));
+    }
+    /**
+     * Get order details
+     * @return {?}
+     */
+    getOrderDetails() {
+        return this.checkoutStore.pipe(select(getCheckoutOrderDetails));
+    }
+    /**
+     * Create and set a delivery address using the address param
+     * @param {?} address : the Address to be created and set
+     * @return {?}
+     */
+    createAndSetAddress(address) {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new AddDeliveryAddress({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cartId,
+                address: address,
+            }));
         }
-        return i18next.init(i18nextConfig, () => {
-            // Don't use i18next's 'resources' config key for adding static translations,
-            // because it will disable loading chunks from backend. We add resources here, in the init's callback.
-            i18nextAddTranslations(config.i18n.resources);
-            syncI18nextWithSiteContext(languageService);
-        });
-    };
+    }
+    /**
+     * Load supported delivery modes
+     * @return {?}
+     */
+    loadSupportedDeliveryModes() {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new LoadSupportedDeliveryModes({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cartId,
+            }));
+        }
+    }
+    /**
+     * Set delivery mode
+     * @param {?} mode : The delivery mode to be set
+     * @return {?}
+     */
+    setDeliveryMode(mode) {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new SetDeliveryMode({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cartId,
+                selectedModeId: mode,
+            }));
+        }
+    }
+    /**
+     * Load the supported card types
+     * @return {?}
+     */
+    loadSupportedCardTypes() {
+        this.checkoutStore.dispatch(new LoadCardTypes());
+    }
+    /**
+     * Create payment details using the given paymentDetails param
+     * @param {?} paymentDetails
+     * @return {?}
+     */
+    createPaymentDetails(paymentDetails) {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new CreatePaymentDetails({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cartId,
+                paymentDetails,
+            }));
+        }
+    }
+    /**
+     * Places an order
+     * @return {?}
+     */
+    placeOrder() {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new PlaceOrder({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cartId,
+            }));
+        }
+    }
+    /**
+     * Verifies the address
+     * @param {?} address : the address to be verified
+     * @return {?}
+     */
+    verifyAddress(address) {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new VerifyAddress({
+                userId: this.cartData.userId,
+                address,
+            }));
+        }
+    }
+    /**
+     * Set delivery address
+     * @param {?} address : The address to be set
+     * @return {?}
+     */
+    setDeliveryAddress(address) {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new SetDeliveryAddress({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cart.code,
+                address: address,
+            }));
+        }
+    }
+    /**
+     * Set payment details
+     * @param {?} paymentDetails : the PaymentDetails to be set
+     * @return {?}
+     */
+    setPaymentDetails(paymentDetails) {
+        if (this.actionAllowed()) {
+            this.checkoutStore.dispatch(new SetPaymentDetails({
+                userId: this.cartData.userId,
+                cartId: this.cartData.cart.code,
+                paymentDetails: paymentDetails,
+            }));
+        }
+    }
+    /**
+     * Clear address verification results
+     * @return {?}
+     */
+    clearAddressVerificationResults() {
+        this.checkoutStore.dispatch(new ClearAddressVerificationResults());
+    }
+    /**
+     * Clear checkout data
+     * @return {?}
+     */
+    clearCheckoutData() {
+        this.checkoutStore.dispatch(new ClearCheckoutData());
+    }
+    /**
+     * Clear checkout step
+     * @param {?} stepNumber : the step number to be cleared
+     * @return {?}
+     */
+    clearCheckoutStep(stepNumber) {
+        this.checkoutStore.dispatch(new ClearCheckoutStep(stepNumber));
+    }
+    /**
+     * @private
+     * @return {?}
+     */
+    actionAllowed() {
+        return this.cartData.userId !== ANONYMOUS_USERID;
+    }
 }
-/**
- * @param {?=} resources
- * @return {?}
- */
-function i18nextAddTranslations(resources = {}) {
-    Object.keys(resources).forEach(lang => {
-        Object.keys(resources[lang]).forEach(chunkName => {
-            i18next.addResourceBundle(lang, chunkName, resources[lang][chunkName], true, true);
-        });
-    });
-}
-/**
- * @param {?} language
- * @return {?}
- */
-function syncI18nextWithSiteContext(language) {
-    // always update language of i18next on site context (language) change
-    language.getActive().subscribe(lang => i18next.changeLanguage(lang));
-}
+CheckoutService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+CheckoutService.ctorParameters = () => [
+    { type: Store },
+    { type: CartDataService }
+];
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @type {?} */
-const i18nextProviders = [
-    {
-        provide: APP_INITIALIZER,
-        useFactory: i18nextInit,
-        deps: [I18nConfig, LanguageService],
-        multi: true,
-    },
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CheckoutStoreModule {
+}
+CheckoutStoreModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [
+                    CommonModule,
+                    HttpClientModule,
+                    StoreModule.forFeature(CHECKOUT_FEATURE, reducerToken$6, { metaReducers: metaReducers$4 }),
+                    EffectsModule.forFeature(effects$7),
+                ],
+                providers: [reducerProvider$6],
+            },] }
 ];
 
 /**
@@ -17351,51 +14895,9 @@ const i18nextProviders = [
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 /** @type {?} */
-const defaultI18nConfig = {
-    i18n: {
-        fallbackLang: false,
-        debug: false,
-        chunks: {
-            common: [
-                'common',
-                'spinner',
-                'header',
-                'searchBox',
-                'sorting',
-                'httpHandlers',
-            ],
-            cart: ['cartDetails', 'cartItems', 'orderCost', 'miniCart'],
-            address: ['addressForm', 'addressBook', 'addressCard'],
-            payment: ['paymentForm', 'paymentMethods', 'paymentCard'],
-            myAccount: ['orderDetails', 'orderHistory', 'closeAccount'],
-            storeFinder: ['storeFinder'],
-            pwa: ['pwa'],
-            checkout: [
-                'checkout',
-                'checkoutAddress',
-                'checkoutOrderConfirmation',
-                'checkoutReview',
-                'checkoutShipping',
-            ],
-            product: [
-                'productDetails',
-                'productList',
-                'productFacetNavigation',
-                'productSummary',
-                'productReview',
-                'addToCart',
-            ],
-            user: [
-                'forgottenPassword',
-                'loginForm',
-                'login',
-                'register',
-                'updateEmailForm',
-                'updatePasswordForm',
-                'updateProfileForm',
-                'consentManagementForm',
-            ],
-        },
+const defaultCmsModuleConfig = {
+    cmsComponents: {
+        CMSTabParagraphComponent: { selector: 'cx-paragraph' },
     },
 };
 
@@ -17403,2221 +14905,198 @@ const defaultI18nConfig = {
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-class I18nextTranslationService {
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @enum {string} */
+const PageRobotsMeta = {
+    INDEX: 'INDEX',
+    NOINDEX: 'NOINDEX',
+    FOLLOW: 'FOLLOW',
+    NOFOLLOW: 'NOFOLLOW',
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class DynamicAttributeService {
     /**
-     * @param {?} config
-     * @param {?} translationChunk
-     */
-    constructor(config, translationChunk) {
-        this.config = config;
-        this.translationChunk = translationChunk;
-        this.NON_BREAKING_SPACE = String.fromCharCode(160);
-        this.NAMESPACE_SEPARATOR = ':';
-    }
-    /**
-     * @param {?} key
-     * @param {?=} options
-     * @param {?=} whitespaceUntilLoaded
+     * Add dynamic attributes to DOM. These attributes are extracted from the properties of cms items received from backend.
+     * There can by many different groups of properties, one of them is smaredit. But EC allows addons to create different groups.
+     * For example, personalization may add 'script' group etc.
+     * @param {?} properties
+     * @param {?} element
+     * @param {?} renderer
      * @return {?}
      */
-    translate(key, options = {}, whitespaceUntilLoaded = false) {
-        // If we've already loaded the chunk (or failed to load), we should immediately emit the value
-        // (or the fallback value in case the key is missing).
-        // If we've already loaded the chunk (or failed to load), we should immediately emit the value
-        // (or the fallback value in case the key is missing).
-        // Moreover, we SHOULD emit a value (or a fallback value) synchronously (not in a promise/setTimeout).
-        // Otherwise, we the will trigger additional deferred change detection in a view that consumes the returned observable,
-        // which together with `switchMap` operator may lead to an infinite loop.
-        /** @type {?} */
-        const chunkName = this.translationChunk.getChunkNameForKey(key);
-        /** @type {?} */
-        const namespacedKey = this.getNamespacedKey(key, chunkName);
-        return new Observable(subscriber => {
-            /** @type {?} */
-            const translate = () => {
-                if (i18next.exists(namespacedKey, options)) {
-                    subscriber.next(i18next.t(namespacedKey, options));
-                }
-                else {
-                    if (whitespaceUntilLoaded) {
-                        subscriber.next(this.NON_BREAKING_SPACE);
+    addDynamicAttributes(properties, element, renderer) {
+        if (properties) {
+            // check each group of properties, e.g. smartedit
+            Object.keys(properties).forEach(group => {
+                /** @type {?} */
+                const name = 'data-' + group + '-';
+                /** @type {?} */
+                const groupProps = properties[group];
+                // check each property in the group
+                Object.keys(groupProps).forEach(propName => {
+                    /** @type {?} */
+                    const propValue = groupProps[propName];
+                    if (propName === 'classes') {
+                        /** @type {?} */
+                        const classes = propValue.split(' ');
+                        classes.forEach(classItem => {
+                            element.classList.add(classItem);
+                        });
                     }
-                    i18next.loadNamespaces(chunkName, () => {
-                        if (!i18next.exists(namespacedKey, options)) {
-                            this.reportMissingKey(key, chunkName);
-                            subscriber.next(this.getFallbackValue(namespacedKey));
-                        }
-                        else {
-                            subscriber.next(i18next.t(namespacedKey, options));
-                        }
-                    });
-                }
+                    else {
+                        renderer.setAttribute(element, name +
+                            propName
+                                .split(/(?=[A-Z])/)
+                                .join('-')
+                                .toLowerCase(), propValue);
+                    }
+                });
+            });
+        }
+    }
+}
+DynamicAttributeService.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */ DynamicAttributeService.ngInjectableDef = defineInjectable({ factory: function DynamicAttributeService_Factory() { return new DynamicAttributeService(); }, token: DynamicAttributeService, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CheckoutPageMetaResolver extends PageMetaResolver {
+    /**
+     * @param {?} routingService
+     * @param {?} cartService
+     */
+    constructor(routingService, cartService) {
+        super();
+        this.routingService = routingService;
+        this.cartService = cartService;
+        this.pageType = PageType.CONTENT_PAGE;
+        this.pageTemplate = 'MultiStepCheckoutSummaryPageTemplate';
+    }
+    /**
+     * @return {?}
+     */
+    resolve() {
+        return this.cartService.getActive().pipe(map(cart => {
+            return {
+                title: this.resolveTitle(cart),
+                robots: this.resolveRobots(),
             };
-            translate();
-            i18next.on('languageChanged', translate);
-            return () => i18next.off('languageChanged', translate);
-        });
+        }));
     }
     /**
-     * @param {?} chunkNames
+     * @param {?} cart
      * @return {?}
      */
-    loadChunks(chunkNames) {
-        return i18next.loadNamespaces(chunkNames);
+    resolveTitle(cart) {
+        return `Checkout ${cart.totalItems} items`;
     }
     /**
-     * Returns a fallback value in case when the given key is missing
-     * @protected
-     * @param {?} key
      * @return {?}
      */
-    getFallbackValue(key) {
-        return this.config.production ? this.NON_BREAKING_SPACE : `[${key}]`;
-    }
-    /**
-     * @private
-     * @param {?} key
-     * @param {?} chunkName
-     * @return {?}
-     */
-    reportMissingKey(key, chunkName) {
-        if (!this.config.production) {
-            console.warn(`Translation key missing '${key}' in the chunk '${chunkName}'`);
-        }
-    }
-    /**
-     * @private
-     * @param {?} key
-     * @param {?} chunk
-     * @return {?}
-     */
-    getNamespacedKey(key, chunk) {
-        return chunk + this.NAMESPACE_SEPARATOR + key;
+    resolveRobots() {
+        return [PageRobotsMeta.NOFOLLOW, PageRobotsMeta.NOINDEX];
     }
 }
-I18nextTranslationService.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-I18nextTranslationService.ctorParameters = () => [
-    { type: I18nConfig },
-    { type: TranslationChunkService }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class I18nModule {
-    /**
-     * @return {?}
-     */
-    static forRoot() {
-        return {
-            ngModule: I18nModule,
-            providers: [
-                provideConfig(defaultI18nConfig),
-                { provide: I18nConfig, useExisting: Config },
-                { provide: TranslationService, useClass: I18nextTranslationService },
-                TranslationChunkService,
-                ...i18nextProviders,
-            ],
-        };
-    }
-}
-I18nModule.decorators = [
-    { type: NgModule, args: [{
-                declarations: [TranslatePipe, CxDatePipe],
-                exports: [TranslatePipe, CxDatePipe],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/**
- * @param {?} key
- * @param {?=} options
- * @return {?}
- */
-function mockTranslate(key, options = {}) {
-    /** @type {?} */
-    const optionsString = Object.keys(options)
-        .sort()
-        .map(optionName => `${optionName}:${options[optionName]}`)
-        .join(' ');
-    return optionsString ? `${key} ${optionsString}` : key;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class MockTranslatePipe {
-    /**
-     * @param {?} input
-     * @param {?=} options
-     * @return {?}
-     */
-    transform(input, options = {}) {
-        if (((/** @type {?} */ (input))).raw) {
-            return ((/** @type {?} */ (input))).raw;
-        }
-        /** @type {?} */
-        const key = typeof input === 'string' ? input : input.key;
-        if (typeof input !== 'string') {
-            options = Object.assign({}, options, input.params);
-        }
-        return mockTranslate(key, options);
-    }
-}
-MockTranslatePipe.decorators = [
-    { type: Pipe, args: [{ name: 'cxTranslate' },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class MockTranslationService {
-    /**
-     * @param {?} key
-     * @param {?=} options
-     * @param {?=} _whitespaceUntilLoaded
-     * @return {?}
-     */
-    translate(key, options = {}, _whitespaceUntilLoaded = false) {
-        return new Observable(subscriber => {
-            /** @type {?} */
-            const value = mockTranslate(key, options);
-            subscriber.next(value);
-            subscriber.complete();
-        });
-    }
-    /**
-     * @param {?} _chunks
-     * @return {?}
-     */
-    loadChunks(_chunks) {
-        return Promise.resolve();
-    }
-}
-MockTranslationService.decorators = [
-    { type: Injectable }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class MockDatePipe extends DatePipe {
-    /**
-     * @param {?} value
-     * @param {?=} format
-     * @param {?=} timezone
-     * @return {?}
-     */
-    transform(value, format, timezone) {
-        return super.transform(value, format, timezone, 'en');
-    }
-}
-MockDatePipe.decorators = [
-    { type: Pipe, args: [{ name: 'cxDate' },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class I18nTestingModule {
-}
-I18nTestingModule.decorators = [
-    { type: NgModule, args: [{
-                declarations: [MockTranslatePipe, MockDatePipe],
-                exports: [MockTranslatePipe, MockDatePipe],
-                providers: [
-                    { provide: TranslationService, useClass: MockTranslationService },
-                ],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class CxApiService {
-    /**
-     * @param {?} auth
-     * @param {?} cms
-     * @param {?} routing
-     * @param {?} currency
-     * @param {?} language
-     * @param {?} product
-     * @param {?} productSearch
-     * @param {?} productReview
-     * @param {?} user
-     * @param {?} translation
-     */
-    constructor(auth, cms, routing, currency, language, product, productSearch, productReview, user, translation) {
-        this.auth = auth;
-        this.cms = cms;
-        this.routing = routing;
-        this.currency = currency;
-        this.language = language;
-        this.product = product;
-        this.productSearch = productSearch;
-        this.productReview = productReview;
-        this.user = user;
-        this.translation = translation;
-    }
-}
-CxApiService.decorators = [
+CheckoutPageMetaResolver.decorators = [
     { type: Injectable, args: [{
                 providedIn: 'root',
             },] }
 ];
 /** @nocollapse */
-CxApiService.ctorParameters = () => [
-    { type: AuthService, decorators: [{ type: Optional }] },
-    { type: CmsService, decorators: [{ type: Optional }] },
-    { type: RoutingService, decorators: [{ type: Optional }] },
-    { type: CurrencyService, decorators: [{ type: Optional }] },
-    { type: LanguageService, decorators: [{ type: Optional }] },
-    { type: ProductService, decorators: [{ type: Optional }] },
-    { type: ProductSearchService, decorators: [{ type: Optional }] },
-    { type: ProductReviewService, decorators: [{ type: Optional }] },
-    { type: UserService, decorators: [{ type: Optional }] },
-    { type: TranslationService, decorators: [{ type: Optional }] }
+CheckoutPageMetaResolver.ctorParameters = () => [
+    { type: RoutingService },
+    { type: CartService }
 ];
-/** @nocollapse */ CxApiService.ngInjectableDef = defineInjectable({ factory: function CxApiService_Factory() { return new CxApiService(inject(AuthService, 8), inject(CmsService, 8), inject(RoutingService, 8), inject(CurrencyService, 8), inject(LanguageService, 8), inject(ProductService, 8), inject(ProductSearchService, 8), inject(ProductReviewService, 8), inject(UserService, 8), inject(TranslationService, 8)); }, token: CxApiService, providedIn: "root" });
+/** @nocollapse */ CheckoutPageMetaResolver.ngInjectableDef = defineInjectable({ factory: function CheckoutPageMetaResolver_Factory() { return new CheckoutPageMetaResolver(inject(RoutingService), inject(CartService)); }, token: CheckoutPageMetaResolver, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const OCC_BASE_URL_META_TAG_NAME = 'occ-backend-base-url';
-/** @type {?} */
-const OCC_BASE_URL_META_TAG_PLACEHOLDER = 'OCC_BACKEND_BASE_URL_VALUE';
-/** @type {?} */
-const MEDIA_BASE_URL_META_TAG_NAME = 'media-backend-base-url';
-/** @type {?} */
-const MEDIA_BASE_URL_META_TAG_PLACEHOLDER = 'MEDIA_BACKEND_BASE_URL_VALUE';
-/**
- * @param {?} meta
- * @return {?}
- */
-function occServerConfigFromMetaTagFactory(meta) {
-    /** @type {?} */
-    const baseUrl = getMetaTagContent(OCC_BASE_URL_META_TAG_NAME, meta);
-    return baseUrl && baseUrl !== OCC_BASE_URL_META_TAG_PLACEHOLDER
-        ? { backend: { occ: { baseUrl } } }
-        : {};
+class CheckoutModule {
 }
-/**
- * @param {?} meta
- * @return {?}
- */
-function mediaServerConfigFromMetaTagFactory(meta) {
-    /** @type {?} */
-    const baseUrl = getMetaTagContent(MEDIA_BASE_URL_META_TAG_NAME, meta);
-    return baseUrl && baseUrl !== MEDIA_BASE_URL_META_TAG_PLACEHOLDER
-        ? { backend: { media: { baseUrl } } }
-        : {};
-}
-/**
- * @param {?} name
- * @param {?} meta
- * @return {?}
- */
-function getMetaTagContent(name, meta) {
-    /** @type {?} */
-    const metaTag = meta.getTag(`name="${name}"`);
-    return metaTag && metaTag.content;
-}
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-var Occ;
-(function (Occ) {
-    /**
-     *
-     * An interface representing Country.
-     * @record
-     */
-    function Country() { }
-    Occ.Country = Country;
-    /**
-     *
-     * An interface representing Region.
-     * @record
-     */
-    function Region() { }
-    Occ.Region = Region;
-    /**
-     *
-     * An interface representing RegionList.
-     * @record
-     */
-    function RegionList() { }
-    Occ.RegionList = RegionList;
-    /**
-     *
-     * An interface representing Address.
-     * @record
-     */
-    function Address() { }
-    Occ.Address = Address;
-    /**
-     *
-     * An interface representing AddressList.
-     * @record
-     */
-    function AddressList() { }
-    Occ.AddressList = AddressList;
-    /**
-     *
-     * An interface representing ErrorModel.
-     * Error message
-     *
-     * @record
-     */
-    function ErrorModel() { }
-    Occ.ErrorModel = ErrorModel;
-    /**
-     *
-     * An interface representing ErrorList.
-     * List of errors
-     *
-     * @record
-     */
-    function ErrorList() { }
-    Occ.ErrorList = ErrorList;
-    /**
-     *
-     * An interface representing AddressValidation.
-     * @record
-     */
-    function AddressValidation() { }
-    Occ.AddressValidation = AddressValidation;
-    /**
-     *
-     * An interface representing Price.
-     * @record
-     */
-    function Price() { }
-    Occ.Price = Price;
-    /**
-     *
-     * An interface representing Stock.
-     * @record
-     */
-    function Stock() { }
-    Occ.Stock = Stock;
-    /**
-     *
-     * An interface representing Image.
-     * @record
-     */
-    function Image() { }
-    Occ.Image = Image;
-    /**
-     *
-     * An interface representing VariantOptionQualifier.
-     * @record
-     */
-    function VariantOptionQualifier() { }
-    Occ.VariantOptionQualifier = VariantOptionQualifier;
-    /**
-     *
-     * An interface representing VariantOption.
-     * @record
-     */
-    function VariantOption() { }
-    Occ.VariantOption = VariantOption;
-    /**
-     *
-     * An interface representing BaseOption.
-     * @record
-     */
-    function BaseOption() { }
-    Occ.BaseOption = BaseOption;
-    /**
-     *
-     * An interface representing SearchQuery.
-     * @record
-     */
-    function SearchQuery() { }
-    Occ.SearchQuery = SearchQuery;
-    /**
-     *
-     * An interface representing SearchState.
-     * @record
-     */
-    function SearchState() { }
-    Occ.SearchState = SearchState;
-    /**
-     *
-     * An interface representing Breadcrumb.
-     * @record
-     */
-    function Breadcrumb() { }
-    Occ.Breadcrumb = Breadcrumb;
-    /**
-     *
-     * An interface representing Component.
-     * @record
-     */
-    function Component() { }
-    Occ.Component = Component;
-    /**
-     *
-     * An interface representing ComponentList.
-     * @record
-     */
-    function ComponentList() { }
-    Occ.ComponentList = ComponentList;
-    /**
-     *
-     * An interface representing ContentSlot.
-     * @record
-     */
-    function ContentSlot() { }
-    Occ.ContentSlot = ContentSlot;
-    /**
-     *
-     * An interface representing ContentSlotList.
-     * @record
-     */
-    function ContentSlotList() { }
-    Occ.ContentSlotList = ContentSlotList;
-    /**
-     *
-     * An interface representing CMSPage.
-     * @record
-     */
-    function CMSPage() { }
-    Occ.CMSPage = CMSPage;
-    /**
-     *
-     * An interface representing CardType.
-     * @record
-     */
-    function CardType() { }
-    Occ.CardType = CardType;
-    /**
-     *
-     * An interface representing CardTypeList.
-     * @record
-     */
-    function CardTypeList() { }
-    Occ.CardTypeList = CardTypeList;
-    /**
-     *
-     * An interface representing PromotionOrderEntryConsumed.
-     * @record
-     */
-    function PromotionOrderEntryConsumed() { }
-    Occ.PromotionOrderEntryConsumed = PromotionOrderEntryConsumed;
-    /**
-     *
-     * An interface representing PromotionRestriction.
-     * @record
-     */
-    function PromotionRestriction() { }
-    Occ.PromotionRestriction = PromotionRestriction;
-    /**
-     *
-     * An interface representing Promotion.
-     * @record
-     */
-    function Promotion() { }
-    Occ.Promotion = Promotion;
-    /**
-     *
-     * An interface representing PromotionResult.
-     * @record
-     */
-    function PromotionResult() { }
-    Occ.PromotionResult = PromotionResult;
-    /**
-     *
-     * An interface representing Currency.
-     * @record
-     */
-    function Currency() { }
-    Occ.Currency = Currency;
-    /**
-     *
-     * An interface representing Voucher.
-     * @record
-     */
-    function Voucher() { }
-    Occ.Voucher = Voucher;
-    /**
-     *
-     * An interface representing DeliveryMode.
-     * @record
-     */
-    function DeliveryMode() { }
-    Occ.DeliveryMode = DeliveryMode;
-    /**
-     *
-     * An interface representing GeoPoint.
-     * @record
-     */
-    function GeoPoint() { }
-    Occ.GeoPoint = GeoPoint;
-    /**
-     *
-     * An interface representing Time.
-     * @record
-     */
-    function Time() { }
-    Occ.Time = Time;
-    /**
-     *
-     * An interface representing SpecialOpeningDay.
-     * @record
-     */
-    function SpecialOpeningDay() { }
-    Occ.SpecialOpeningDay = SpecialOpeningDay;
-    /**
-     *
-     * An interface representing WeekdayOpeningDay.
-     * @record
-     */
-    function WeekdayOpeningDay() { }
-    Occ.WeekdayOpeningDay = WeekdayOpeningDay;
-    /**
-     *
-     * An interface representing OpeningSchedule.
-     * @record
-     */
-    function OpeningSchedule() { }
-    Occ.OpeningSchedule = OpeningSchedule;
-    /**
-     *
-     * An interface representing PointOfService.
-     * @record
-     */
-    function PointOfService() { }
-    Occ.PointOfService = PointOfService;
-    /**
-     *
-     * An interface representing Category.
-     * @record
-     */
-    function Category() { }
-    Occ.Category = Category;
-    /**
-     *
-     * An interface representing FeatureUnit.
-     * @record
-     */
-    function FeatureUnit() { }
-    Occ.FeatureUnit = FeatureUnit;
-    /**
-     *
-     * An interface representing FeatureValue.
-     * @record
-     */
-    function FeatureValue() { }
-    Occ.FeatureValue = FeatureValue;
-    /**
-     *
-     * An interface representing Feature.
-     * @record
-     */
-    function Feature() { }
-    Occ.Feature = Feature;
-    /**
-     *
-     * An interface representing Classification.
-     * @record
-     */
-    function Classification() { }
-    Occ.Classification = Classification;
-    /**
-     *
-     * An interface representing FutureStock.
-     * @record
-     */
-    function FutureStock() { }
-    Occ.FutureStock = FutureStock;
-    /**
-     *
-     * An interface representing PriceRange.
-     * @record
-     */
-    function PriceRange() { }
-    Occ.PriceRange = PriceRange;
-    /**
-     *
-     * An interface representing ProductReference.
-     * @record
-     */
-    function ProductReference() { }
-    Occ.ProductReference = ProductReference;
-    /**
-     *
-     * An interface representing Language.
-     * @record
-     */
-    function Language() { }
-    Occ.Language = Language;
-    /**
-     *
-     * An interface representing User.
-     * @record
-     */
-    function User() { }
-    Occ.User = User;
-    /**
-     *
-     * An interface representing Review.
-     * @record
-     */
-    function Review() { }
-    Occ.Review = Review;
-    /**
-     *
-     * An interface representing VariantCategory.
-     * @record
-     */
-    function VariantCategory() { }
-    Occ.VariantCategory = VariantCategory;
-    /**
-     *
-     * An interface representing VariantValueCategory.
-     * @record
-     */
-    function VariantValueCategory() { }
-    Occ.VariantValueCategory = VariantValueCategory;
-    /**
-     *
-     * An interface representing VariantMatrixElement.
-     * @record
-     */
-    function VariantMatrixElement() { }
-    Occ.VariantMatrixElement = VariantMatrixElement;
-    /**
-     *
-     * An interface representing Product.
-     * @record
-     */
-    function Product() { }
-    Occ.Product = Product;
-    /**
-     *
-     * An interface representing OrderEntry.
-     * @record
-     */
-    function OrderEntry() { }
-    Occ.OrderEntry = OrderEntry;
-    /**
-     *
-     * An interface representing DeliveryOrderEntryGroup.
-     * @record
-     */
-    function DeliveryOrderEntryGroup() { }
-    Occ.DeliveryOrderEntryGroup = DeliveryOrderEntryGroup;
-    /**
-     *
-     * An interface representing PaymentDetails.
-     * @record
-     */
-    function PaymentDetails() { }
-    Occ.PaymentDetails = PaymentDetails;
-    /**
-     *
-     * An interface representing PickupOrderEntryGroup.
-     * @record
-     */
-    function PickupOrderEntryGroup() { }
-    Occ.PickupOrderEntryGroup = PickupOrderEntryGroup;
-    /**
-     *
-     * An interface representing Principal.
-     * @record
-     */
-    function Principal() { }
-    Occ.Principal = Principal;
-    /**
-     *
-     * An interface representing Cart.
-     * @record
-     */
-    function Cart() { }
-    Occ.Cart = Cart;
-    /**
-     *
-     * An interface representing CartList.
-     * @record
-     */
-    function CartList() { }
-    Occ.CartList = CartList;
-    /**
-     *
-     * An interface representing CartModification.
-     * @record
-     */
-    function CartModification() { }
-    Occ.CartModification = CartModification;
-    /**
-     *
-     * An interface representing CategoryHierarchy.
-     * @record
-     */
-    function CategoryHierarchy() { }
-    Occ.CategoryHierarchy = CategoryHierarchy;
-    /**
-     *
-     * An interface representing CatalogVersion.
-     * @record
-     */
-    function CatalogVersion() { }
-    Occ.CatalogVersion = CatalogVersion;
-    /**
-     *
-     * An interface representing Catalog.
-     * @record
-     */
-    function Catalog() { }
-    Occ.Catalog = Catalog;
-    /**
-     *
-     * An interface representing CatalogList.
-     * @record
-     */
-    function CatalogList() { }
-    Occ.CatalogList = CatalogList;
-    /**
-     *
-     * An interface representing ComponentIDList.
-     * @record
-     */
-    function ComponentIDList() { }
-    Occ.ComponentIDList = ComponentIDList;
-    /**
-     *
-     * An interface representing ConsignmentEntry.
-     * @record
-     */
-    function ConsignmentEntry() { }
-    Occ.ConsignmentEntry = ConsignmentEntry;
-    /**
-     *
-     * An interface representing Consignment.
-     * @record
-     */
-    function Consignment() { }
-    Occ.Consignment = Consignment;
-    /**
-     *
-     * An interface representing CountryList.
-     * @record
-     */
-    function CountryList() { }
-    Occ.CountryList = CountryList;
-    /**
-     *
-     * An interface representing CurrencyList.
-     * @record
-     */
-    function CurrencyList() { }
-    Occ.CurrencyList = CurrencyList;
-    /**
-     *
-     * An interface representing DeliveryModeList.
-     * @record
-     */
-    function DeliveryModeList() { }
-    Occ.DeliveryModeList = DeliveryModeList;
-    /**
-     *
-     * An interface representing FacetValue.
-     * @record
-     */
-    function FacetValue() { }
-    Occ.FacetValue = FacetValue;
-    /**
-     *
-     * An interface representing Facet.
-     * @record
-     */
-    function Facet() { }
-    Occ.Facet = Facet;
-    /**
-     *
-     * An interface representing LanguageList.
-     * @record
-     */
-    function LanguageList() { }
-    Occ.LanguageList = LanguageList;
-    /**
-     *
-     * An interface representing Pagination.
-     * Pagination info
-     *
-     * @record
-     */
-    function Pagination() { }
-    Occ.Pagination = Pagination;
-    /**
-     *
-     * An interface representing Sort.
-     * Sort option
-     *
-     * @record
-     */
-    function Sort() { }
-    Occ.Sort = Sort;
-    /**
-     *
-     * An interface representing ListAdaptedComponents.
-     * @record
-     */
-    function ListAdaptedComponents() { }
-    Occ.ListAdaptedComponents = ListAdaptedComponents;
-    /**
-     *
-     * An interface representing MemberList.
-     * @record
-     */
-    function MemberList() { }
-    Occ.MemberList = MemberList;
-    /**
-     *
-     * An interface representing OrderEntryList.
-     * @record
-     */
-    function OrderEntryList() { }
-    Occ.OrderEntryList = OrderEntryList;
-    /**
-     *
-     * An interface representing OrderHistory.
-     * @record
-     */
-    function OrderHistory() { }
-    Occ.OrderHistory = OrderHistory;
-    /**
-     *
-     * An interface representing PaginationModel.
-     * @record
-     */
-    function PaginationModel() { }
-    Occ.PaginationModel = PaginationModel;
-    /**
-     *
-     * An interface representing SortModel.
-     * @record
-     */
-    function SortModel() { }
-    Occ.SortModel = SortModel;
-    /**
-     *
-     * An interface representing OrderHistoryList.
-     * @record
-     */
-    function OrderHistoryList() { }
-    Occ.OrderHistoryList = OrderHistoryList;
-    /**
-     *
-     * An interface representing OrderStatusUpdateElement.
-     * @record
-     */
-    function OrderStatusUpdateElement() { }
-    Occ.OrderStatusUpdateElement = OrderStatusUpdateElement;
-    /**
-     *
-     * An interface representing OrderStatusUpdateElementList.
-     * @record
-     */
-    function OrderStatusUpdateElementList() { }
-    Occ.OrderStatusUpdateElementList = OrderStatusUpdateElementList;
-    /**
-     *
-     * An interface representing Order.
-     * @record
-     */
-    function Order() { }
-    Occ.Order = Order;
-    /**
-     *
-     * An interface representing PaymentDetailsList.
-     * @record
-     */
-    function PaymentDetailsList() { }
-    Occ.PaymentDetailsList = PaymentDetailsList;
-    /**
-     *
-     * An interface representing PointOfServiceStock.
-     * @record
-     */
-    function PointOfServiceStock() { }
-    Occ.PointOfServiceStock = PointOfServiceStock;
-    /**
-     *
-     * An interface representing ProductExpressUpdateElement.
-     * @record
-     */
-    function ProductExpressUpdateElement() { }
-    Occ.ProductExpressUpdateElement = ProductExpressUpdateElement;
-    /**
-     *
-     * An interface representing ProductExpressUpdateElementList.
-     * @record
-     */
-    function ProductExpressUpdateElementList() { }
-    Occ.ProductExpressUpdateElementList = ProductExpressUpdateElementList;
-    /**
-     *
-     * An interface representing ProductList.
-     * @record
-     */
-    function ProductList() { }
-    Occ.ProductList = ProductList;
-    /**
-     *
-     * An interface representing ProductReferenceList.
-     * @record
-     */
-    function ProductReferenceList() { }
-    Occ.ProductReferenceList = ProductReferenceList;
-    /**
-     *
-     * An interface representing SpellingSuggestion.
-     * @record
-     */
-    function SpellingSuggestion() { }
-    Occ.SpellingSuggestion = SpellingSuggestion;
-    /**
-     *
-     * An interface representing ProductSearchPage.
-     * @record
-     */
-    function ProductSearchPage() { }
-    Occ.ProductSearchPage = ProductSearchPage;
-    /**
-     *
-     * An interface representing PromotionList.
-     * @record
-     */
-    function PromotionList() { }
-    Occ.PromotionList = PromotionList;
-    /**
-     *
-     * An interface representing PromotionResultList.
-     * @record
-     */
-    function PromotionResultList() { }
-    Occ.PromotionResultList = PromotionResultList;
-    /**
-     *
-     * An interface representing ReviewList.
-     * @record
-     */
-    function ReviewList() { }
-    Occ.ReviewList = ReviewList;
-    /**
-     *
-     * An interface representing SaveCartResult.
-     * @record
-     */
-    function SaveCartResult() { }
-    Occ.SaveCartResult = SaveCartResult;
-    /**
-     *
-     * An interface representing StoreFinderSearchPage.
-     * @record
-     */
-    function StoreFinderSearchPage() { }
-    Occ.StoreFinderSearchPage = StoreFinderSearchPage;
-    /**
-     *
-     * An interface representing StoreFinderStockSearchPage.
-     * @record
-     */
-    function StoreFinderStockSearchPage() { }
-    Occ.StoreFinderStockSearchPage = StoreFinderStockSearchPage;
-    /**
-     *
-     * An interface representing Suggestion.
-     * @record
-     */
-    function Suggestion() { }
-    Occ.Suggestion = Suggestion;
-    /**
-     *
-     * An interface representing SuggestionList.
-     * @record
-     */
-    function SuggestionList() { }
-    Occ.SuggestionList = SuggestionList;
-    /**
-     *
-     * An interface representing Title.
-     * @record
-     */
-    function Title() { }
-    Occ.Title = Title;
-    /**
-     *
-     * An interface representing TitleList.
-     * @record
-     */
-    function TitleList() { }
-    Occ.TitleList = TitleList;
-    /**
-     *
-     * An interface representing UserGroup.
-     * @record
-     */
-    function UserGroup() { }
-    Occ.UserGroup = UserGroup;
-    /**
-     *
-     * An interface representing UserGroupList.
-     * @record
-     */
-    function UserGroupList() { }
-    Occ.UserGroupList = UserGroupList;
-    /**
-     *
-     * An interface representing UserSignUp.
-     * @record
-     */
-    function UserSignUp() { }
-    Occ.UserSignUp = UserSignUp;
-    /**
-     * @record
-     */
-    function StoreCount() { }
-    Occ.StoreCount = StoreCount;
-    /**
-     * @record
-     */
-    function StoreCountList() { }
-    Occ.StoreCountList = StoreCountList;
-    /**
-     *
-     * An interface representing VoucherList.
-     * @record
-     */
-    function VoucherList() { }
-    Occ.VoucherList = VoucherList;
-    /**
-     * Defines values for PriceType.
-     * Possible values include: 'BUY', 'FROM'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: PriceType = <PriceType>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let PriceType;
-    (function (PriceType) {
-        PriceType["BUY"] = "BUY";
-        PriceType["FROM"] = "FROM";
-    })(PriceType = Occ.PriceType || (Occ.PriceType = {}));
-    /**
-     * Defines values for ImageType.
-     * Possible values include: 'PRIMARY', 'GALLERY'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: ImageType = <ImageType>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let ImageType;
-    (function (ImageType) {
-        ImageType["PRIMARY"] = "PRIMARY";
-        ImageType["GALLERY"] = "GALLERY";
-    })(ImageType = Occ.ImageType || (Occ.ImageType = {}));
-    /**
-     * Defines values for Fields.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields = <Fields>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields;
-    (function (Fields) {
-        Fields["BASIC"] = "BASIC";
-        Fields["DEFAULT"] = "DEFAULT";
-        Fields["FULL"] = "FULL";
-    })(Fields = Occ.Fields || (Occ.Fields = {}));
-    /**
-     * Defines values for Fields1.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields1 = <Fields1>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields1;
-    (function (Fields1) {
-        Fields1["BASIC"] = "BASIC";
-        Fields1["DEFAULT"] = "DEFAULT";
-        Fields1["FULL"] = "FULL";
-    })(Fields1 = Occ.Fields1 || (Occ.Fields1 = {}));
-    /**
-     * Defines values for Fields2.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields2 = <Fields2>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields2;
-    (function (Fields2) {
-        Fields2["BASIC"] = "BASIC";
-        Fields2["DEFAULT"] = "DEFAULT";
-        Fields2["FULL"] = "FULL";
-    })(Fields2 = Occ.Fields2 || (Occ.Fields2 = {}));
-    /**
-     * Defines values for Fields3.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields3 = <Fields3>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields3;
-    (function (Fields3) {
-        Fields3["BASIC"] = "BASIC";
-        Fields3["DEFAULT"] = "DEFAULT";
-        Fields3["FULL"] = "FULL";
-    })(Fields3 = Occ.Fields3 || (Occ.Fields3 = {}));
-    /**
-     * Defines values for Fields4.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields4 = <Fields4>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields4;
-    (function (Fields4) {
-        Fields4["BASIC"] = "BASIC";
-        Fields4["DEFAULT"] = "DEFAULT";
-        Fields4["FULL"] = "FULL";
-    })(Fields4 = Occ.Fields4 || (Occ.Fields4 = {}));
-    /**
-     * Defines values for Fields5.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields5 = <Fields5>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields5;
-    (function (Fields5) {
-        Fields5["BASIC"] = "BASIC";
-        Fields5["DEFAULT"] = "DEFAULT";
-        Fields5["FULL"] = "FULL";
-    })(Fields5 = Occ.Fields5 || (Occ.Fields5 = {}));
-    /**
-     * Defines values for Fields6.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields6 = <Fields6>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields6;
-    (function (Fields6) {
-        Fields6["BASIC"] = "BASIC";
-        Fields6["DEFAULT"] = "DEFAULT";
-        Fields6["FULL"] = "FULL";
-    })(Fields6 = Occ.Fields6 || (Occ.Fields6 = {}));
-    /**
-     * Defines values for PageType.
-     * Possible values include: 'ContentPage', 'ProductPage', 'CategoryPage',
-     * 'CatalogPage'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: PageType = <PageType>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let PageType;
-    (function (PageType) {
-        PageType["CONTENT_PAGE"] = "ContentPage";
-        PageType["PRODUCT_PAGE"] = "ProductPage";
-        PageType["CATEGORY_PAGE"] = "CategoryPage";
-        PageType["CATALOG_PAGE"] = "CatalogPage";
-    })(PageType = Occ.PageType || (Occ.PageType = {}));
-    /**
-     * Defines values for Fields7.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields7 = <Fields7>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields7;
-    (function (Fields7) {
-        Fields7["BASIC"] = "BASIC";
-        Fields7["DEFAULT"] = "DEFAULT";
-        Fields7["FULL"] = "FULL";
-    })(Fields7 = Occ.Fields7 || (Occ.Fields7 = {}));
-    /**
-     * Defines values for Fields8.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields8 = <Fields8>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields8;
-    (function (Fields8) {
-        Fields8["BASIC"] = "BASIC";
-        Fields8["DEFAULT"] = "DEFAULT";
-        Fields8["FULL"] = "FULL";
-    })(Fields8 = Occ.Fields8 || (Occ.Fields8 = {}));
-    /**
-     * Defines values for Fields9.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields9 = <Fields9>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields9;
-    (function (Fields9) {
-        Fields9["BASIC"] = "BASIC";
-        Fields9["DEFAULT"] = "DEFAULT";
-        Fields9["FULL"] = "FULL";
-    })(Fields9 = Occ.Fields9 || (Occ.Fields9 = {}));
-    /**
-     * Defines values for Fields10.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields10 = <Fields10>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields10;
-    (function (Fields10) {
-        Fields10["BASIC"] = "BASIC";
-        Fields10["DEFAULT"] = "DEFAULT";
-        Fields10["FULL"] = "FULL";
-    })(Fields10 = Occ.Fields10 || (Occ.Fields10 = {}));
-    /**
-     * Defines values for Fields11.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields11 = <Fields11>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields11;
-    (function (Fields11) {
-        Fields11["BASIC"] = "BASIC";
-        Fields11["DEFAULT"] = "DEFAULT";
-        Fields11["FULL"] = "FULL";
-    })(Fields11 = Occ.Fields11 || (Occ.Fields11 = {}));
-    /**
-     * Defines values for Fields12.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields12 = <Fields12>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields12;
-    (function (Fields12) {
-        Fields12["BASIC"] = "BASIC";
-        Fields12["DEFAULT"] = "DEFAULT";
-        Fields12["FULL"] = "FULL";
-    })(Fields12 = Occ.Fields12 || (Occ.Fields12 = {}));
-    /**
-     * Defines values for Fields13.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields13 = <Fields13>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields13;
-    (function (Fields13) {
-        Fields13["BASIC"] = "BASIC";
-        Fields13["DEFAULT"] = "DEFAULT";
-        Fields13["FULL"] = "FULL";
-    })(Fields13 = Occ.Fields13 || (Occ.Fields13 = {}));
-    /**
-     * Defines values for Fields14.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields14 = <Fields14>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields14;
-    (function (Fields14) {
-        Fields14["BASIC"] = "BASIC";
-        Fields14["DEFAULT"] = "DEFAULT";
-        Fields14["FULL"] = "FULL";
-    })(Fields14 = Occ.Fields14 || (Occ.Fields14 = {}));
-    /**
-     * Defines values for Fields15.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields15 = <Fields15>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields15;
-    (function (Fields15) {
-        Fields15["BASIC"] = "BASIC";
-        Fields15["DEFAULT"] = "DEFAULT";
-        Fields15["FULL"] = "FULL";
-    })(Fields15 = Occ.Fields15 || (Occ.Fields15 = {}));
-    /**
-     * Defines values for Fields16.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields16 = <Fields16>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields16;
-    (function (Fields16) {
-        Fields16["BASIC"] = "BASIC";
-        Fields16["DEFAULT"] = "DEFAULT";
-        Fields16["FULL"] = "FULL";
-    })(Fields16 = Occ.Fields16 || (Occ.Fields16 = {}));
-    /**
-     * Defines values for SortEnum.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: SortEnum = <SortEnum>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let SortEnum;
-    (function (SortEnum) {
-        SortEnum["BASIC"] = "BASIC";
-        SortEnum["DEFAULT"] = "DEFAULT";
-        SortEnum["FULL"] = "FULL";
-    })(SortEnum = Occ.SortEnum || (Occ.SortEnum = {}));
-    /**
-     * Defines values for Fields17.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields17 = <Fields17>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields17;
-    (function (Fields17) {
-        Fields17["BASIC"] = "BASIC";
-        Fields17["DEFAULT"] = "DEFAULT";
-        Fields17["FULL"] = "FULL";
-    })(Fields17 = Occ.Fields17 || (Occ.Fields17 = {}));
-    /**
-     * Defines values for Fields18.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields18 = <Fields18>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields18;
-    (function (Fields18) {
-        Fields18["BASIC"] = "BASIC";
-        Fields18["DEFAULT"] = "DEFAULT";
-        Fields18["FULL"] = "FULL";
-    })(Fields18 = Occ.Fields18 || (Occ.Fields18 = {}));
-    /**
-     * Defines values for Fields19.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields19 = <Fields19>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields19;
-    (function (Fields19) {
-        Fields19["BASIC"] = "BASIC";
-        Fields19["DEFAULT"] = "DEFAULT";
-        Fields19["FULL"] = "FULL";
-    })(Fields19 = Occ.Fields19 || (Occ.Fields19 = {}));
-    /**
-     * Defines values for Fields20.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields20 = <Fields20>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields20;
-    (function (Fields20) {
-        Fields20["BASIC"] = "BASIC";
-        Fields20["DEFAULT"] = "DEFAULT";
-        Fields20["FULL"] = "FULL";
-    })(Fields20 = Occ.Fields20 || (Occ.Fields20 = {}));
-    /**
-     * Defines values for Fields21.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields21 = <Fields21>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields21;
-    (function (Fields21) {
-        Fields21["BASIC"] = "BASIC";
-        Fields21["DEFAULT"] = "DEFAULT";
-        Fields21["FULL"] = "FULL";
-    })(Fields21 = Occ.Fields21 || (Occ.Fields21 = {}));
-    /**
-     * Defines values for Fields22.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields22 = <Fields22>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields22;
-    (function (Fields22) {
-        Fields22["BASIC"] = "BASIC";
-        Fields22["DEFAULT"] = "DEFAULT";
-        Fields22["FULL"] = "FULL";
-    })(Fields22 = Occ.Fields22 || (Occ.Fields22 = {}));
-    /**
-     * Defines values for Fields23.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields23 = <Fields23>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields23;
-    (function (Fields23) {
-        Fields23["BASIC"] = "BASIC";
-        Fields23["DEFAULT"] = "DEFAULT";
-        Fields23["FULL"] = "FULL";
-    })(Fields23 = Occ.Fields23 || (Occ.Fields23 = {}));
-    /**
-     * Defines values for Fields24.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields24 = <Fields24>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields24;
-    (function (Fields24) {
-        Fields24["BASIC"] = "BASIC";
-        Fields24["DEFAULT"] = "DEFAULT";
-        Fields24["FULL"] = "FULL";
-    })(Fields24 = Occ.Fields24 || (Occ.Fields24 = {}));
-    /**
-     * Defines values for Fields25.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields25 = <Fields25>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields25;
-    (function (Fields25) {
-        Fields25["BASIC"] = "BASIC";
-        Fields25["DEFAULT"] = "DEFAULT";
-        Fields25["FULL"] = "FULL";
-    })(Fields25 = Occ.Fields25 || (Occ.Fields25 = {}));
-    /**
-     * Defines values for Fields26.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields26 = <Fields26>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields26;
-    (function (Fields26) {
-        Fields26["BASIC"] = "BASIC";
-        Fields26["DEFAULT"] = "DEFAULT";
-        Fields26["FULL"] = "FULL";
-    })(Fields26 = Occ.Fields26 || (Occ.Fields26 = {}));
-    /**
-     * Defines values for Fields27.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields27 = <Fields27>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields27;
-    (function (Fields27) {
-        Fields27["BASIC"] = "BASIC";
-        Fields27["DEFAULT"] = "DEFAULT";
-        Fields27["FULL"] = "FULL";
-    })(Fields27 = Occ.Fields27 || (Occ.Fields27 = {}));
-    /**
-     * Defines values for Fields28.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields28 = <Fields28>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields28;
-    (function (Fields28) {
-        Fields28["BASIC"] = "BASIC";
-        Fields28["DEFAULT"] = "DEFAULT";
-        Fields28["FULL"] = "FULL";
-    })(Fields28 = Occ.Fields28 || (Occ.Fields28 = {}));
-    /**
-     * Defines values for Fields29.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields29 = <Fields29>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields29;
-    (function (Fields29) {
-        Fields29["BASIC"] = "BASIC";
-        Fields29["DEFAULT"] = "DEFAULT";
-        Fields29["FULL"] = "FULL";
-    })(Fields29 = Occ.Fields29 || (Occ.Fields29 = {}));
-    /**
-     * Defines values for Fields30.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields30 = <Fields30>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields30;
-    (function (Fields30) {
-        Fields30["BASIC"] = "BASIC";
-        Fields30["DEFAULT"] = "DEFAULT";
-        Fields30["FULL"] = "FULL";
-    })(Fields30 = Occ.Fields30 || (Occ.Fields30 = {}));
-    /**
-     * Defines values for Fields31.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields31 = <Fields31>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields31;
-    (function (Fields31) {
-        Fields31["BASIC"] = "BASIC";
-        Fields31["DEFAULT"] = "DEFAULT";
-        Fields31["FULL"] = "FULL";
-    })(Fields31 = Occ.Fields31 || (Occ.Fields31 = {}));
-    /**
-     * Defines values for Fields32.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields32 = <Fields32>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields32;
-    (function (Fields32) {
-        Fields32["BASIC"] = "BASIC";
-        Fields32["DEFAULT"] = "DEFAULT";
-        Fields32["FULL"] = "FULL";
-    })(Fields32 = Occ.Fields32 || (Occ.Fields32 = {}));
-    /**
-     * Defines values for Fields33.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields33 = <Fields33>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields33;
-    (function (Fields33) {
-        Fields33["BASIC"] = "BASIC";
-        Fields33["DEFAULT"] = "DEFAULT";
-        Fields33["FULL"] = "FULL";
-    })(Fields33 = Occ.Fields33 || (Occ.Fields33 = {}));
-    /**
-     * Defines values for Fields34.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields34 = <Fields34>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields34;
-    (function (Fields34) {
-        Fields34["BASIC"] = "BASIC";
-        Fields34["DEFAULT"] = "DEFAULT";
-        Fields34["FULL"] = "FULL";
-    })(Fields34 = Occ.Fields34 || (Occ.Fields34 = {}));
-    /**
-     * Defines values for Fields35.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields35 = <Fields35>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields35;
-    (function (Fields35) {
-        Fields35["BASIC"] = "BASIC";
-        Fields35["DEFAULT"] = "DEFAULT";
-        Fields35["FULL"] = "FULL";
-    })(Fields35 = Occ.Fields35 || (Occ.Fields35 = {}));
-    /**
-     * Defines values for Fields36.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields36 = <Fields36>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields36;
-    (function (Fields36) {
-        Fields36["BASIC"] = "BASIC";
-        Fields36["DEFAULT"] = "DEFAULT";
-        Fields36["FULL"] = "FULL";
-    })(Fields36 = Occ.Fields36 || (Occ.Fields36 = {}));
-    /**
-     * Defines values for Fields37.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields37 = <Fields37>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields37;
-    (function (Fields37) {
-        Fields37["BASIC"] = "BASIC";
-        Fields37["DEFAULT"] = "DEFAULT";
-        Fields37["FULL"] = "FULL";
-    })(Fields37 = Occ.Fields37 || (Occ.Fields37 = {}));
-    /**
-     * Defines values for Fields38.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields38 = <Fields38>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields38;
-    (function (Fields38) {
-        Fields38["BASIC"] = "BASIC";
-        Fields38["DEFAULT"] = "DEFAULT";
-        Fields38["FULL"] = "FULL";
-    })(Fields38 = Occ.Fields38 || (Occ.Fields38 = {}));
-    /**
-     * Defines values for Fields39.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields39 = <Fields39>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields39;
-    (function (Fields39) {
-        Fields39["BASIC"] = "BASIC";
-        Fields39["DEFAULT"] = "DEFAULT";
-        Fields39["FULL"] = "FULL";
-    })(Fields39 = Occ.Fields39 || (Occ.Fields39 = {}));
-    /**
-     * Defines values for Fields40.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields40 = <Fields40>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields40;
-    (function (Fields40) {
-        Fields40["BASIC"] = "BASIC";
-        Fields40["DEFAULT"] = "DEFAULT";
-        Fields40["FULL"] = "FULL";
-    })(Fields40 = Occ.Fields40 || (Occ.Fields40 = {}));
-    /**
-     * Defines values for Fields41.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields41 = <Fields41>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields41;
-    (function (Fields41) {
-        Fields41["BASIC"] = "BASIC";
-        Fields41["DEFAULT"] = "DEFAULT";
-        Fields41["FULL"] = "FULL";
-    })(Fields41 = Occ.Fields41 || (Occ.Fields41 = {}));
-    /**
-     * Defines values for Fields42.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields42 = <Fields42>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields42;
-    (function (Fields42) {
-        Fields42["BASIC"] = "BASIC";
-        Fields42["DEFAULT"] = "DEFAULT";
-        Fields42["FULL"] = "FULL";
-    })(Fields42 = Occ.Fields42 || (Occ.Fields42 = {}));
-    /**
-     * Defines values for Fields43.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields43 = <Fields43>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields43;
-    (function (Fields43) {
-        Fields43["BASIC"] = "BASIC";
-        Fields43["DEFAULT"] = "DEFAULT";
-        Fields43["FULL"] = "FULL";
-    })(Fields43 = Occ.Fields43 || (Occ.Fields43 = {}));
-    /**
-     * Defines values for Fields44.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields44 = <Fields44>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields44;
-    (function (Fields44) {
-        Fields44["BASIC"] = "BASIC";
-        Fields44["DEFAULT"] = "DEFAULT";
-        Fields44["FULL"] = "FULL";
-    })(Fields44 = Occ.Fields44 || (Occ.Fields44 = {}));
-    /**
-     * Defines values for Fields45.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields45 = <Fields45>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields45;
-    (function (Fields45) {
-        Fields45["BASIC"] = "BASIC";
-        Fields45["DEFAULT"] = "DEFAULT";
-        Fields45["FULL"] = "FULL";
-    })(Fields45 = Occ.Fields45 || (Occ.Fields45 = {}));
-    /**
-     * Defines values for Fields46.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields46 = <Fields46>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields46;
-    (function (Fields46) {
-        Fields46["BASIC"] = "BASIC";
-        Fields46["DEFAULT"] = "DEFAULT";
-        Fields46["FULL"] = "FULL";
-    })(Fields46 = Occ.Fields46 || (Occ.Fields46 = {}));
-    /**
-     * Defines values for Fields47.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields47 = <Fields47>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields47;
-    (function (Fields47) {
-        Fields47["BASIC"] = "BASIC";
-        Fields47["DEFAULT"] = "DEFAULT";
-        Fields47["FULL"] = "FULL";
-    })(Fields47 = Occ.Fields47 || (Occ.Fields47 = {}));
-    /**
-     * Defines values for Fields48.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields48 = <Fields48>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields48;
-    (function (Fields48) {
-        Fields48["BASIC"] = "BASIC";
-        Fields48["DEFAULT"] = "DEFAULT";
-        Fields48["FULL"] = "FULL";
-    })(Fields48 = Occ.Fields48 || (Occ.Fields48 = {}));
-    /**
-     * Defines values for Fields49.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields49 = <Fields49>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields49;
-    (function (Fields49) {
-        Fields49["BASIC"] = "BASIC";
-        Fields49["DEFAULT"] = "DEFAULT";
-        Fields49["FULL"] = "FULL";
-    })(Fields49 = Occ.Fields49 || (Occ.Fields49 = {}));
-    /**
-     * Defines values for Fields50.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields50 = <Fields50>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields50;
-    (function (Fields50) {
-        Fields50["BASIC"] = "BASIC";
-        Fields50["DEFAULT"] = "DEFAULT";
-        Fields50["FULL"] = "FULL";
-    })(Fields50 = Occ.Fields50 || (Occ.Fields50 = {}));
-    /**
-     * Defines values for Fields51.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields51 = <Fields51>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields51;
-    (function (Fields51) {
-        Fields51["BASIC"] = "BASIC";
-        Fields51["DEFAULT"] = "DEFAULT";
-        Fields51["FULL"] = "FULL";
-    })(Fields51 = Occ.Fields51 || (Occ.Fields51 = {}));
-    /**
-     * Defines values for Fields52.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields52 = <Fields52>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields52;
-    (function (Fields52) {
-        Fields52["BASIC"] = "BASIC";
-        Fields52["DEFAULT"] = "DEFAULT";
-        Fields52["FULL"] = "FULL";
-    })(Fields52 = Occ.Fields52 || (Occ.Fields52 = {}));
-    /**
-     * Defines values for Fields53.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields53 = <Fields53>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields53;
-    (function (Fields53) {
-        Fields53["BASIC"] = "BASIC";
-        Fields53["DEFAULT"] = "DEFAULT";
-        Fields53["FULL"] = "FULL";
-    })(Fields53 = Occ.Fields53 || (Occ.Fields53 = {}));
-    /**
-     * Defines values for Fields54.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields54 = <Fields54>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields54;
-    (function (Fields54) {
-        Fields54["BASIC"] = "BASIC";
-        Fields54["DEFAULT"] = "DEFAULT";
-        Fields54["FULL"] = "FULL";
-    })(Fields54 = Occ.Fields54 || (Occ.Fields54 = {}));
-    /**
-     * Defines values for Fields55.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields55 = <Fields55>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields55;
-    (function (Fields55) {
-        Fields55["BASIC"] = "BASIC";
-        Fields55["DEFAULT"] = "DEFAULT";
-        Fields55["FULL"] = "FULL";
-    })(Fields55 = Occ.Fields55 || (Occ.Fields55 = {}));
-    /**
-     * Defines values for Fields56.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields56 = <Fields56>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields56;
-    (function (Fields56) {
-        Fields56["BASIC"] = "BASIC";
-        Fields56["DEFAULT"] = "DEFAULT";
-        Fields56["FULL"] = "FULL";
-    })(Fields56 = Occ.Fields56 || (Occ.Fields56 = {}));
-    /**
-     * Defines values for Fields57.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields57 = <Fields57>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields57;
-    (function (Fields57) {
-        Fields57["BASIC"] = "BASIC";
-        Fields57["DEFAULT"] = "DEFAULT";
-        Fields57["FULL"] = "FULL";
-    })(Fields57 = Occ.Fields57 || (Occ.Fields57 = {}));
-    /**
-     * Defines values for Fields58.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields58 = <Fields58>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields58;
-    (function (Fields58) {
-        Fields58["BASIC"] = "BASIC";
-        Fields58["DEFAULT"] = "DEFAULT";
-        Fields58["FULL"] = "FULL";
-    })(Fields58 = Occ.Fields58 || (Occ.Fields58 = {}));
-    /**
-     * Defines values for Fields59.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields59 = <Fields59>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields59;
-    (function (Fields59) {
-        Fields59["BASIC"] = "BASIC";
-        Fields59["DEFAULT"] = "DEFAULT";
-        Fields59["FULL"] = "FULL";
-    })(Fields59 = Occ.Fields59 || (Occ.Fields59 = {}));
-    /**
-     * Defines values for Fields60.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields60 = <Fields60>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields60;
-    (function (Fields60) {
-        Fields60["BASIC"] = "BASIC";
-        Fields60["DEFAULT"] = "DEFAULT";
-        Fields60["FULL"] = "FULL";
-    })(Fields60 = Occ.Fields60 || (Occ.Fields60 = {}));
-    /**
-     * Defines values for Fields61.
-     * Possible values include: 'BASIC', 'DEFAULT', 'FULL'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Fields61 = <Fields61>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Fields61;
-    (function (Fields61) {
-        Fields61["BASIC"] = "BASIC";
-        Fields61["DEFAULT"] = "DEFAULT";
-        Fields61["FULL"] = "FULL";
-    })(Fields61 = Occ.Fields61 || (Occ.Fields61 = {}));
-    /**
-     * Defines values for Type.
-     * Possible values include: 'all', 'product', 'order'
-     * There could be more values for this enum apart from the ones defined here.If
-     * you want to set a value that is not from the known values then you can do
-     * the following:
-     * let param: Type = <Type>"someUnknownValueThatWillStillBeValid";
-     * @readonly
-     * @enum {string}
-     */
-    let Type;
-    (function (Type) {
-        Type["All"] = "all";
-        Type["Product"] = "product";
-        Type["Order"] = "order";
-    })(Type = Occ.Type || (Occ.Type = {}));
-})(Occ || (Occ = {}));
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
+CheckoutModule.decorators = [
+    { type: NgModule, args: [{
+                imports: [CheckoutStoreModule],
+                providers: [
+                    CheckoutService,
+                    {
+                        provide: PageMetaResolver,
+                        useExisting: CheckoutPageMetaResolver,
+                        multi: true,
+                    },
+                ],
+            },] }
+];
 
 /**
  * @fileoverview added by tsickle
@@ -19637,13 +15116,11 @@ class SmartEditService {
     /**
      * @param {?} cmsService
      * @param {?} routingService
-     * @param {?} zone
      * @param {?} winRef
      */
-    constructor(cmsService, routingService, zone, winRef) {
+    constructor(cmsService, routingService, winRef) {
         this.cmsService = cmsService;
         this.routingService = routingService;
-        this.zone = zone;
         this.getPreviewPage = false;
         this.getCmsTicket();
         this.addPageContract();
@@ -19673,8 +15150,8 @@ class SmartEditService {
         combineLatest(this.cmsService.getCurrentPage(), this.routingService.getRouterState())
             .pipe(takeWhile(([cmsPage]) => cmsPage === undefined))
             .subscribe(([, routerState]) => {
-            if (routerState.nextState && !this._cmsTicketId) {
-                this._cmsTicketId = routerState.nextState.queryParams['cmsTicketId'];
+            if (routerState.state && !this._cmsTicketId) {
+                this._cmsTicketId = routerState.state.queryParams['cmsTicketId'];
                 if (this._cmsTicketId) {
                     this.cmsService.launchInSmartEdit = true;
                 }
@@ -19688,7 +15165,6 @@ class SmartEditService {
     addPageContract() {
         this.cmsService.getCurrentPage().subscribe(cmsPage => {
             if (cmsPage && this._cmsTicketId) {
-                this._currentPageId = cmsPage.pageId;
                 // before adding contract, we need redirect to preview page
                 this.goToPreviewPage(cmsPage);
                 // remove old page contract
@@ -19708,7 +15184,7 @@ class SmartEditService {
         });
     }
     /**
-     * @protected
+     * @private
      * @param {?} cmsPage
      * @return {?}
      */
@@ -19718,14 +15194,12 @@ class SmartEditService {
             this.getPreviewPage = true;
             if (cmsPage.type === PageType.PRODUCT_PAGE) {
                 this.routingService.go({
-                    cxRoute: 'product',
-                    params: { code: 2053367 },
+                    route: [{ name: 'product', params: { code: 2053367 } }],
                 });
             }
             else if (cmsPage.type === PageType.CATEGORY_PAGE) {
                 this.routingService.go({
-                    cxRoute: 'category',
-                    params: { code: 575 },
+                    route: [{ name: 'category', params: { code: 575 } }],
                 });
             }
         }
@@ -19739,20 +15213,13 @@ class SmartEditService {
      */
     renderComponent(componentId, componentType, parentId) {
         if (componentId) {
-            this.zone.run(() => {
-                // without parentId, it is slot
-                if (!parentId) {
-                    if (this._currentPageId) {
-                        this.cmsService.refreshPageById(this._currentPageId);
-                    }
-                    else {
-                        this.cmsService.refreshLatestPage();
-                    }
-                }
-                else if (componentType) {
-                    this.cmsService.refreshComponent(componentId);
-                }
-            });
+            // without parentId, it is slot
+            if (!parentId) {
+                this.cmsService.refreshLatestPage();
+            }
+            else if (componentType) {
+                this.cmsService.refreshComponent(componentId);
+            }
         }
         return true;
     }
@@ -19773,10 +15240,9 @@ SmartEditService.decorators = [
 SmartEditService.ctorParameters = () => [
     { type: CmsService },
     { type: RoutingService },
-    { type: NgZone },
     { type: WindowRef }
 ];
-/** @nocollapse */ SmartEditService.ngInjectableDef = defineInjectable({ factory: function SmartEditService_Factory() { return new SmartEditService(inject(CmsService), inject(RoutingService), inject(NgZone), inject(WindowRef)); }, token: SmartEditService, providedIn: "root" });
+/** @nocollapse */ SmartEditService.ngInjectableDef = defineInjectable({ factory: function SmartEditService_Factory() { return new SmartEditService(inject(CmsService), inject(RoutingService), inject(WindowRef)); }, token: SmartEditService, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
@@ -19795,7 +15261,7 @@ class CmsTicketInterceptor {
      * @return {?}
      */
     intercept(request, next) {
-        if (request.url.includes('/cms/') && this.service.cmsTicketId) {
+        if (request.url.indexOf('/cms/') > -1 && this.service.cmsTicketId) {
             request = request.clone({
                 setParams: {
                     cmsTicketId: this.service.cmsTicketId,
@@ -19874,68 +15340,16 @@ SmartEditModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class StoreFinderAdapter {
-}
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class StoreFinderConnector {
-    /**
-     * @param {?} adapter
-     */
-    constructor(adapter) {
-        this.adapter = adapter;
-    }
-    /**
-     * @param {?} query
-     * @param {?} searchConfig
-     * @param {?=} longitudeLatitude
-     * @return {?}
-     */
-    search(query, searchConfig, longitudeLatitude) {
-        return this.adapter.search(query, searchConfig, longitudeLatitude);
-    }
-    /**
-     * @return {?}
-     */
-    getCounts() {
-        return this.adapter.loadCounts();
-    }
-    /**
-     * @param {?} storeId
-     * @return {?}
-     */
-    get(storeId) {
-        return this.adapter.load(storeId);
-    }
-}
-StoreFinderConnector.decorators = [
-    { type: Injectable, args: [{ providedIn: 'root' },] }
-];
-/** @nocollapse */
-StoreFinderConnector.ctorParameters = () => [
-    { type: StoreFinderAdapter }
-];
-/** @nocollapse */ StoreFinderConnector.ngInjectableDef = defineInjectable({ factory: function StoreFinderConnector_Factory() { return new StoreFinderConnector(inject(StoreFinderAdapter)); }, token: StoreFinderConnector, providedIn: "root" });
 
 /**
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/** @type {?} */
-const POINT_OF_SERVICE_NORMALIZER = new InjectionToken('PointOfServiceNormalizer');
-/** @type {?} */
-const STORE_FINDER_SEARCH_PAGE_NORMALIZER = new InjectionToken('StoreFinderSearchPageNormalizer');
-/** @type {?} */
-const STORE_COUNT_NORMALIZER = new InjectionToken('StoreCountNormalizer');
 
 /**
  * @fileoverview added by tsickle
@@ -19948,16 +15362,14 @@ const STORE_COUNT_NORMALIZER = new InjectionToken('StoreCountNormalizer');
  */
 /** @type {?} */
 const STORES_ENDPOINT = 'stores';
-class OccStoreFinderAdapter {
+class OccStoreFinderService {
     /**
      * @param {?} http
      * @param {?} occEndpoints
-     * @param {?} converter
      */
-    constructor(http, occEndpoints, converter) {
+    constructor(http, occEndpoints) {
         this.http = http;
         this.occEndpoints = occEndpoints;
-        this.converter = converter;
     }
     /**
      * @param {?} query
@@ -19965,27 +15377,31 @@ class OccStoreFinderAdapter {
      * @param {?=} longitudeLatitude
      * @return {?}
      */
-    search(query, searchConfig, longitudeLatitude) {
-        return this.callOccFindStores(query, searchConfig, longitudeLatitude).pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(STORE_FINDER_SEARCH_PAGE_NORMALIZER));
+    findStores(query, searchConfig, longitudeLatitude) {
+        return this.callOccFindStores(query, searchConfig, longitudeLatitude);
     }
     /**
      * @return {?}
      */
-    loadCounts() {
+    storesCount() {
         /** @type {?} */
         const storeCountUrl = this.getStoresEndpoint('storescounts');
-        return this.http.get(storeCountUrl).pipe(map(({ countriesAndRegionsStoreCount }) => countriesAndRegionsStoreCount), catchError((error) => throwError(error.json())), this.converter.pipeableMany(STORE_COUNT_NORMALIZER));
+        return this.http
+            .get(storeCountUrl)
+            .pipe(catchError((error) => throwError(error.json())));
     }
     /**
      * @param {?} storeId
      * @return {?}
      */
-    load(storeId) {
+    findStoreById(storeId) {
         /** @type {?} */
         const storeDetailsUrl = this.getStoresEndpoint(storeId);
         /** @type {?} */
         const params = { fields: 'FULL' };
-        return this.http.get(storeDetailsUrl, { params }).pipe(catchError((error) => throwError(error.json())), this.converter.pipeable(POINT_OF_SERVICE_NORMALIZER));
+        return this.http
+            .get(storeDetailsUrl, { params })
+            .pipe(catchError((error) => throwError(error.json())));
     }
     /**
      * @protected
@@ -20038,14 +15454,13 @@ class OccStoreFinderAdapter {
         return url ? baseUrl + '/' + url : baseUrl;
     }
 }
-OccStoreFinderAdapter.decorators = [
+OccStoreFinderService.decorators = [
     { type: Injectable }
 ];
 /** @nocollapse */
-OccStoreFinderAdapter.ctorParameters = () => [
+OccStoreFinderService.ctorParameters = () => [
     { type: HttpClient },
-    { type: OccEndpointsService },
-    { type: ConverterService }
+    { type: OccEndpointsService }
 ];
 
 /**
@@ -20056,7 +15471,8 @@ class StoreFinderOccModule {
 }
 StoreFinderOccModule.decorators = [
     { type: NgModule, args: [{
-                providers: [{ provide: StoreFinderAdapter, useClass: OccStoreFinderAdapter }],
+                imports: [CommonModule, HttpClientModule, OccModule],
+                providers: [OccStoreFinderService],
             },] }
 ];
 
@@ -20557,20 +15973,21 @@ GoogleMapRendererService.ctorParameters = () => [
 class FindStoresEffect {
     /**
      * @param {?} actions$
-     * @param {?} storeFinderConnector
+     * @param {?} occStoreFinderService
      */
-    constructor(actions$, storeFinderConnector) {
+    constructor(actions$, occStoreFinderService) {
         this.actions$ = actions$;
-        this.storeFinderConnector = storeFinderConnector;
-        this.findStores$ = this.actions$.pipe(ofType(FIND_STORES), map((action) => action.payload), mergeMap(payload => this.storeFinderConnector
-            .search(payload.queryText, payload.searchConfig, payload.longitudeLatitude)
+        this.occStoreFinderService = occStoreFinderService;
+        this.findStores$ = this.actions$.pipe(ofType(FIND_STORES), map((action) => action.payload), mergeMap(payload => this.occStoreFinderService
+            .findStores(payload.queryText, payload.searchConfig, payload.longitudeLatitude)
             .pipe(map(data => {
+            data.geolocation = payload.longitudeLatitude;
             if (payload.countryIsoCode) {
                 data.stores = data.stores.filter(store => store.address.country.isocode === payload.countryIsoCode);
             }
             return new FindStoresSuccess(data);
         }), catchError(error => of(new FindStoresFail(error))))));
-        this.findStoreById$ = this.actions$.pipe(ofType(FIND_STORE_BY_ID), map((action) => action.payload), switchMap(payload => this.storeFinderConnector.get(payload.storeId).pipe(map(data => new FindStoreByIdSuccess(data)), catchError(error => of(new FindStoreByIdFail(error))))));
+        this.findStoreById$ = this.actions$.pipe(ofType(FIND_STORE_BY_ID), map((action) => action.payload), switchMap(payload => this.occStoreFinderService.findStoreById(payload.storeId).pipe(map(data => new FindStoreByIdSuccess(data)), catchError(error => of(new FindStoreByIdFail(error))))));
     }
 }
 FindStoresEffect.decorators = [
@@ -20579,7 +15996,7 @@ FindStoresEffect.decorators = [
 /** @nocollapse */
 FindStoresEffect.ctorParameters = () => [
     { type: Actions },
-    { type: StoreFinderConnector }
+    { type: OccStoreFinderService }
 ];
 __decorate([
     Effect(),
@@ -20597,13 +16014,13 @@ __decorate([
 class ViewAllStoresEffect {
     /**
      * @param {?} actions$
-     * @param {?} storeFinderConnector
+     * @param {?} occStoreFinderService
      */
-    constructor(actions$, storeFinderConnector) {
+    constructor(actions$, occStoreFinderService) {
         this.actions$ = actions$;
-        this.storeFinderConnector = storeFinderConnector;
+        this.occStoreFinderService = occStoreFinderService;
         this.viewAllStores$ = this.actions$.pipe(ofType(VIEW_ALL_STORES), switchMap(() => {
-            return this.storeFinderConnector.getCounts().pipe(map(data => new ViewAllStoresSuccess(data)), catchError(error => of(new ViewAllStoresFail(error))));
+            return this.occStoreFinderService.storesCount().pipe(map(data => new ViewAllStoresSuccess(data)), catchError(error => of(new ViewAllStoresFail(error))));
         }));
     }
 }
@@ -20613,7 +16030,7 @@ ViewAllStoresEffect.decorators = [
 /** @nocollapse */
 ViewAllStoresEffect.ctorParameters = () => [
     { type: Actions },
-    { type: StoreFinderConnector }
+    { type: OccStoreFinderService }
 ];
 __decorate([
     Effect(),
@@ -20841,6 +16258,678 @@ StoreFinderCoreModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CxApiModule {
+}
+CxApiModule.decorators = [
+    { type: NgModule, args: [{},] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class I18nConfig extends ServerConfig {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class DatePipe$1 extends DatePipe {
+    /**
+     * @param {?} language
+     * @param {?} config
+     */
+    constructor(language, config) {
+        super(null);
+        this.language = language;
+        this.config = config;
+    }
+    /**
+     * @param {?} value
+     * @param {?=} format
+     * @param {?=} timezone
+     * @return {?}
+     */
+    transform(value, format, timezone) {
+        return super.transform(value, format, timezone, this.getLang());
+    }
+    /**
+     * @private
+     * @return {?}
+     */
+    getLang() {
+        /** @type {?} */
+        const lang = this.getActiveLang();
+        try {
+            getLocaleId(lang);
+            return lang;
+        }
+        catch (_a) {
+            this.reportMissingLocaleData(lang);
+            return 'en';
+        }
+    }
+    /**
+     * @private
+     * @return {?}
+     */
+    getActiveLang() {
+        /** @type {?} */
+        let result;
+        this.language
+            .getActive()
+            .subscribe(lang => (result = lang))
+            .unsubscribe();
+        return result;
+    }
+    /**
+     * @private
+     * @param {?} lang
+     * @return {?}
+     */
+    reportMissingLocaleData(lang) {
+        if (!this.config.production) {
+            console.warn(`cxDate pipe: No locale data registered for '${lang}' (see https://angular.io/api/common/registerLocaleData).`);
+        }
+    }
+}
+DatePipe$1.decorators = [
+    { type: Pipe, args: [{ name: 'cxDate' },] }
+];
+/** @nocollapse */
+DatePipe$1.ctorParameters = () => [
+    { type: LanguageService },
+    { type: I18nConfig }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @abstract
+ */
+class TranslationService {
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @param {?} objA
+ * @param {?} objB
+ * @return {?}
+ */
+function shallowEqualObjects(objA, objB) {
+    if (objA === objB) {
+        return true;
+    }
+    if (!objA || !objB) {
+        return false;
+    }
+    /** @type {?} */
+    const aKeys = Object.keys(objA);
+    /** @type {?} */
+    const bKeys = Object.keys(objB);
+    /** @type {?} */
+    const aKeysLen = aKeys.length;
+    /** @type {?} */
+    const bKeysLen = bKeys.length;
+    if (aKeysLen !== bKeysLen) {
+        return false;
+    }
+    for (let i = 0; i < aKeysLen; i++) {
+        /** @type {?} */
+        const key = aKeys[i];
+        if (objA[key] !== objB[key]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class TranslatePipe {
+    /**
+     * @param {?} service
+     * @param {?} cd
+     */
+    constructor(service, cd) {
+        this.service = service;
+        this.cd = cd;
+    }
+    /**
+     * @param {?} key
+     * @param {?=} options
+     * @return {?}
+     */
+    transform(key, options = {}) {
+        if (key !== this.lastKey ||
+            !shallowEqualObjects(options, this.lastOptions)) {
+            this.lastKey = key;
+            this.lastOptions = options;
+            if (this.sub) {
+                this.sub.unsubscribe();
+            }
+            this.sub = this.service
+                .translate(key, options, true)
+                .subscribe(val => this.markForCheck(val));
+        }
+        return this.value;
+    }
+    /**
+     * @private
+     * @param {?} value
+     * @return {?}
+     */
+    markForCheck(value) {
+        this.value = value;
+        this.cd.markForCheck();
+    }
+    /**
+     * @return {?}
+     */
+    ngOnDestroy() {
+        if (this.sub) {
+            this.sub.unsubscribe();
+        }
+    }
+}
+TranslatePipe.decorators = [
+    { type: Pipe, args: [{ name: 'cxTranslate', pure: false },] }
+];
+/** @nocollapse */
+TranslatePipe.ctorParameters = () => [
+    { type: TranslationService },
+    { type: ChangeDetectorRef }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class TranslationNamespaceService {
+    /**
+     * @param {?} config
+     */
+    constructor(config) {
+        this.config = config;
+        this.KEY_SEPARATOR = '.';
+    }
+    /**
+     * @param {?} key
+     * @return {?}
+     */
+    getNamespace(key) {
+        /** @type {?} */
+        const mainKey = (key || '').split(this.KEY_SEPARATOR)[0];
+        /** @type {?} */
+        const namespace = this.getNamespaceFromMapping(mainKey);
+        if (!namespace) {
+            this.reportMissingNamespaceMapping(key, mainKey);
+            return mainKey; // fallback to main key as a namespace
+        }
+        return namespace;
+    }
+    /**
+     * @private
+     * @param {?} mainKey
+     * @return {?}
+     */
+    getNamespaceFromMapping(mainKey) {
+        return (this.config.i18n &&
+            this.config.i18n.namespaceMapping &&
+            this.config.i18n.namespaceMapping[mainKey]);
+    }
+    /**
+     * @private
+     * @param {?} key
+     * @param {?} fallbackNamespace
+     * @return {?}
+     */
+    reportMissingNamespaceMapping(key, fallbackNamespace) {
+        if (!this.config.production) {
+            console.warn(`No namespace mapping configured for key '${key}'. Used '${fallbackNamespace}' as fallback namespace.`);
+        }
+    }
+}
+TranslationNamespaceService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+TranslationNamespaceService.ctorParameters = () => [
+    { type: I18nConfig }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @param {?} config
+ * @param {?} languageService
+ * @return {?}
+ */
+function i18nextInit(config, languageService) {
+    return () => {
+        /** @type {?} */
+        let i18nextConfig = {
+            ns: [],
+            // don't preload any namespaces
+            fallbackLng: config.i18n.fallbackLang,
+            debug: config.i18n.debug,
+        };
+        if (config.i18n.backend) {
+            i18next.use(i18nextXhrBackend);
+            i18nextConfig = Object.assign({}, i18nextConfig, { backend: config.i18n.backend });
+        }
+        return i18next.init(i18nextConfig, () => {
+            // Don't use i18next's 'resources' config key for adding static translations,
+            // because it will disable loading chunks from backend. We add resources here, in the init's callback.
+            i18nextAddTranslations(config.i18n.resources);
+            syncI18nextWithSiteContext(languageService);
+        });
+    };
+}
+/**
+ * @param {?=} resources
+ * @return {?}
+ */
+function i18nextAddTranslations(resources = {}) {
+    Object.keys(resources).forEach(lang => {
+        Object.keys(resources[lang]).forEach(namespace => {
+            i18next.addResourceBundle(lang, namespace, resources[lang][namespace], true, true);
+        });
+    });
+}
+/**
+ * @param {?} language
+ * @return {?}
+ */
+function syncI18nextWithSiteContext(language) {
+    // always update language of i18next on site context (language) change
+    language.getActive().subscribe(lang => i18next.changeLanguage(lang));
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const i18nextProviders = [
+    {
+        provide: APP_INITIALIZER,
+        useFactory: i18nextInit,
+        deps: [I18nConfig, LanguageService],
+        multi: true,
+    },
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/** @type {?} */
+const defaultI18nConfig = {
+    i18n: {
+        fallbackLang: false,
+        debug: false,
+        namespaceMapping: {
+            addToCart: 'addToCart',
+            address: 'address',
+            addressBook: 'addressBook',
+            cart: 'cart',
+            cartItems: 'cartItems',
+            checkout: 'checkout',
+            checkoutAddress: 'checkoutAddress',
+            checkoutOrderConfirmation: 'checkoutOrderConfirmation',
+            checkoutReview: 'checkoutReview',
+            checkoutShipping: 'checkoutShipping',
+            common: 'common',
+            forgottenPassword: 'forgottenPassword',
+            login: 'login',
+            orderCost: 'orderCost',
+            orderDetails: 'orderDetails',
+            orderHistory: 'orderHistory',
+            orderReview: 'orderReview',
+            payment: 'payment',
+            paymentMethods: 'paymentMethods',
+            productDetails: 'productDetails',
+            productList: 'productList',
+            productReview: 'productReview',
+            pwa: 'pwa',
+            register: 'register',
+            storeFinder: 'storeFinder',
+        },
+    },
+};
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class I18nextTranslationService {
+    /**
+     * @param {?} config
+     * @param {?} translationNamespace
+     */
+    constructor(config, translationNamespace) {
+        this.config = config;
+        this.translationNamespace = translationNamespace;
+        this.NON_BREAKING_SPACE = String.fromCharCode(160);
+        this.NAMESPACE_SEPARATOR = ':';
+    }
+    /**
+     * @param {?} key
+     * @param {?=} options
+     * @param {?=} whitespaceUntilLoaded
+     * @return {?}
+     */
+    translate(key, options = {}, whitespaceUntilLoaded = false) {
+        // If we've already loaded the namespace (or failed to load), we should immediately emit the value
+        // (or the fallback value in case the key is missing).
+        // If we've already loaded the namespace (or failed to load), we should immediately emit the value
+        // (or the fallback value in case the key is missing).
+        // Moreover, we SHOULD emit a value (or a fallback value) synchronously (not in a promise/setTimeout).
+        // Otherwise, we the will trigger additional deferred change detection in a view that consumes the returned observable,
+        // which together with `switchMap` operator may lead to an infinite loop.
+        /** @type {?} */
+        const namespace = this.translationNamespace.getNamespace(key);
+        /** @type {?} */
+        const namespacedKey = this.getNamespacedKey(key, namespace);
+        return new Observable(subscriber => {
+            /** @type {?} */
+            const translate = () => {
+                if (i18next.exists(namespacedKey, options)) {
+                    subscriber.next(i18next.t(namespacedKey, options));
+                }
+                else {
+                    if (whitespaceUntilLoaded) {
+                        subscriber.next(this.NON_BREAKING_SPACE);
+                    }
+                    i18next.loadNamespaces(namespace, () => {
+                        if (!i18next.exists(namespacedKey, options)) {
+                            this.reportMissingKey(namespacedKey);
+                            subscriber.next(this.getFallbackValue(namespacedKey));
+                        }
+                        else {
+                            subscriber.next(i18next.t(namespacedKey, options));
+                        }
+                    });
+                }
+            };
+            translate();
+            i18next.on('languageChanged', translate);
+            return () => i18next.off('languageChanged', translate);
+        });
+    }
+    /**
+     * @param {?} namespaces
+     * @return {?}
+     */
+    loadNamespaces(namespaces) {
+        return i18next.loadNamespaces(namespaces);
+    }
+    /**
+     * Returns a fallback value in case when the given key is missing
+     * @protected
+     * @param {?} key
+     * @return {?}
+     */
+    getFallbackValue(key) {
+        return this.config.production ? this.NON_BREAKING_SPACE : `[${key}]`;
+    }
+    /**
+     * @private
+     * @param {?} key
+     * @return {?}
+     */
+    reportMissingKey(key) {
+        if (!this.config.production) {
+            console.warn(`Translation key missing '${key}'`);
+        }
+    }
+    /**
+     * @private
+     * @param {?} key
+     * @param {?} namespace
+     * @return {?}
+     */
+    getNamespacedKey(key, namespace) {
+        return namespace + this.NAMESPACE_SEPARATOR + key;
+    }
+}
+I18nextTranslationService.decorators = [
+    { type: Injectable }
+];
+/** @nocollapse */
+I18nextTranslationService.ctorParameters = () => [
+    { type: I18nConfig },
+    { type: TranslationNamespaceService }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class I18nModule {
+    /**
+     * @return {?}
+     */
+    static forRoot() {
+        return {
+            ngModule: I18nModule,
+            providers: [
+                provideConfig(defaultI18nConfig),
+                { provide: I18nConfig, useExisting: Config },
+                { provide: TranslationService, useClass: I18nextTranslationService },
+                TranslationNamespaceService,
+                ...i18nextProviders,
+            ],
+        };
+    }
+}
+I18nModule.decorators = [
+    { type: NgModule, args: [{
+                declarations: [TranslatePipe, DatePipe$1],
+                exports: [TranslatePipe, DatePipe$1],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+/**
+ * @param {?} key
+ * @param {?=} options
+ * @return {?}
+ */
+function mockTranslate(key, options = {}) {
+    /** @type {?} */
+    const optionsString = Object.keys(options)
+        .sort()
+        .map(optionName => `${optionName}:${options[optionName]}`)
+        .join(' ');
+    return optionsString ? `${key} ${optionsString}` : key;
+}
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class MockTranslatePipe {
+    /**
+     * @param {?} key
+     * @param {?=} options
+     * @return {?}
+     */
+    transform(key, options = {}) {
+        return mockTranslate(key, options);
+    }
+}
+MockTranslatePipe.decorators = [
+    { type: Pipe, args: [{ name: 'cxTranslate' },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class MockTranslationService {
+    /**
+     * @param {?} key
+     * @param {?=} options
+     * @param {?=} _whitespaceUntilLoaded
+     * @return {?}
+     */
+    translate(key, options = {}, _whitespaceUntilLoaded = false) {
+        return new Observable(subscriber => {
+            /** @type {?} */
+            const value = mockTranslate(key, options);
+            subscriber.next(value);
+            subscriber.complete();
+        });
+    }
+    /**
+     * @param {?} _namespaces
+     * @return {?}
+     */
+    loadNamespaces(_namespaces) {
+        return Promise.resolve();
+    }
+}
+MockTranslationService.decorators = [
+    { type: Injectable }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class MockDatePipe extends DatePipe {
+    /**
+     * @param {?} value
+     * @param {?=} format
+     * @param {?=} timezone
+     * @return {?}
+     */
+    transform(value, format, timezone) {
+        return super.transform(value, format, timezone, 'en');
+    }
+}
+MockDatePipe.decorators = [
+    { type: Pipe, args: [{ name: 'cxDate' },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class I18nTestingModule {
+}
+I18nTestingModule.decorators = [
+    { type: NgModule, args: [{
+                declarations: [MockTranslatePipe, MockDatePipe],
+                exports: [MockTranslatePipe, MockDatePipe],
+                providers: [
+                    { provide: TranslationService, useClass: MockTranslationService },
+                ],
+            },] }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+class CxApiService {
+    /**
+     * @param {?} auth
+     * @param {?} cms
+     * @param {?} routing
+     * @param {?} currency
+     * @param {?} language
+     * @param {?} product
+     * @param {?} productSearch
+     * @param {?} productReview
+     * @param {?} user
+     * @param {?} translation
+     */
+    constructor(auth, cms, routing, currency, language, product, productSearch, productReview, user, translation) {
+        this.auth = auth;
+        this.cms = cms;
+        this.routing = routing;
+        this.currency = currency;
+        this.language = language;
+        this.product = product;
+        this.productSearch = productSearch;
+        this.productReview = productReview;
+        this.user = user;
+        this.translation = translation;
+    }
+}
+CxApiService.decorators = [
+    { type: Injectable, args: [{
+                providedIn: 'root',
+            },] }
+];
+/** @nocollapse */
+CxApiService.ctorParameters = () => [
+    { type: AuthService, decorators: [{ type: Optional }] },
+    { type: CmsService, decorators: [{ type: Optional }] },
+    { type: RoutingService, decorators: [{ type: Optional }] },
+    { type: CurrencyService, decorators: [{ type: Optional }] },
+    { type: LanguageService, decorators: [{ type: Optional }] },
+    { type: ProductService, decorators: [{ type: Optional }] },
+    { type: ProductSearchService, decorators: [{ type: Optional }] },
+    { type: ProductReviewService, decorators: [{ type: Optional }] },
+    { type: UserService, decorators: [{ type: Optional }] },
+    { type: TranslationService, decorators: [{ type: Optional }] }
+];
+/** @nocollapse */ CxApiService.ngInjectableDef = defineInjectable({ factory: function CxApiService_Factory() { return new CxApiService(inject(AuthService, 8), inject(CmsService, 8), inject(RoutingService, 8), inject(CurrencyService, 8), inject(LanguageService, 8), inject(ProductService, 8), inject(ProductSearchService, 8), inject(ProductReviewService, 8), inject(UserService, 8), inject(TranslationService, 8)); }, token: CxApiService, providedIn: "root" });
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
 class StripHtmlPipe {
     /**
      * @param {?} product
@@ -20913,211 +17002,7 @@ UtilModule.decorators = [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
-/**
- * @abstract
- */
-class PersonalizationConfig {
-}
 
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const defaultPersonalizationConfig = {
-    personalization: {
-        httpHeaderName: {
-            id: 'Occ-Personalization-Id',
-            timestamp: 'Occ-Personalization-Time',
-        },
-    },
-};
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PERSONALIZATION_ID_KEY = 'personalization-id';
-class OccPersonalizationIdInterceptor {
-    /**
-     * @param {?} config
-     * @param {?} occEndpoints
-     * @param {?} winRef
-     * @param {?} platform
-     */
-    constructor(config, occEndpoints, winRef, platform) {
-        this.config = config;
-        this.occEndpoints = occEndpoints;
-        this.winRef = winRef;
-        this.platform = platform;
-        this.requestHeader = this.config.personalization.httpHeaderName.id.toLowerCase();
-        this.personalizationId =
-            this.winRef.localStorage &&
-                this.winRef.localStorage.getItem(PERSONALIZATION_ID_KEY);
-    }
-    /**
-     * @param {?} request
-     * @param {?} next
-     * @return {?}
-     */
-    intercept(request, next) {
-        if (isPlatformServer(this.platform)) {
-            return next.handle(request);
-        }
-        if (this.personalizationId &&
-            request.url.includes(this.occEndpoints.getBaseEndpoint())) {
-            request = request.clone({
-                setHeaders: {
-                    [this.requestHeader]: this.personalizationId,
-                },
-            });
-        }
-        return next.handle(request).pipe(tap(event => {
-            if (event instanceof HttpResponse) {
-                if (event.headers.keys().includes(this.requestHeader)) {
-                    /** @type {?} */
-                    const receivedId = event.headers.get(this.requestHeader);
-                    if (this.personalizationId !== receivedId) {
-                        this.personalizationId = receivedId;
-                        this.winRef.localStorage.setItem(PERSONALIZATION_ID_KEY, this.personalizationId);
-                    }
-                }
-            }
-        }));
-    }
-}
-OccPersonalizationIdInterceptor.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccPersonalizationIdInterceptor.ctorParameters = () => [
-    { type: PersonalizationConfig },
-    { type: OccEndpointsService },
-    { type: WindowRef },
-    { type: undefined, decorators: [{ type: Inject, args: [PLATFORM_ID,] }] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const PERSONALIZATION_TIME_KEY = 'personalization-time';
-class OccPersonalizationTimeInterceptor {
-    /**
-     * @param {?} config
-     * @param {?} occEndpoints
-     * @param {?} winRef
-     * @param {?} platform
-     */
-    constructor(config, occEndpoints, winRef, platform) {
-        this.config = config;
-        this.occEndpoints = occEndpoints;
-        this.winRef = winRef;
-        this.platform = platform;
-        this.requestHeader = this.config.personalization.httpHeaderName.timestamp.toLowerCase();
-        this.timestamp =
-            this.winRef.localStorage &&
-                this.winRef.localStorage.getItem(PERSONALIZATION_TIME_KEY);
-    }
-    /**
-     * @param {?} request
-     * @param {?} next
-     * @return {?}
-     */
-    intercept(request, next) {
-        if (isPlatformServer(this.platform)) {
-            return next.handle(request);
-        }
-        if (this.timestamp &&
-            request.url.includes(this.occEndpoints.getBaseEndpoint())) {
-            request = request.clone({
-                setHeaders: {
-                    [this.requestHeader]: this.timestamp,
-                },
-            });
-        }
-        return next.handle(request).pipe(tap(event => {
-            if (event instanceof HttpResponse) {
-                if (event.headers.keys().includes(this.requestHeader)) {
-                    /** @type {?} */
-                    const receivedTimestamp = event.headers.get(this.requestHeader);
-                    if (this.timestamp !== receivedTimestamp) {
-                        this.timestamp = receivedTimestamp;
-                        this.winRef.localStorage.setItem(PERSONALIZATION_TIME_KEY, this.timestamp);
-                    }
-                }
-            }
-        }));
-    }
-}
-OccPersonalizationTimeInterceptor.decorators = [
-    { type: Injectable }
-];
-/** @nocollapse */
-OccPersonalizationTimeInterceptor.ctorParameters = () => [
-    { type: PersonalizationConfig },
-    { type: OccEndpointsService },
-    { type: WindowRef },
-    { type: undefined, decorators: [{ type: Inject, args: [PLATFORM_ID,] }] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-/** @type {?} */
-const interceptors$3 = [
-    {
-        provide: HTTP_INTERCEPTORS,
-        useClass: OccPersonalizationIdInterceptor,
-        multi: true,
-    },
-    {
-        provide: HTTP_INTERCEPTORS,
-        useClass: OccPersonalizationTimeInterceptor,
-        multi: true,
-    },
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-class PersonalizationModule {
-    /**
-     * @return {?}
-     */
-    static forRoot() {
-        return {
-            ngModule: PersonalizationModule,
-            providers: [...interceptors$3],
-        };
-    }
-}
-PersonalizationModule.decorators = [
-    { type: NgModule, args: [{
-                imports: [ConfigModule.withConfig(defaultPersonalizationConfig)],
-                providers: [{ provide: PersonalizationConfig, useExisting: Config }],
-            },] }
-];
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-/**
- * @fileoverview added by tsickle
- * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
- */
-
-export { PageType, ImageType, PriceType, testestsd, AuthModule, AuthConfig, AuthService, AuthGuard, NotAuthGuard, LOAD_USER_TOKEN, LOAD_USER_TOKEN_FAIL, LOAD_USER_TOKEN_SUCCESS, REFRESH_USER_TOKEN, REFRESH_USER_TOKEN_FAIL, REFRESH_USER_TOKEN_SUCCESS, LoadUserToken, LoadUserTokenFail, LoadUserTokenSuccess, RefreshUserToken, RefreshUserTokenSuccess, RefreshUserTokenFail, LOAD_CLIENT_TOKEN, LOAD_CLIENT_TOKEN_FAIL, LOAD_CLIENT_TOKEN_SUCCESS, LoadClientToken, LoadClientTokenFail, LoadClientTokenSuccess, LOGIN, LOGOUT, Login, Logout, getAuthState, getUserTokenSelector, getUserTokenState, getUserToken, getClientTokenState, AUTH_FEATURE, CLIENT_TOKEN_DATA, CREATE_CART, CREATE_CART_FAIL, CREATE_CART_SUCCESS, LOAD_CART, LOAD_CART_FAIL, LOAD_CART_SUCCESS, MERGE_CART, MERGE_CART_SUCCESS, CreateCart, CreateCartFail, CreateCartSuccess, LoadCart, LoadCartFail, LoadCartSuccess, MergeCart, MergeCartSuccess, ADD_ENTRY, ADD_ENTRY_SUCCESS, ADD_ENTRY_FAIL, REMOVE_ENTRY, REMOVE_ENTRY_SUCCESS, REMOVE_ENTRY_FAIL, UPDATE_ENTRY, UPDATE_ENTRY_SUCCESS, UPDATE_ENTRY_FAIL, AddEntry, AddEntrySuccess, AddEntryFail, RemoveEntry, RemoveEntrySuccess, RemoveEntryFail, UpdateEntry, UpdateEntrySuccess, UpdateEntryFail, getCartContentSelector, getRefreshSelector, getEntriesSelector, getCartMergeCompleteSelector, getCartsState, getActiveCartState, getCartState, getCartContent, getRefresh, getLoaded, getCartMergeComplete, getEntriesMap, getEntrySelectorFactory, getEntries, CART_FEATURE, CART_DATA, services$1 as services, CartService, ANONYMOUS_USERID, CartDataService, CartConnector, CartAdapter, CART_NORMALIZER, CartDeliveryConnector, CartDeliveryAdapter, DELIVERY_ADDRESS_NORMALIZER, DELIVERY_ADDRESS_SERIALIZER, DELIVERY_MODE_NORMALIZER, CartEntryConnector, CartEntryAdapter, CART_MODIFICATION_NORMALIZER, CartPaymentConnector, CartPaymentAdapter, PAYMENT_DETAILS_NORMALIZER, PAYMENT_DETAILS_SERIALIZER, OccCartAdapter, OccCartDeliveryAdapter, OccCartEntryAdapter, OccCartPaymentAdapter, CartOccModule, CartModule, CHECKOUT_FEATURE, CHECKOUT_DETAILS, CHECKOUT_CLEAR_MISCS_DATA, CheckoutClearMiscsData, ADD_DELIVERY_ADDRESS, ADD_DELIVERY_ADDRESS_FAIL, ADD_DELIVERY_ADDRESS_SUCCESS, SET_DELIVERY_ADDRESS, SET_DELIVERY_ADDRESS_FAIL, SET_DELIVERY_ADDRESS_SUCCESS, LOAD_SUPPORTED_DELIVERY_MODES, LOAD_SUPPORTED_DELIVERY_MODES_FAIL, LOAD_SUPPORTED_DELIVERY_MODES_SUCCESS, CLEAR_SUPPORTED_DELIVERY_MODES, SET_DELIVERY_MODE, SET_DELIVERY_MODE_FAIL, SET_DELIVERY_MODE_SUCCESS, CREATE_PAYMENT_DETAILS, CREATE_PAYMENT_DETAILS_FAIL, CREATE_PAYMENT_DETAILS_SUCCESS, SET_PAYMENT_DETAILS, SET_PAYMENT_DETAILS_FAIL, SET_PAYMENT_DETAILS_SUCCESS, PLACE_ORDER, PLACE_ORDER_FAIL, PLACE_ORDER_SUCCESS, CLEAR_CHECKOUT_STEP, CLEAR_CHECKOUT_DATA, LOAD_CHECKOUT_DETAILS, LOAD_CHECKOUT_DETAILS_FAIL, LOAD_CHECKOUT_DETAILS_SUCCESS, AddDeliveryAddress, AddDeliveryAddressFail, AddDeliveryAddressSuccess, SetDeliveryAddress, SetDeliveryAddressFail, SetDeliveryAddressSuccess, LoadSupportedDeliveryModes, LoadSupportedDeliveryModesFail, LoadSupportedDeliveryModesSuccess, SetDeliveryMode, SetDeliveryModeFail, SetDeliveryModeSuccess, CreatePaymentDetails, CreatePaymentDetailsFail, CreatePaymentDetailsSuccess, SetPaymentDetails, SetPaymentDetailsFail, SetPaymentDetailsSuccess, PlaceOrder, PlaceOrderFail, PlaceOrderSuccess, ClearSupportedDeliveryModes, ClearCheckoutStep, ClearCheckoutData, LoadCheckoutDetails, LoadCheckoutDetailsFail, LoadCheckoutDetailsSuccess, LOAD_CARD_TYPES, LOAD_CARD_TYPES_FAIL, LOAD_CARD_TYPES_SUCCESS, LoadCardTypes, LoadCardTypesFail, LoadCardTypesSuccess, VERIFY_ADDRESS, VERIFY_ADDRESS_FAIL, VERIFY_ADDRESS_SUCCESS, CLEAR_ADDRESS_VERIFICATION_RESULTS, VerifyAddress, VerifyAddressFail, VerifyAddressSuccess, ClearAddressVerificationResults, getDeliveryAddressSelector, getDeliveryModeSelector, getPaymentDetailsSelector, getOrderDetailsSelector, getCheckoutState, getCheckoutStepsState, getCheckoutSteps, getDeliveryAddress, getDeliveryMode, getSupportedDeliveryModes, getSelectedCode, getSelectedDeliveryMode, getPaymentDetails, getCheckoutOrderDetails, getCheckoutDetailsLoaded, getCardTypesState, getCardTypesEntites$1 as getCardTypesEntites, getAllCardTypes, getAddressVerificationResultsState, getAddressVerificationResults$1 as getAddressVerificationResults, CheckoutService, CheckoutModule, CartPageMetaResolver, CheckoutPageMetaResolver, JSP_INCLUDE_CMS_COMPONENT_TYPE, CMS_FLEX_COMPONENT_TYPE, CmsConfig, defaultCmsModuleConfig, CmsStructureConfig, PageRobotsMeta, OccCmsPageAdapter, OccCmsPageNormalizer, OccCmsComponentAdapter, CmsOccModule, CmsPageAdapter, CmsPageConnector, CMS_PAGE_NORMALIZE, CmsComponentConnector, CmsComponentAdapter, CMS_COMPONENT_NORMALIZER, CMS_FEATURE, NAVIGATION_DETAIL_ENTITY, COMPONENT_ENTITY, LOAD_PAGE_DATA, LOAD_PAGE_DATA_FAIL, LOAD_PAGE_DATA_SUCCESS, LoadPageData, LoadPageDataFail, LoadPageDataSuccess, LOAD_COMPONENT, LOAD_COMPONENT_FAIL, LOAD_COMPONENT_SUCCESS, GET_COMPONENET_FROM_PAGE, LoadComponent, LoadComponentFail, LoadComponentSuccess, GetComponentFromPage, LOAD_NAVIGATION_ITEMS, LOAD_NAVIGATION_ITEMS_FAIL, LOAD_NAVIGATION_ITEMS_SUCCESS, LoadNavigationItems, LoadNavigationItemsFail, LoadNavigationItemsSuccess, getPageEntitiesSelector, getIndexByType, getPageComponentTypesSelector, getPageState, getPageStateIndex, getIndex, getIndexEntity, getPageEntities, getPageData, getPageComponentTypes, currentSlotSelectorFactory, getComponentEntitiesSelector, getComponentState, getComponentEntities, componentStateSelectorFactory, componentSelectorFactory, getNavigationEntryItemState, getSelectedNavigationEntryItemState, itemsSelectorFactory, getCmsState, CmsService, PageMetaService, CmsModule, ComponentMapperService, CmsStructureConfigService, DynamicAttributeService, PageMetaResolver, ContentPageMetaResolver, CmsPageTitleModule, provideConfig, provideConfigFactory, configurationFactory, Config, ConfigChunk, ConfigModule, ServerConfig, defaultServerConfig, provideConfigValidator, validateConfig, ConfigValidatorToken, CxApiModule, CxApiService, GLOBAL_MESSAGE_FEATURE, ADD_MESSAGE, REMOVE_MESSAGE, REMOVE_MESSAGES_BY_TYPE, AddMessage, RemoveMessage, RemoveMessagesByType, getGlobalMessageState, getGlobalMessageEntities, GlobalMessageStoreModule, GlobalMessageService, GlobalMessageType, GlobalMessageModule, errorHandlers, httpErrorInterceptors, BadGatewayHandler, BadRequestHandler, ConflictHandler, ForbiddenHandler, GatewayTimeoutHandler, NotFoundHandler, HttpErrorHandler, UnknownErrorHandler, CxDatePipe, TranslatePipe, TranslationService, TranslationChunkService, I18nModule, I18nConfig, I18nextTranslationService, I18nTestingModule, MockTranslatePipe, occServerConfigFromMetaTagFactory, mediaServerConfigFromMetaTagFactory, OCC_BASE_URL_META_TAG_NAME, OCC_BASE_URL_META_TAG_PLACEHOLDER, MEDIA_BASE_URL_META_TAG_NAME, MEDIA_BASE_URL_META_TAG_PLACEHOLDER, defaultOccConfig, OccConfig, occConfigValidator, OccMiscsService, Occ, OccModule, OccEndpointsService, USE_CLIENT_TOKEN, InterceptorUtil, ProductConnector, ProductAdapter, PRODUCT_NORMALIZER, PRODUCT_REFERENCES_NORMALIZER, ProductReferencesAdapter, ProductReferencesConnector, ProductReviewsConnector, ProductReviewsAdapter, PRODUCT_REVIEW_NORMALIZER, PRODUCT_REVIEW_SERIALIZER, ProductSearchConnector, ProductSearchAdapter, PRODUCT_SEARCH_PAGE_NORMALIZER, PRODUCT_SUGGESTION_NORMALIZER, ProductReferenceService, ProductReviewService, ProductSearchService, ProductService, ProductImageNormalizer, ProductReferenceNormalizer, OccProductSearchPageNormalizer, OccProductReferencesAdapter, OccProductReviewsAdapter, OccProductSearchAdapter, OccProductAdapter, ProductOccModule, ProductModule, CategoryPageMetaResolver, ProductPageMetaResolver, SearchPageMetaResolver, LOAD_PRODUCT_REFERENCES, LOAD_PRODUCT_REFERENCES_FAIL, LOAD_PRODUCT_REFERENCES_SUCCESS, LoadProductReferences, LoadProductReferencesFail, LoadProductReferencesSuccess, LOAD_PRODUCT_REVIEWS, LOAD_PRODUCT_REVIEWS_FAIL, LOAD_PRODUCT_REVIEWS_SUCCESS, POST_PRODUCT_REVIEW, POST_PRODUCT_REVIEW_FAIL, POST_PRODUCT_REVIEW_SUCCESS, LoadProductReviews, LoadProductReviewsFail, LoadProductReviewsSuccess, PostProductReview, PostProductReviewFail, PostProductReviewSuccess, SEARCH_PRODUCTS, SEARCH_PRODUCTS_FAIL, SEARCH_PRODUCTS_SUCCESS, GET_PRODUCT_SUGGESTIONS, GET_PRODUCT_SUGGESTIONS_SUCCESS, GET_PRODUCT_SUGGESTIONS_FAIL, CLEAN_PRODUCT_SEARCH, SearchProducts, SearchProductsFail, SearchProductsSuccess, GetProductSuggestions, GetProductSuggestionsSuccess, GetProductSuggestionsFail, CleanProductSearchState, LOAD_PRODUCT, LOAD_PRODUCT_FAIL, LOAD_PRODUCT_SUCCESS, LoadProduct, LoadProductFail, LoadProductSuccess, PRODUCT_FEATURE, PRODUCT_DETAIL_ENTITY, getProductsState, getProductReferencesState, getSelectedProductReferencesFactory, getProductReviewsState, getSelectedProductReviewsFactory, getProductsSearchState, getSearchResults$1 as getSearchResults, getAuxSearchResults$1 as getAuxSearchResults, getProductSuggestions$1 as getProductSuggestions, getProductState, getSelectedProductsFactory, getSelectedProductStateFactory, getSelectedProductFactory, getSelectedProductLoadingFactory, getSelectedProductSuccessFactory, getSelectedProductErrorFactory, getAllProductCodes, RoutingModule, RoutingService, PageContext, RoutingConfig, UrlModule, UrlPipe, UrlService, ConfigurableRoutesService, initConfigurableRoutes, ConfigurableRoutesModule, RoutingConfigService, LanguageService, CurrencyService, SiteContextModule, interceptors$1 as interceptors, SiteContextOccModule, SiteContextInterceptor, OccSiteAdapter, SiteContextConfig, serviceMapFactory, ContextServiceMap, LANGUAGE_CONTEXT_ID, CURRENCY_CONTEXT_ID, BASE_SITE_CONTEXT_ID, contextServiceMapProvider, inititializeContext, contextServiceProviders, initSiteContextRoutesHandler, siteContextParamsProviders, SiteConnector, SiteAdapter, LANGUAGE_NORMALIZER, CURRENCY_NORMALIZER, SITE_CONTEXT_FEATURE, LOAD_LANGUAGES, LOAD_LANGUAGES_FAIL, LOAD_LANGUAGES_SUCCESS, SET_ACTIVE_LANGUAGE, LANGUAGE_CHANGE, LoadLanguages, LoadLanguagesFail, LoadLanguagesSuccess, SetActiveLanguage, LanguageChange, LOAD_CURRENCIES, LOAD_CURRENCIES_FAIL, LOAD_CURRENCIES_SUCCESS, SET_ACTIVE_CURRENCY, CURRENCY_CHANGE, LoadCurrencies, LoadCurrenciesFail, LoadCurrenciesSuccess, SetActiveCurrency, CurrencyChange, SET_ACTIVE_BASE_SITE, BASE_SITE_CHANGE, SetActiveBaseSite, BaseSiteChange, getSiteContextState, getLanguagesState, getLanguagesEntities, getActiveLanguage, getAllLanguages, getCurrenciesState, getCurrenciesEntities, getActiveCurrency, getAllCurrencies, getActiveBaseSite, SmartEditModule, SmartEditService, StateModule, getStateSlice, entityLoadMeta, entityFailMeta, entitySuccessMeta, entityResetMeta, ENTITY_LOAD_ACTION, ENTITY_FAIL_ACTION, ENTITY_SUCCESS_ACTION, ENTITY_RESET_ACTION, EntityLoadAction, EntityFailAction, EntitySuccessAction, EntityResetAction, entityLoaderReducer, entityStateSelector, entityValueSelector, entityLoadingSelector, entityErrorSelector, entitySuccessSelector, entityMeta, entityRemoveMeta, entityRemoveAllMeta, ENTITY_REMOVE_ACTION, ENTITY_REMOVE_ALL_ACTION, EntityRemoveAction, EntityRemoveAllAction, entityReducer, initialEntityState, entitySelector, loadMeta, failMeta, successMeta, resetMeta, LOADER_LOAD_ACTION, LOADER_FAIL_ACTION, LOADER_SUCCESS_ACTION, LOADER_RESET_ACTION, LoaderLoadAction, LoaderFailAction, LoaderSuccessAction, LoaderResetAction, loaderReducer, initialLoaderState, loaderValueSelector, loaderLoadingSelector, loaderErrorSelector, loaderSuccessSelector, ofLoaderLoad, ofLoaderFail, ofLoaderSuccess, StorageSyncType, StateTransferType, StateConfig, metaReducersFactory, META_REDUCER, StoreFinderOccModule, OccStoreFinderAdapter, StoreFinderConfig, ON_HOLD, FIND_STORES, FIND_STORES_FAIL, FIND_STORES_SUCCESS, FIND_STORE_BY_ID, FIND_STORE_BY_ID_FAIL, FIND_STORE_BY_ID_SUCCESS, OnHold, FindStores, FindStoresFail, FindStoresSuccess, FindStoreById, FindStoreByIdFail, FindStoreByIdSuccess, VIEW_ALL_STORES, VIEW_ALL_STORES_FAIL, VIEW_ALL_STORES_SUCCESS, ViewAllStores, ViewAllStoresFail, ViewAllStoresSuccess, getFindStoresState, getFindStoresEntities, getStoresLoading, getViewAllStoresState, getViewAllStoresEntities, getViewAllStoresLoading, STORE_FINDER_FEATURE, STORE_FINDER_DATA, ExternalJsFileLoader, GoogleMapRendererService, StoreFinderService, StoreDataService, StoreFinderCoreModule, StoreFinderConnector, StoreFinderAdapter, POINT_OF_SERVICE_NORMALIZER, STORE_FINDER_SEARCH_PAGE_NORMALIZER, STORE_COUNT_NORMALIZER, OccUserAddressAdapter, OccUserAccountAdapter, OccUserDetailsAdapter, OccUserPaymentAdapter, OccOrderAdapter, OccOrderNormalizer, UserOccModule, CLEAR_MISCS_DATA, ClearMiscsData, LOAD_BILLING_COUNTRIES, LOAD_BILLING_COUNTRIES_FAIL, LOAD_BILLING_COUNTRIES_SUCCESS, LoadBillingCountries, LoadBillingCountriesFail, LoadBillingCountriesSuccess, LOAD_DELIVERY_COUNTRIES, LOAD_DELIVERY_COUNTRIES_FAIL, LOAD_DELIVERY_COUNTRIES_SUCCESS, LoadDeliveryCountries, LoadDeliveryCountriesFail, LoadDeliveryCountriesSuccess, FORGOT_PASSWORD_EMAIL_REQUEST, FORGOT_PASSWORD_EMAIL_REQUEST_SUCCESS, FORGOT_PASSWORD_EMAIL_REQUEST_FAIL, ForgotPasswordEmailRequest, ForgotPasswordEmailRequestFail, ForgotPasswordEmailRequestSuccess, LOAD_ORDER_DETAILS, LOAD_ORDER_DETAILS_FAIL, LOAD_ORDER_DETAILS_SUCCESS, CLEAR_ORDER_DETAILS, LoadOrderDetails, LoadOrderDetailsFail, LoadOrderDetailsSuccess, ClearOrderDetails, LOAD_USER_PAYMENT_METHODS, LOAD_USER_PAYMENT_METHODS_FAIL, LOAD_USER_PAYMENT_METHODS_SUCCESS, SET_DEFAULT_USER_PAYMENT_METHOD, SET_DEFAULT_USER_PAYMENT_METHOD_FAIL, SET_DEFAULT_USER_PAYMENT_METHOD_SUCCESS, DELETE_USER_PAYMENT_METHOD, DELETE_USER_PAYMENT_METHOD_FAIL, DELETE_USER_PAYMENT_METHOD_SUCCESS, LoadUserPaymentMethods, LoadUserPaymentMethodsFail, LoadUserPaymentMethodsSuccess, SetDefaultUserPaymentMethod, SetDefaultUserPaymentMethodFail, SetDefaultUserPaymentMethodSuccess, DeleteUserPaymentMethod, DeleteUserPaymentMethodFail, DeleteUserPaymentMethodSuccess, LOAD_REGIONS, LOAD_REGIONS_SUCCESS, LOAD_REGIONS_FAIL, LoadRegions, LoadRegionsFail, LoadRegionsSuccess, RESET_PASSWORD, RESET_PASSWORD_SUCCESS, RESET_PASSWORD_FAIL, ResetPassword, ResetPasswordFail, ResetPasswordSuccess, LOAD_TITLES, LOAD_TITLES_FAIL, LOAD_TITLES_SUCCESS, LoadTitles, LoadTitlesFail, LoadTitlesSuccess, UPDATE_EMAIL, UPDATE_EMAIL_ERROR, UPDATE_EMAIL_SUCCESS, RESET_EMAIL, UpdateEmailAction, UpdateEmailSuccessAction, UpdateEmailErrorAction, ResetUpdateEmailAction, UPDATE_PASSWORD, UPDATE_PASSWORD_FAIL, UPDATE_PASSWORD_SUCCESS, UPDATE_PASSWORD_RESET, UpdatePassword, UpdatePasswordFail, UpdatePasswordSuccess, UpdatePasswordReset, LOAD_USER_ADDRESSES, LOAD_USER_ADDRESSES_FAIL, LOAD_USER_ADDRESSES_SUCCESS, ADD_USER_ADDRESS, ADD_USER_ADDRESS_FAIL, ADD_USER_ADDRESS_SUCCESS, UPDATE_USER_ADDRESS, UPDATE_USER_ADDRESS_FAIL, UPDATE_USER_ADDRESS_SUCCESS, DELETE_USER_ADDRESS, DELETE_USER_ADDRESS_FAIL, DELETE_USER_ADDRESS_SUCCESS, LoadUserAddresses, LoadUserAddressesFail, LoadUserAddressesSuccess, AddUserAddress, AddUserAddressFail, AddUserAddressSuccess, UpdateUserAddress, UpdateUserAddressFail, UpdateUserAddressSuccess, DeleteUserAddress, DeleteUserAddressFail, DeleteUserAddressSuccess, LOAD_USER_CONSENTS, LOAD_USER_CONSENTS_SUCCESS, LOAD_USER_CONSENTS_FAIL, RESET_LOAD_USER_CONSENTS, GIVE_USER_CONSENT, GIVE_USER_CONSENT_FAIL, GIVE_USER_CONSENT_SUCCESS, RESET_GIVE_USER_CONSENT_PROCESS, WITHDRAW_USER_CONSENT, WITHDRAW_USER_CONSENT_FAIL, WITHDRAW_USER_CONSENT_SUCCESS, RESET_WITHDRAW_USER_CONSENT_PROCESS, LoadUserConsents, LoadUserConsentsFail, LoadUserConsentsSuccess, ResetLoadUserConsents, GiveUserConsent, GiveUserConsentFail, GiveUserConsentSuccess, ResetGiveUserConsentProcess, WithdrawUserConsent, WithdrawUserConsentFail, WithdrawUserConsentSuccess, ResetWithdrawUserConsentProcess, LOAD_USER_DETAILS, LOAD_USER_DETAILS_FAIL, LOAD_USER_DETAILS_SUCCESS, UPDATE_USER_DETAILS, UPDATE_USER_DETAILS_FAIL, UPDATE_USER_DETAILS_SUCCESS, RESET_USER_DETAILS, LoadUserDetails, LoadUserDetailsFail, LoadUserDetailsSuccess, UpdateUserDetails, UpdateUserDetailsFail, UpdateUserDetailsSuccess, ResetUpdateUserDetails, LOAD_USER_ORDERS, LOAD_USER_ORDERS_FAIL, LOAD_USER_ORDERS_SUCCESS, CLEAR_USER_ORDERS, LoadUserOrders, LoadUserOrdersFail, LoadUserOrdersSuccess, ClearUserOrders, REGISTER_USER, REGISTER_USER_FAIL, REGISTER_USER_SUCCESS, REMOVE_USER, REMOVE_USER_FAIL, REMOVE_USER_SUCCESS, REMOVE_USER_RESET, RegisterUser, RegisterUserFail, RegisterUserSuccess, RemoveUser, RemoveUserFail, RemoveUserSuccess, RemoveUserReset, getReducers$8 as getReducers, clearUserState, reducerToken$8 as reducerToken, reducerProvider$8 as reducerProvider, metaReducers$5 as metaReducers, getBillingCountriesState, getBillingCountriesEntites, getAllBillingCountries, getDeliveryCountriesState, getDeliveryCountriesEntites, getAllDeliveryCountries, countrySelectorFactory, getUserState, getOrderState, getOrderDetails, getPaymentMethodsState, getPaymentMethods, getPaymentMethodsLoading, getRegionsState, getAllRegions, getResetPassword, getTitlesState, getTitlesEntites, getAllTitles, titleSelectorFactory, getAddressesLoaderState, getAddresses, getAddressesLoading, getConsentsState, getConsentsValue, getConsentsLoading, getConsentsSuccess, getConsentsError, getDetailsState, getDetails, getOrdersState, getOrdersLoaded, getOrders, USER_FEATURE, UPDATE_EMAIL_PROCESS_ID, UPDATE_PASSWORD_PROCESS_ID, UPDATE_USER_DETAILS_PROCESS_ID, REMOVE_USER_PROCESS_ID, GIVE_CONSENT_PROCESS_ID, WITHDRAW_CONSENT_PROCESS_ID, USER_CONSENTS, USER_PAYMENT_METHODS, USER_ORDERS, USER_ADDRESSES, UserService, UserModule, UserAccountConnector, UserAccountAdapter, USER_REGISTER_FORM_SERIALIZER, UserAddressConnector, UserAddressAdapter, ADDRESS_NORMALIZER, ADDRESS_SERIALIZER, ADDRESS_VALIDATION_NORMALIZER, UserDetailsConnector, UserDetailsAdapter, USER_NORMALIZER, USER_SERIALIZER, UserPaymentConnector, UserPaymentAdapter, USER_PAYMENT_NORMALIZER, OrderConnector, OrderAdapter, ORDER_NORMALIZER, ORDER_HISTORY_NORMALIZER, PipeModule, StripHtmlModule, ConverterService, UtilModule, WindowRef, PersonalizationModule, PersonalizationConfig, defaultAuthConfig as ɵbe, AuthErrorInterceptor as ɵbm, ClientTokenInterceptor as ɵbj, interceptors as ɵbi, UserTokenInterceptor as ɵbl, ClientAuthenticationTokenService as ɵbc, ClientErrorHandlingService as ɵbg, services as ɵbf, UserAuthenticationTokenService as ɵbb, UserErrorHandlingService as ɵbh, AuthStoreModule as ɵm, authStoreConfigFactory as ɵl, ClientTokenEffect as ɵba, effects$1 as ɵy, UserTokenEffects as ɵz, clearAuthState as ɵw, getReducers$1 as ɵt, metaReducers as ɵx, reducerProvider$1 as ɵv, reducerToken$1 as ɵu, reducer$1 as ɵbd, OccCartNormalizer as ɵbo, CartStoreModule as ɵbp, CartEntryEffects as ɵbx, CartEffects as ɵbw, effects$3 as ɵbv, reducer$2 as ɵby, clearCartState as ɵbt, getReducers$2 as ɵbq, metaReducers$1 as ɵbu, reducerProvider$2 as ɵbs, reducerToken$2 as ɵbr, CheckoutStoreModule as ɵcm, AddressVerificationEffect as ɵcg, CardTypesEffects as ɵcf, CheckoutEffects as ɵce, effects$4 as ɵcd, getAddressVerificationResults as ɵcc, reducer$7 as ɵcb, getCardTypesEntites as ɵca, reducer$6 as ɵbz, reducer$9 as ɵcn, clearCheckoutState as ɵck, getReducers$5 as ɵch, metaReducers$2 as ɵcl, reducerProvider$5 as ɵcj, reducerToken$5 as ɵci, CmsStoreModule as ɵcs, cmsStoreConfigFactory as ɵcr, ComponentEffects as ɵda, effects$5 as ɵcy, NavigationEntryItemEffects as ɵdb, PageEffects as ɵcz, clearCmsState as ɵcw, getReducers$6 as ɵct, metaReducers$3 as ɵcx, reducerProvider$6 as ɵcv, reducerToken$6 as ɵcu, reducer$a as ɵde, reducer$b as ɵdc, reducer$c as ɵdd, ConfigModule as ɵfc, ServerConfig as ɵea, provideConfigValidator as ɵbn, HttpErrorInterceptor as ɵdz, reducer$8 as ɵdy, getReducers$4 as ɵdv, reducerProvider$4 as ɵdx, reducerToken$4 as ɵdw, defaultI18nConfig as ɵeb, i18nextInit as ɵed, i18nextProviders as ɵec, MockDatePipe as ɵee, MockTranslationService as ɵef, defaultPersonalizationConfig as ɵgv, interceptors$3 as ɵgw, OccPersonalizationIdInterceptor as ɵgx, OccPersonalizationTimeInterceptor as ɵgy, ProcessModule as ɵgo, PROCESS_FEATURE as ɵgq, ProcessStoreModule as ɵgp, getReducers$9 as ɵgr, reducerProvider$9 as ɵgt, reducerToken$9 as ɵgs, defaultOccProductConfig as ɵeg, OccProductReferencesListNormalizer as ɵeh, effects$6 as ɵdl, ProductReferencesEffects as ɵdm, ProductReviewsEffects as ɵdn, ProductsSearchEffects as ɵdo, ProductEffects as ɵdp, ProductStoreModule as ɵej, productStoreConfigFactory as ɵei, clearProductsState as ɵdt, getReducers$7 as ɵdq, metaReducers$4 as ɵdu, reducerProvider$7 as ɵds, reducerToken$7 as ɵdr, reducer$d as ɵep, reducer$e as ɵeo, getAuxSearchResults as ɵem, getProductSuggestions as ɵen, getSearchResults as ɵel, reducer$f as ɵek, UrlMatcherFactoryService as ɵa, UrlParsingService as ɵk, ROUTING_FEATURE as ɵb, effects as ɵh, RouterEffects as ɵi, CustomSerializer as ɵg, getReducers as ɵc, reducer as ɵd, reducerProvider as ɵf, reducerToken as ɵe, defaultSiteContextConfigFactory as ɵeq, BaseSiteService as ɵbk, SiteContextParamsService as ɵew, SiteContextRoutesHandler as ɵey, SiteContextUrlSerializer as ɵex, CurrenciesEffects as ɵdk, effects$2 as ɵdi, LanguagesEffects as ɵdj, reducer$5 as ɵev, reducer$4 as ɵeu, getReducers$3 as ɵdf, reducerProvider$3 as ɵdh, reducerToken$3 as ɵdg, reducer$3 as ɵet, SiteContextStoreModule as ɵes, siteContextStoreConfigFactory as ɵer, CmsTicketInterceptor as ɵfa, interceptors$2 as ɵez, EntityFailAction as ɵcp, EntityLoadAction as ɵco, EntityResetAction as ɵfl, EntitySuccessAction as ɵcq, DEFAULT_LOCAL_STORAGE_KEY as ɵn, DEFAULT_SESSION_STORAGE_KEY as ɵo, defaultStateConfig as ɵp, stateMetaReducers as ɵq, getStorageSyncReducer as ɵr, getTransferStateReducer as ɵs, defaultStoreFinderConfig as ɵfd, FindStoresEffect as ɵfj, effects$8 as ɵfi, ViewAllStoresEffect as ɵfk, getReducers$a as ɵff, reducerProvider$a as ɵfh, reducerToken$a as ɵfg, getStoreFinderState as ɵfb, StoreFinderStoreModule as ɵfe, BillingCountriesEffect as ɵfz, DeliveryCountriesEffects as ɵga, ForgotPasswordEffects as ɵgl, effects$7 as ɵfy, OrderDetailsEffect as ɵgb, UserPaymentMethodsEffects as ɵgc, RegionsEffects as ɵgd, ResetPasswordEffects as ɵge, TitlesEffects as ɵgf, UpdateEmailEffects as ɵgm, UpdatePasswordEffects as ɵgn, UserAddressesEffects as ɵgg, UserConsentsEffect as ɵgh, UserDetailsEffects as ɵgi, UserOrdersEffect as ɵgj, UserRegisterEffects as ɵgk, reducer$g as ɵfo, reducer$h as ɵft, reducer$i as ɵfs, reducer$j as ɵfq, reducer$k as ɵfv, reducer$l as ɵfw, reducer$m as ɵfu, reducer$n as ɵfn, reducer$o as ɵfp, reducer$p as ɵfm, reducer$q as ɵfr, UserStoreModule as ɵfx, StripHtmlPipe as ɵgu };
+export { CREATE_CART, CREATE_CART_FAIL, CREATE_CART_SUCCESS, LOAD_CART, LOAD_CART_FAIL, LOAD_CART_SUCCESS, MERGE_CART, MERGE_CART_SUCCESS, CreateCart, CreateCartFail, CreateCartSuccess, LoadCart, LoadCartFail, LoadCartSuccess, MergeCart, MergeCartSuccess, ADD_ENTRY, ADD_ENTRY_SUCCESS, ADD_ENTRY_FAIL, REMOVE_ENTRY, REMOVE_ENTRY_SUCCESS, REMOVE_ENTRY_FAIL, UPDATE_ENTRY, UPDATE_ENTRY_SUCCESS, UPDATE_ENTRY_FAIL, AddEntry, AddEntrySuccess, AddEntryFail, RemoveEntry, RemoveEntrySuccess, RemoveEntryFail, UpdateEntry, UpdateEntrySuccess, UpdateEntryFail, getCartContentSelector, getRefreshSelector, getEntriesSelector, getCartMergeCompleteSelector, getCartsState, getActiveCartState, getCartState, getCartContent, getRefresh, getLoaded, getCartMergeComplete, getEntriesMap, getEntrySelectorFactory, getEntries, CART_FEATURE, CART_DATA, services$1 as services, CartService, ANONYMOUS_USERID, CartDataService, OccCartService, CartOccModule, CartModule, provideConfig, provideConfigFactory, configurationFactory, Config, ConfigChunk, ConfigModule, ServerConfig, defaultServerConfig, provideConfigValidator, validateConfig, ConfigValidatorToken, StateModule, entityMeta, entityRemoveMeta, entityRemoveAllMeta, ENTITY_REMOVE_ACTION, ENTITY_REMOVE_ALL_ACTION, EntityRemoveAction, EntityRemoveAllAction, entityReducer, initialEntityState, entitySelector, loadMeta, failMeta, successMeta, resetMeta, LOADER_LOAD_ACTION, LOADER_FAIL_ACTION, LOADER_SUCCESS_ACTION, LOADER_RESET_ACTION, LoaderLoadAction, LoaderFailAction, LoaderSuccessAction, LoaderResetAction, loaderReducer, initialLoaderState, loaderValueSelector, loaderLoadingSelector, loaderErrorSelector, loaderSuccessSelector, ofLoaderLoad, ofLoaderFail, ofLoaderSuccess, entityLoadMeta, entityFailMeta, entitySuccessMeta, entityResetMeta, ENTITY_LOAD_ACTION, ENTITY_FAIL_ACTION, ENTITY_SUCCESS_ACTION, ENTITY_RESET_ACTION, EntityLoadAction, EntityFailAction, EntitySuccessAction, EntityResetAction, entityLoaderReducer, entityStateSelector, entityValueSelector, entityLoadingSelector, entityErrorSelector, entitySuccessSelector, getStateSlice, StorageSyncType, StateConfig, metaReducersFactory, META_REDUCER, OccProductAdapter, ProductSearchLoaderService, OccProductReviewsAdapter, OccProductReviewsListNormalizer, ProductImageNormalizer, ProductReferenceNormalizer, ProductOccModule, PRODUCT_FEATURE, PRODUCT_DETAIL_ENTITY, SEARCH_PRODUCTS, SEARCH_PRODUCTS_FAIL, SEARCH_PRODUCTS_SUCCESS, GET_PRODUCT_SUGGESTIONS, GET_PRODUCT_SUGGESTIONS_SUCCESS, GET_PRODUCT_SUGGESTIONS_FAIL, CLEAN_PRODUCT_SEARCH, SearchProducts, SearchProductsFail, SearchProductsSuccess, GetProductSuggestions, GetProductSuggestionsSuccess, GetProductSuggestionsFail, CleanProductSearchState, LOAD_PRODUCT, LOAD_PRODUCT_FAIL, LOAD_PRODUCT_SUCCESS, LoadProduct, LoadProductFail, LoadProductSuccess, LOAD_PRODUCT_REVIEWS, LOAD_PRODUCT_REVIEWS_FAIL, LOAD_PRODUCT_REVIEWS_SUCCESS, POST_PRODUCT_REVIEW, POST_PRODUCT_REVIEW_FAIL, POST_PRODUCT_REVIEW_SUCCESS, LoadProductReviews, LoadProductReviewsFail, LoadProductReviewsSuccess, PostProductReview, PostProductReviewFail, PostProductReviewSuccess, getProductsState, getProductState, getSelectedProductsFactory, getSelectedProductStateFactory, getSelectedProductFactory, getSelectedProductLoadingFactory, getSelectedProductSuccessFactory, getSelectedProductErrorFactory, getAllProductCodes, getProductsSearchState, getSearchResults$1 as getSearchResults, getAuxSearchResults$1 as getAuxSearchResults, getProductSuggestions$1 as getProductSuggestions, getProductReviewsState, getSelectedProductReviewsFactory, ProductService, ProductSearchService, ProductReviewService, ProductModule, ProductConnector, ProductAdapter, PRODUCT_NORMALIZER, ProductReviewsConnector, ProductReviewsAdapter, PRODUCT_REVIEWS_NORMALIZER, PRODUCT_REVIEW_SERIALIZER, CategoryPageMetaResolver, ProductPageMetaResolver, SearchPageMetaResolver, LanguageService, CurrencyService, SiteContextModule, interceptors$1 as interceptors, OccSiteService, SiteContextOccModule, SiteContextInterceptor, SiteContextConfig, serviceMapFactory, ContextServiceMap, LANGUAGE_CONTEXT_ID, CURRENCY_CONTEXT_ID, BASE_SITE_CONTEXT_ID, contextServiceMapProvider, inititializeContext, contextServiceProviders, initSiteContextRoutesHandler, siteContextParamsProviders, SITE_CONTEXT_FEATURE, LOAD_LANGUAGES, LOAD_LANGUAGES_FAIL, LOAD_LANGUAGES_SUCCESS, SET_ACTIVE_LANGUAGE, LANGUAGE_CHANGE, LoadLanguages, LoadLanguagesFail, LoadLanguagesSuccess, SetActiveLanguage, LanguageChange, LOAD_CURRENCIES, LOAD_CURRENCIES_FAIL, LOAD_CURRENCIES_SUCCESS, SET_ACTIVE_CURRENCY, CURRENCY_CHANGE, LoadCurrencies, LoadCurrenciesFail, LoadCurrenciesSuccess, SetActiveCurrency, CurrencyChange, SET_ACTIVE_BASE_SITE, BASE_SITE_CHANGE, SetActiveBaseSite, BaseSiteChange, getSiteContextState, getLanguagesState, getLanguagesEntities, getActiveLanguage, getAllLanguages, getCurrenciesState, getCurrenciesEntities, getActiveCurrency, getAllCurrencies, getActiveBaseSite, OccConfig, defaultOccConfig, serverConfigFromMetaTagFactory, SERVER_BASE_URL_META_TAG_NAME, SERVER_BASE_URL_META_TAG_PLACEHOLDER, occConfigValidator, OccModule, USE_CLIENT_TOKEN, InterceptorUtil, OccMiscsService, PriceType, ImageType, Fields, Fields1, Fields2, Fields3, Fields4, Fields5, Fields6, PageType, Fields7, Fields8, Fields9, Fields10, Fields11, Fields12, Fields13, Fields14, Fields15, Fields16, SortEnum, Fields17, Fields18, Fields19, Fields20, Fields21, Fields22, Fields23, Fields24, Fields25, Fields26, Fields27, Fields28, Fields29, Fields30, Fields31, Fields32, Fields33, Fields34, Fields35, Fields36, Fields37, Fields38, Fields39, Fields40, Fields41, Fields42, Fields43, Fields44, Fields45, Fields46, Fields47, Fields48, Fields49, Fields50, Fields51, Fields52, Fields53, Fields54, Fields55, Fields56, Fields57, Fields58, Fields59, Fields60, Fields61, Type, RoutingModule, RoutingService, PageContext, ConfigurableRoutesConfig, UrlTranslationModule, TranslateUrlPipe, ConfigurableRoutesService, initConfigurableRoutes, ConfigurableRoutesModule, RoutesConfigLoader, CHECKOUT_FEATURE, CHECKOUT_CLEAR_MISCS_DATA, CheckoutClearMiscsData, ADD_DELIVERY_ADDRESS, ADD_DELIVERY_ADDRESS_FAIL, ADD_DELIVERY_ADDRESS_SUCCESS, SET_DELIVERY_ADDRESS, SET_DELIVERY_ADDRESS_FAIL, SET_DELIVERY_ADDRESS_SUCCESS, LOAD_SUPPORTED_DELIVERY_MODES, LOAD_SUPPORTED_DELIVERY_MODES_FAIL, LOAD_SUPPORTED_DELIVERY_MODES_SUCCESS, CLEAR_SUPPORTED_DELIVERY_MODES, SET_DELIVERY_MODE, SET_DELIVERY_MODE_FAIL, SET_DELIVERY_MODE_SUCCESS, CREATE_PAYMENT_DETAILS, CREATE_PAYMENT_DETAILS_FAIL, CREATE_PAYMENT_DETAILS_SUCCESS, SET_PAYMENT_DETAILS, SET_PAYMENT_DETAILS_FAIL, SET_PAYMENT_DETAILS_SUCCESS, PLACE_ORDER, PLACE_ORDER_FAIL, PLACE_ORDER_SUCCESS, CLEAR_CHECKOUT_STEP, CLEAR_CHECKOUT_DATA, AddDeliveryAddress, AddDeliveryAddressFail, AddDeliveryAddressSuccess, SetDeliveryAddress, SetDeliveryAddressFail, SetDeliveryAddressSuccess, LoadSupportedDeliveryModes, LoadSupportedDeliveryModesFail, LoadSupportedDeliveryModesSuccess, SetDeliveryMode, SetDeliveryModeFail, SetDeliveryModeSuccess, CreatePaymentDetails, CreatePaymentDetailsFail, CreatePaymentDetailsSuccess, SetPaymentDetails, SetPaymentDetailsFail, SetPaymentDetailsSuccess, PlaceOrder, PlaceOrderFail, PlaceOrderSuccess, ClearSupportedDeliveryModes, ClearCheckoutStep, ClearCheckoutData, LOAD_CARD_TYPES, LOAD_CARD_TYPES_FAIL, LOAD_CARD_TYPES_SUCCESS, LoadCardTypes, LoadCardTypesFail, LoadCardTypesSuccess, VERIFY_ADDRESS, VERIFY_ADDRESS_FAIL, VERIFY_ADDRESS_SUCCESS, CLEAR_ADDRESS_VERIFICATION_RESULTS, VerifyAddress, VerifyAddressFail, VerifyAddressSuccess, ClearAddressVerificationResults, getCheckoutStepsState, getDeliveryAddress$1 as getDeliveryAddress, getDeliveryMode$1 as getDeliveryMode, getSupportedDeliveryModes, getSelectedCode, getSelectedDeliveryMode, getPaymentDetails$1 as getPaymentDetails, getCheckoutOrderDetails, getCardTypesState, getCardTypesEntites$1 as getCardTypesEntites, getAllCardTypes, getAddressVerificationResultsState, getAddressVerificationResults$1 as getAddressVerificationResults, CheckoutService, CheckoutModule, CheckoutPageMetaResolver, OccUserService, OccOrderService, UserOccModule, CLEAR_MISCS_DATA, ClearMiscsData, LOAD_BILLING_COUNTRIES, LOAD_BILLING_COUNTRIES_FAIL, LOAD_BILLING_COUNTRIES_SUCCESS, LoadBillingCountries, LoadBillingCountriesFail, LoadBillingCountriesSuccess, LOAD_DELIVERY_COUNTRIES, LOAD_DELIVERY_COUNTRIES_FAIL, LOAD_DELIVERY_COUNTRIES_SUCCESS, LoadDeliveryCountries, LoadDeliveryCountriesFail, LoadDeliveryCountriesSuccess, FORGOT_PASSWORD_EMAIL_REQUEST, FORGOT_PASSWORD_EMAIL_REQUEST_SUCCESS, FORGOT_PASSWORD_EMAIL_REQUEST_FAIL, ForgotPasswordEmailRequest, ForgotPasswordEmailRequestFail, ForgotPasswordEmailRequestSuccess, LOAD_ORDER_DETAILS, LOAD_ORDER_DETAILS_FAIL, LOAD_ORDER_DETAILS_SUCCESS, CLEAR_ORDER_DETAILS, LoadOrderDetails, LoadOrderDetailsFail, LoadOrderDetailsSuccess, ClearOrderDetails, LOAD_USER_PAYMENT_METHODS, LOAD_USER_PAYMENT_METHODS_FAIL, LOAD_USER_PAYMENT_METHODS_SUCCESS, SET_DEFAULT_USER_PAYMENT_METHOD, SET_DEFAULT_USER_PAYMENT_METHOD_FAIL, SET_DEFAULT_USER_PAYMENT_METHOD_SUCCESS, DELETE_USER_PAYMENT_METHOD, DELETE_USER_PAYMENT_METHOD_FAIL, DELETE_USER_PAYMENT_METHOD_SUCCESS, LoadUserPaymentMethods, LoadUserPaymentMethodsFail, LoadUserPaymentMethodsSuccess, SetDefaultUserPaymentMethod, SetDefaultUserPaymentMethodFail, SetDefaultUserPaymentMethodSuccess, DeleteUserPaymentMethod, DeleteUserPaymentMethodFail, DeleteUserPaymentMethodSuccess, LOAD_REGIONS, LOAD_REGIONS_SUCCESS, LOAD_REGIONS_FAIL, LoadRegions, LoadRegionsFail, LoadRegionsSuccess, RESET_PASSWORD, RESET_PASSWORD_SUCCESS, RESET_PASSWORD_FAIL, ResetPassword, ResetPasswordFail, ResetPasswordSuccess, LOAD_TITLES, LOAD_TITLES_FAIL, LOAD_TITLES_SUCCESS, LoadTitles, LoadTitlesFail, LoadTitlesSuccess, UPDATE_PASSWORD, UPDATE_PASSWORD_FAIL, UPDATE_PASSWORD_SUCCESS, UPDATE_PASSWORD_RESET, UpdatePassword, UpdatePasswordFail, UpdatePasswordSuccess, UpdatePasswordReset, LOAD_USER_ADDRESSES, LOAD_USER_ADDRESSES_FAIL, LOAD_USER_ADDRESSES_SUCCESS, ADD_USER_ADDRESS, ADD_USER_ADDRESS_FAIL, ADD_USER_ADDRESS_SUCCESS, UPDATE_USER_ADDRESS, UPDATE_USER_ADDRESS_FAIL, UPDATE_USER_ADDRESS_SUCCESS, DELETE_USER_ADDRESS, DELETE_USER_ADDRESS_FAIL, DELETE_USER_ADDRESS_SUCCESS, LoadUserAddresses, LoadUserAddressesFail, LoadUserAddressesSuccess, AddUserAddress, AddUserAddressFail, AddUserAddressSuccess, UpdateUserAddress, UpdateUserAddressFail, UpdateUserAddressSuccess, DeleteUserAddress, DeleteUserAddressFail, DeleteUserAddressSuccess, LOAD_USER_DETAILS, LOAD_USER_DETAILS_FAIL, LOAD_USER_DETAILS_SUCCESS, UPDATE_USER_DETAILS, UPDATE_USER_DETAILS_FAIL, UPDATE_USER_DETAILS_SUCCESS, RESET_USER_DETAILS, LoadUserDetails, LoadUserDetailsFail, LoadUserDetailsSuccess, UpdateUserDetails, UpdateUserDetailsFail, UpdateUserDetailsSuccess, ResetUpdateUserDetails, LOAD_USER_ORDERS, LOAD_USER_ORDERS_FAIL, LOAD_USER_ORDERS_SUCCESS, CLEAR_USER_ORDERS, LoadUserOrders, LoadUserOrdersFail, LoadUserOrdersSuccess, ClearUserOrders, REGISTER_USER, REGISTER_USER_FAIL, REGISTER_USER_SUCCESS, RegisterUser, RegisterUserFail, RegisterUserSuccess, getReducers$8 as getReducers, clearUserState, reducerToken$8 as reducerToken, reducerProvider$8 as reducerProvider, metaReducers$5 as metaReducers, getDetailsState, getDetails, getAddressesLoaderState, getAddresses, getAddressesLoading, getPaymentMethodsState, getPaymentMethods, getPaymentMethodsLoading, getOrdersState, getOrdersLoaded, getOrders, getTitlesState, getTitlesEntites, getAllTitles, titleSelectorFactory, getDeliveryCountriesState, getDeliveryCountriesEntites, getAllDeliveryCountries, countrySelectorFactory, getRegionsState, getAllRegions, getOrderState, getOrderDetails$1 as getOrderDetails, getUserState, getBillingCountriesState, getBillingCountriesEntites, getAllBillingCountries, getResetPassword, USER_FEATURE, UPDATE_PASSWORD_PROCESS_ID, UPDATE_USER_DETAILS_PROCESS_ID, USER_PAYMENT_METHODS, USER_ORDERS, USER_ADDRESSES, UserService, UserModule, AuthModule, AuthConfig, AuthService, AuthGuard, NotAuthGuard, LOAD_USER_TOKEN, LOAD_USER_TOKEN_FAIL, LOAD_USER_TOKEN_SUCCESS, REFRESH_USER_TOKEN, REFRESH_USER_TOKEN_FAIL, REFRESH_USER_TOKEN_SUCCESS, LoadUserToken, LoadUserTokenFail, LoadUserTokenSuccess, RefreshUserToken, RefreshUserTokenSuccess, RefreshUserTokenFail, LOAD_CLIENT_TOKEN, LOAD_CLIENT_TOKEN_FAIL, LOAD_CLIENT_TOKEN_SUCCESS, LoadClientToken, LoadClientTokenFail, LoadClientTokenSuccess, LOGIN, LOGOUT, Login, Logout, getAuthState, getUserTokenSelector, getUserTokenState, getUserToken, getClientTokenState, AUTH_FEATURE, CLIENT_TOKEN_DATA, GLOBAL_MESSAGE_FEATURE, ADD_MESSAGE, REMOVE_MESSAGE, REMOVE_MESSAGES_BY_TYPE, AddMessage, RemoveMessage, RemoveMessagesByType, getGlobalMessageState, getGlobalMessageEntities, GlobalMessageStoreModule, GlobalMessageService, GlobalMessageType, GlobalMessageModule, errorHandlers, httpErrorInterceptors, JSP_INCLUDE_CMS_COMPONENT_TYPE, CMS_FLEX_COMPONENT_TYPE, CmsConfig, defaultCmsModuleConfig, CmsStructureConfig, PageRobotsMeta, OccCmsPageAdapter, OccCmsPageNormalizer, OccCmsComponentAdapter, CmsOccModule, CmsPageAdapter, CmsPageConnector, CMS_PAGE_NORMALIZE, CmsComponentConnector, CmsComponentAdapter, CMS_COMPONENT_NORMALIZER, CMS_COMPONENT_LIST_NORMALIZER, CMS_FEATURE, NAVIGATION_DETAIL_ENTITY, COMPONENT_ENTITY, LOAD_PAGE_DATA, LOAD_PAGE_DATA_FAIL, LOAD_PAGE_DATA_SUCCESS, LoadPageData, LoadPageDataFail, LoadPageDataSuccess, LOAD_COMPONENT, LOAD_COMPONENT_FAIL, LOAD_COMPONENT_SUCCESS, GET_COMPONENET_FROM_PAGE, LoadComponent, LoadComponentFail, LoadComponentSuccess, GetComponentFromPage, LOAD_NAVIGATION_ITEMS, LOAD_NAVIGATION_ITEMS_FAIL, LOAD_NAVIGATION_ITEMS_SUCCESS, LoadNavigationItems, LoadNavigationItemsFail, LoadNavigationItemsSuccess, getPageEntitiesSelector, getIndexByType, getPageComponentTypesSelector, getPageState, getPageStateIndex, getIndex, getIndexEntity, getPageEntities, getPageData, getPageComponentTypes, currentSlotSelectorFactory, getComponentEntitiesSelector, getComponentState, getComponentEntities, componentStateSelectorFactory, componentSelectorFactory, getNavigationEntryItemState, getSelectedNavigationEntryItemState, itemsSelectorFactory, getCmsState, CmsService, PageMetaService, CmsModule, ComponentMapperService, CmsStructureConfigService, DynamicAttributeService, PageMetaResolver, ContentPageMetaResolver, CmsPageTitleModule, SmartEditModule, OccStoreFinderService, StoreFinderOccModule, StoreFinderConfig, ON_HOLD, FIND_STORES, FIND_STORES_FAIL, FIND_STORES_SUCCESS, FIND_STORE_BY_ID, FIND_STORE_BY_ID_FAIL, FIND_STORE_BY_ID_SUCCESS, OnHold, FindStores, FindStoresFail, FindStoresSuccess, FindStoreById, FindStoreByIdFail, FindStoreByIdSuccess, VIEW_ALL_STORES, VIEW_ALL_STORES_FAIL, VIEW_ALL_STORES_SUCCESS, ViewAllStores, ViewAllStoresFail, ViewAllStoresSuccess, getFindStoresState, getFindStoresEntities, getStoresLoading, getViewAllStoresState, getViewAllStoresEntities, getViewAllStoresLoading, STORE_FINDER_FEATURE, STORE_FINDER_DATA, ExternalJsFileLoader, GoogleMapRendererService, StoreFinderService, StoreDataService, StoreFinderCoreModule, WindowRef, CxApiModule, CxApiService, DatePipe$1 as DatePipe, TranslatePipe, TranslationService, TranslationNamespaceService, I18nModule, I18nConfig, I18nextTranslationService, I18nTestingModule, MockTranslatePipe, PipeModule, StripHtmlModule, ConverterService, UtilModule, defaultAuthConfig as ɵfz, AuthErrorInterceptor as ɵgg, ClientTokenInterceptor as ɵge, interceptors as ɵgd, UserTokenInterceptor as ɵgf, ClientAuthenticationTokenService as ɵfx, ClientErrorHandlingService as ɵgb, services as ɵga, UserAuthenticationTokenService as ɵfw, UserErrorHandlingService as ɵgc, AuthStoreModule as ɵfn, authStoreConfigFactory as ɵfm, ClientTokenEffect as ɵfv, effects$1 as ɵft, UserTokenEffects as ɵfu, clearAuthState as ɵfr, getReducers$1 as ɵfo, metaReducers as ɵfs, reducerProvider$1 as ɵfq, reducerToken$1 as ɵfp, reducer$1 as ɵfy, CartStoreModule as ɵd, CartEntryEffects as ɵl, CartEffects as ɵk, effects$5 as ɵj, reducer$2 as ɵn, clearCartState as ɵh, getReducers$2 as ɵe, metaReducers$1 as ɵi, reducerProvider$2 as ɵg, reducerToken$2 as ɵf, CheckoutStoreModule as ɵdy, AddressVerificationEffect as ɵdx, CardTypesEffects as ɵdw, CheckoutEffects as ɵdv, effects$7 as ɵdu, getAddressVerificationResults as ɵdt, reducer$c as ɵds, getCardTypesEntites as ɵdr, reducer$d as ɵdq, getDeliveryAddress as ɵdm, getDeliveryMode as ɵdn, getOrderDetails as ɵdp, getPaymentDetails as ɵdo, reducer$b as ɵdl, clearCheckoutState as ɵdj, getCheckoutState as ɵdi, getReducers$6 as ɵdf, metaReducers$4 as ɵdk, reducerProvider$6 as ɵdh, reducerToken$6 as ɵdg, CmsStoreModule as ɵbo, cmsStoreConfigFactory as ɵbn, ComponentEffects as ɵbw, effects$4 as ɵbu, NavigationEntryItemEffects as ɵbx, PageEffects as ɵbv, clearCmsState as ɵbs, getReducers$5 as ɵbp, metaReducers$3 as ɵbt, reducerProvider$5 as ɵbr, reducerToken$5 as ɵbq, reducer$8 as ɵce, reducer$9 as ɵcb, reducer$a as ɵcd, ConfigModule as ɵgv, ServerConfig as ɵhe, provideConfigValidator as ɵc, BadGatewayHandler as ɵgk, BadRequestHandler as ɵgl, ConflictHandler as ɵgm, ForbiddenHandler as ɵgn, GatewayTimeoutHandler as ɵgo, HttpErrorHandler as ɵgi, NotFoundHandler as ɵgp, UnknownErrorHandler as ɵgj, HttpErrorInterceptor as ɵgq, reducer$e as ɵgh, getReducers$7 as ɵfb, reducerProvider$7 as ɵfd, reducerToken$7 as ɵfc, defaultI18nConfig as ɵhf, i18nextInit as ɵhh, i18nextProviders as ɵhg, MockDatePipe as ɵhi, MockTranslationService as ɵhj, OccConfig as ɵm, PageType as ɵcc, PageType as ɵde, OccEndpointsService as ɵa, ProcessModule as ɵfg, PROCESS_FEATURE as ɵfi, ProcessStoreModule as ɵfh, getReducers$9 as ɵfj, reducerProvider$9 as ɵfl, reducerToken$9 as ɵfk, defaultOccProductConfig as ɵs, effects$3 as ɵbg, ProductReviewsEffects as ɵbj, ProductsSearchEffects as ɵbh, ProductEffects as ɵbi, ProductStoreModule as ɵbl, productStoreConfigFactory as ɵbk, clearProductsState as ɵbe, getReducers$4 as ɵbb, metaReducers$2 as ɵbf, reducerProvider$4 as ɵbd, reducerToken$4 as ɵbc, reducer$4 as ɵbm, getAuxSearchResults as ɵz, getProductSuggestions as ɵba, getSearchResults as ɵy, reducer$3 as ɵx, defaultConfigurableRoutesConfig as ɵcu, defaultStorefrontRoutesTranslations as ɵcv, UrlParsingService as ɵca, UrlTranslationService as ɵbz, ROUTING_FEATURE as ɵcw, effects as ɵdc, RouterEffects as ɵdd, CustomSerializer as ɵdb, getReducers as ɵcx, reducer as ɵcy, reducerProvider as ɵda, reducerToken as ɵcz, defaultSiteContextConfigFactory as ɵcl, BaseSiteService as ɵb, SiteContextParamsService as ɵcr, SiteContextRoutesHandler as ɵct, SiteContextUrlSerializer as ɵcs, CurrenciesEffects as ɵck, effects$2 as ɵci, LanguagesEffects as ɵcj, reducer$7 as ɵcq, reducer$6 as ɵcp, getReducers$3 as ɵcf, reducerProvider$3 as ɵch, reducerToken$3 as ɵcg, reducer$5 as ɵco, SiteContextStoreModule as ɵcn, siteContextStoreConfigFactory as ɵcm, CmsTicketInterceptor as ɵgs, interceptors$2 as ɵgr, SmartEditService as ɵgt, EntityFailAction as ɵeb, EntityLoadAction as ɵea, EntityResetAction as ɵed, EntitySuccessAction as ɵec, defaultStateConfig as ɵo, stateMetaReducers as ɵp, getStorageSyncReducer as ɵq, getTransferStateReducer as ɵr, defaultStoreFinderConfig as ɵgw, FindStoresEffect as ɵhc, effects$8 as ɵhb, ViewAllStoresEffect as ɵhd, getReducers$a as ɵgy, reducerProvider$a as ɵha, reducerToken$a as ɵgz, getStoreFinderState as ɵgu, StoreFinderStoreModule as ɵgx, BillingCountriesEffect as ɵeq, DeliveryCountriesEffects as ɵer, ForgotPasswordEffects as ɵfe, effects$6 as ɵep, OrderDetailsEffect as ɵes, UserPaymentMethodsEffects as ɵet, RegionsEffects as ɵeu, ResetPasswordEffects as ɵev, TitlesEffects as ɵew, UpdatePasswordEffects as ɵff, UserAddressesEffects as ɵex, UserDetailsEffects as ɵey, UserOrdersEffect as ɵez, UserRegisterEffects as ɵfa, reducer$f as ɵeg, reducer$g as ɵek, reducer$h as ɵej, reducer$i as ɵeh, reducer$j as ɵem, reducer$k as ɵen, reducer$l as ɵel, reducer$m as ɵef, reducer$n as ɵee, reducer$o as ɵei, UserStoreModule as ɵeo, StripHtmlPipe as ɵhk };
 
 //# sourceMappingURL=spartacus-core.js.map

@@ -1,11 +1,11 @@
 import { Actions } from '@ngrx/effects';
 import { Observable } from 'rxjs';
-import { UserPaymentConnector } from '../../connectors/payment/user-payment.connector';
+import { OccUserService } from '../../occ/index';
 export declare class UserPaymentMethodsEffects {
     private actions$;
-    private userPaymentMethodConnector;
+    private occUserService;
     loadUserPaymentMethods$: Observable<any>;
     setDefaultUserPaymentMethod$: Observable<any>;
     deleteUserPaymentMethod$: Observable<any>;
-    constructor(actions$: Actions, userPaymentMethodConnector: UserPaymentConnector);
+    constructor(actions$: Actions, occUserService: OccUserService);
 }

@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { Order } from '../../../model/order.model';
+import { Order } from '../../../occ/occ-models/index';
 export declare const LOAD_ORDER_DETAILS = "[User] Load Order Details";
 export declare const LOAD_ORDER_DETAILS_FAIL = "[User] Load Order Details Fail";
 export declare const LOAD_ORDER_DETAILS_SUCCESS = "[User] Load Order Details Success";

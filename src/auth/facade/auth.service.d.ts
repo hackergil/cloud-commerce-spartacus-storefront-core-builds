@@ -26,6 +26,10 @@ export declare class AuthService {
      */
     authorizeWithToken(token: UserToken): void;
     /**
+     * Login
+     */
+    login(): void;
+    /**
      * Logout
      */
     logout(): void;

@@ -1,6 +1,6 @@
-import { HttpErrorResponse, HttpRequest } from '@angular/common/http';
-import { HttpResponseStatus } from '../../models/response-status.model';
+import { HttpRequest, HttpErrorResponse } from '@angular/common/http';
 import { HttpErrorHandler } from './http-error.handler';
+import { HttpResponseStatus } from '../../models/response-status.model';
 export declare class BadRequestHandler extends HttpErrorHandler {
     responseStatus: HttpResponseStatus;
     handleError(request: HttpRequest<any>, response: HttpErrorResponse): void;

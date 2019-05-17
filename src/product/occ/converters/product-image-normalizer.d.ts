@@ -1,12 +1,23 @@
-import { OccConfig } from '../../../occ/config/occ-config';
-import { Occ } from '../../../occ/occ-models/occ.models';
+import { Image, OccConfig } from '../../../occ';
+import { Product } from '../../../occ/occ-models/occ.models';
 import { Converter } from '../../../util/converter.service';
-import { Product } from '../../../model/product.model';
-import { Images } from '../../../model/image.model';
-export declare class ProductImageNormalizer implements Converter<Occ.Product, Product> {
+import { UIImages, UIProduct } from '../../model/product-model';
+export declare class ProductImageNormalizer implements Converter<Product, UIProduct> {
     protected config: OccConfig;
     constructor(config: OccConfig);
-    convert(source: Occ.Product, target?: Product): Product;
+    convert(source: Product, target?: UIProduct): UIProduct;
+    /**
+     * @deprecated Use `convert(source, target?) => target` instead
+     *
+     * TODO: Should be removed when all use cases will be refactored
+     */
+    convertList(list: Array<Product>): void;
+    /**
+     * @deprecated Use `convert(source, target?) => target` instead
+     *
+     * TODO: Should be removed when all use cases will be refactored
+     */
+    convertProduct(product: any): void;
     /**
      * @desc
      * Creates the image structure we'd like to have. Instead of
@@ -15,5 +26,5 @@ export declare class ProductImageNormalizer implements Converter<Occ.Product, Pr
      * - images.primary.thumnail.url
      * - images.GALLERY[0].thumnail.url
      */
-    normalize(source: Occ.Image[]): Images;
+    normalize(source: Image[]): UIImages;
 }

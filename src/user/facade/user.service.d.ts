@@ -1,10 +1,6 @@
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { Address, Country, Region } from '../../model/address.model';
-import { PaymentDetails } from '../../model/cart.model';
-import { Title, User } from '../../model/misc.model';
-import { Order, OrderHistoryList } from '../../model/order.model';
-import { ConsentTemplateList } from '../../occ/occ-models/additional-occ.models';
+import { Address, Country, Order, OrderHistoryList, PaymentDetails, Region, Title, User } from '../../occ/occ-models/index';
 import * as fromProcessStore from '../../process/store/process-state';
 import { UserRegisterFormData } from '../model/user.model';
 import * as fromStore from '../store/index';
@@ -25,29 +21,6 @@ export declare class UserService {
      * @param submitFormData as UserRegisterFormData
      */
     register(userRegisterFormData: UserRegisterFormData): void;
-    /**
-     * Remove user account, that's also called close user's account
-     *
-     * @param userId
-     */
-    remove(userId: string): void;
-    /**
-     * Returns the remove user loading flag
-     */
-    getRemoveUserResultLoading(): Observable<boolean>;
-    /**
-     * Returns the remove user failure outcome.
-     */
-    getRemoveUserResultError(): Observable<boolean>;
-    /**
-     * Returns the remove user process success outcome.
-     */
-    getRemoveUserResultSuccess(): Observable<boolean>;
-    /**
-     * Resets the remove user process state. The state needs to be reset after the process
-     * concludes, regardless if it's a success or an error
-     */
-    resetRemoveUserProcessState(): void;
     /**
      * Returns an order's detail
      */
@@ -186,10 +159,6 @@ export declare class UserService {
      */
     clearOrderList(): void;
     /**
-     * Return whether user's password is successfully reset
-     */
-    isPasswordReset(): Observable<boolean>;
-    /**
      * Updates the user's details
      * @param userDetails to be updated
      */
@@ -218,26 +187,9 @@ export declare class UserService {
     resetPassword(token: string, password: string): void;
     requestForgotPasswordEmail(userEmailAddress: string): void;
     /**
-     * Updates the user's email
-     * @param uid to be updated
+     * Return whether user's password is successfully reset.  Part of the forgot password flow.
      */
-    updateEmail(uid: string, password: string, newUid: string): void;
-    /**
-     * Returns the update user's email success flag
-     */
-    getUpdateEmailResultSuccess(): Observable<boolean>;
-    /**
-     * Returns the update user's email error flag
-     */
-    getUpdateEmailResultError(): Observable<boolean>;
-    /**
-     * Returns the update user's email loading flag
-     */
-    getUpdateEmailResultLoading(): Observable<boolean>;
-    /**
-     * Resets the update user's email processing state
-     */
-    resetUpdateEmailResultState(): void;
+    isPasswordReset(): Observable<boolean>;
     /**
      * Updates the password for an authenticated user
      * @param userId the user id for which the password will be updated
@@ -246,7 +198,7 @@ export declare class UserService {
      */
     updatePassword(userId: string, oldPassword: string, newPassword: string): void;
     /**
-     * Returns the update password loading flag
+     * Returns the update passwrod loading flag
      */
     getUpdatePasswordResultLoading(): Observable<boolean>;
     /**
@@ -262,74 +214,4 @@ export declare class UserService {
      * concludes, regardless if it's a success or an error
      */
     resetUpdatePasswordProcessState(): void;
-    /**
-     * Retrieves all consents
-     * @param userId user ID for which to retrieve consents
-     */
-    loadConsents(userId: string): void;
-    /**
-     * Returns all consents
-     */
-    getConsents(): Observable<ConsentTemplateList>;
-    /**
-     * Returns the consents loading flag
-     */
-    getConsentsResultLoading(): Observable<boolean>;
-    /**
-     * Returns the consents success flag
-     */
-    getConsentsResultSuccess(): Observable<boolean>;
-    /**
-     * Returns the consents error flag
-     */
-    getConsentsResultError(): Observable<boolean>;
-    /**
-     * Resets the processing state for consent retrieval
-     */
-    resetConsentsProcessState(): void;
-    /**
-     * Give consent for specified consent template ID and version.
-     * @param userId and ID of a user giving the consent
-     * @param consentTemplateId a template ID for which to give a consent
-     * @param consentTemplateVersion a template version for which to give a consent
-     */
-    giveConsent(userId: string, consentTemplateId: string, consentTemplateVersion: number): void;
-    /**
-     * Returns the give consent process loading flag
-     */
-    getGiveConsentResultLoading(): Observable<boolean>;
-    /**
-     * Returns the give consent process success flag
-     */
-    getGiveConsentResultSuccess(): Observable<boolean>;
-    /**
-     * Returns the give consent process error flag
-     */
-    getGiveConsentResultError(): Observable<boolean>;
-    /**
-     * Resents the give consent process flags
-     */
-    resetGiveConsentProcessState(): void;
-    /**
-     * Withdraw consent for the given `consentCode`
-     * @param userId a user ID for which to withdraw the consent
-     * @param consentCode for which to withdraw the consent
-     */
-    withdrawConsent(userId: string, consentCode: string): void;
-    /**
-     * Returns the withdraw consent process loading flag
-     */
-    getWithdrawConsentResultLoading(): Observable<boolean>;
-    /**
-     * Returns the withdraw consent process success flag
-     */
-    getWithdrawConsentResultSuccess(): Observable<boolean>;
-    /**
-     * Returns the withdraw consent process error flag
-     */
-    getWithdrawConsentResultError(): Observable<boolean>;
-    /**
-     * Resets the process flags for withdraw consent
-     */
-    resetWithdrawConsentProcessState(): void;
 }

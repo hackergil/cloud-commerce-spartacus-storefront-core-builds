@@ -54,11 +54,6 @@ export declare class CmsService {
      */
     refreshLatestPage(): void;
     /**
-     * Refresh the cms page content by page Id
-     * @param pageId
-     */
-    refreshPageById(pageId: string): void;
-    /**
      * Refresh cms component's content
      * @param uid : component uid
      */
@@ -77,5 +72,5 @@ export declare class CmsService {
      * Given pageContext, return whether the CMS page data exists or not
      * @param pageContext
      */
-    hasPage(pageContext: PageContext, forceReload?: boolean): Observable<boolean>;
+    hasPage(pageContext: PageContext): Observable<boolean>;
 }
